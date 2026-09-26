@@ -22,4 +22,4 @@ import './echanges/index.js';
 
 import './partage/index.js';
 
-// [accessibilite]
+import './accessibilite/index.js';
