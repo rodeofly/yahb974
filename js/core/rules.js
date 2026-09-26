@@ -517,5 +517,6 @@ export function targetsOf(sec) {
     const plug = ext.blocks.get(b.type);
     if (plug?.targets) plug.targets(b, i).forEach(t => t?.to && out.push({ ...t, to: String(t.to) }));
   });
+  for (const f of ext.targets) (f(sec) || []).forEach(t => t?.to && out.push({ ...t, to: String(t.to) })); // renvois des greffons (ex. variantes selon le mode)
   return out;
 }

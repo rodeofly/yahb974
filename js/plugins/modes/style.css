@@ -1,0 +1,60 @@
+/* Greffon « modes » : cartes de choix du mode, feuille d'aventure, éditeur. Jetons de couleur de css/app.css.
+   Daltonisme : le mode choisi se reconnaît à sa bordure épaisse, au disque plein de l'icône et au mot « Choisi ». */
+
+/* ---------- création du héros ---------- */
+.modes-pick { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
+.modes-pick legend { padding: 0; margin-bottom: 2px; }
+.mode-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.mode-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr auto; gap: 10px 12px;
+  padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; }
+.mode-card:hover { border-color: var(--accent); }
+.mode-card.on { border: 3px solid var(--ink); padding: 12px; background: var(--paper); }
+.mode-card:has(.mode-radio:focus-visible) { outline: 3px solid var(--accent); outline-offset: 3px; }
+.mode-radio { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.mode-txt { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.mode-name { font-family: var(--display); font-size: 19px; line-height: 1.15; }
+.mode-ages { justify-self: start; font-weight: 700; font-size: 14px; border: 1px solid var(--ink); border-radius: 999px; padding: 0 10px; }
+.mode-desc { font-size: 14px; color: var(--muted); text-align: left; hyphens: auto; -webkit-hyphens: auto; }
+.mode-feats { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: var(--muted); }
+.mode-feats span { display: inline-flex; gap: 4px; align-items: center; }
+.mode-tick { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 14px; font-weight: 700; color: var(--muted); }
+.mode-card.on .mode-tick { color: var(--ink); }
+.mode-card.on .mode-tick .ico { width: 20px; height: 20px; stroke-width: 3; }
+.mode-ring { width: 16px; height: 16px; border: 2px solid var(--muted); border-radius: 50%; display: inline-block; }
+
+/* icône dans un disque : contour pour les autres modes, disque plein pour le mode choisi */
+.mode-ico { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; flex: none; color: var(--ink); background: var(--surface); }
+.mode-ico .ico { width: 30px; height: 30px; }
+.mode-card.on .mode-ico { background: var(--ink); color: var(--paper); }
+.mode-ico.small { width: 34px; height: 34px; border-width: 1.5px; }
+.mode-ico.small .ico { width: 20px; height: 20px; }
+
+/* ---------- feuille d'aventure ---------- */
+.mode-sheet { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper); }
+.mode-sheet b { font-family: var(--display); font-size: 17px; }
+
+/* ---------- éditeur ---------- */
+.mode-edit > header h3 { display: flex; align-items: center; }
+.mode-variants { gap: 10px; }
+.mode-variant, .mode-check-one { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 0; }
+.mode-variant > summary, .mode-check-one > summary { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 10px 12px; cursor: pointer; list-style-position: inside; }
+.mode-variant[open] > summary, .mode-check-one[open] > summary { border-bottom: 1px solid var(--line); }
+.mode-variant > .stack { padding: 12px; }
+.mode-check-one > .problems, .mode-check-one > p { margin: 10px 12px 12px !important; }
+.mode-status { font-size: 13px; color: var(--muted); margin-left: auto; }
+.mode-vis { display: flex; flex-wrap: wrap; gap: 6px; }
+.mode-vis .chk { font-size: 14px; align-items: flex-start; }
+.mode-vis .chk input { margin-top: 3px; }
+.mode-count { margin-left: auto; font-size: 13px; font-weight: 700; padding: 1px 8px; border: 1px solid var(--line); border-radius: 4px; }
+.mode-count.bad { border: 2px solid var(--loss); color: var(--loss); }
+.mode-count.bad::before { content: "✗ "; }
+.mode-cond { display: grid; gap: 4px; font-size: 14px; color: var(--muted); font-weight: 500; }
+.mode-print select { width: auto; min-height: 30px; padding: 2px 6px; }
+
+/* ---------- version imprimable ---------- */
+.pr-mode { border: 2px solid #111; border-radius: 6px; padding: 6px 10px; }
+
+@media (max-width: 520px) {
+  .mode-card { grid-template-columns: auto minmax(0, 1fr); }
+  .mode-ico { width: 44px; height: 44px; }
+}

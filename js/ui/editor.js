@@ -356,6 +356,7 @@ function SectionForm({ adv, sid, change, open, addSection, problems }) {
         </div>`;
       })}
     </section>
+    ${sorted(ui.sectionPanels).map(p => html`<${p.Panel} key=${p.id} adv=${adv} sid=${sid} sec=${sec} set=${set} change=${change} />`)}
   </div>`;
 }
 

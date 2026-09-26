@@ -8,7 +8,7 @@ import { prefs } from './common.js';
 import { putSave, listSaves, deleteSave } from '../store/db.js';
 import * as R from '../core/rules.js';
 import * as C from '../core/combat.js';
-import { ui, sorted, runHooks } from './registry.js';
+import { ui, sorted, runHooks, effectiveAdventure } from './registry.js';
 
 export function Play({ id, query }) {
   const [adv, setAdv] = useState(null);
@@ -19,14 +19,25 @@ export function Play({ id, query }) {
   const [game, setGame] = useState(null);         // { state, messages, stamp }
   const slot = useRef('auto');
   const test = !!query.test;
+  // Aventure effective d'une partie (greffons : mode de jeu…), en cache par aventure et par state.mode.
+  const effCache = useRef({ adv: null, map: new Map() });
+  const effective = (a, state) => {
+    if (effCache.current.adv !== a) effCache.current = { adv: a, map: new Map() };
+    const { map } = effCache.current, key = JSON.stringify(state?.mode ?? null);
+    if (!map.has(key)) map.set(key, effectiveAdventure(a, state));
+    return map.get(key);
+  };
 
   useEffect(() => {
     loadAdventure(id).then(async ({ adventure, source }) => {
       setAdv(adventure); setSource(source);
       if (test) {
-        const { state } = R.createHero(adventure, { classId: query.class });
-        const r = R.start(state, adventure, query.from || adventure.start);
-        runHooks('onStart', adventure, r.state, { test });
+        const ctx = { test, query };
+        const a = effective(adventure, prepareHero(R.createHero(adventure, { seed: 1 }).state, adventure, {}, ctx));
+        const { state } = R.createHero(a, { classId: query.class });
+        prepareHero(state, adventure, {}, ctx);
+        const r = R.start(state, a, query.from || a.start);
+        runHooks('onStart', a, r.state, { test });
         setGame({ state: r.state, messages: r.messages, stamp: 1 });
         setPhase('read');
         return;
@@ -38,10 +49,11 @@ export function Play({ id, query }) {
   }, [id]);
 
   const update = (state, messages = []) => {
+    const a = effective(adv, state);
     setGame(g => {
       const prev = g?.state || null;
-      runHooks('onUpdate', adv, prev, state, { test });
-      if (state.ended && !prev?.ended) runHooks('onEnd', adv, state, { test });
+      runHooks('onUpdate', a, prev, state, { test });
+      if (state.ended && !prev?.ended) runHooks('onEnd', a, state, { test });
       return { state, messages, stamp: (g?.stamp || 0) + 1 };
     });
     if (!test) putSave(adv.id, slot.current, { state, title: adv.meta.title, section: state.section, hero: state.hero.name });
@@ -66,15 +78,16 @@ export function Play({ id, query }) {
     <div><button class="btn" onClick=${() => setPhase('create')}><${Icon} name="plus" />Nouvelle partie</button></div>
   </main>`;
 
-  if (phase === 'create') return html`<${Creator} adv=${adv} source=${source} onStart=${state => {
+  if (phase === 'create') return html`<${Creator} adv=${adv} source=${source} query=${query} onStart=${state => {
     slot.current = 'auto';
-    const r = R.start(state, adv, adv.start);
-    runHooks('onStart', adv, r.state, { test });
+    const a = effective(adv, state);
+    const r = R.start(state, a, a.start);
+    runHooks('onStart', a, r.state, { test });
     update(r.state, r.messages);
     setPhase('read');
   }} />`;
 
-  return html`<${Reader} adv=${adv} source=${source} game=${game} update=${update} test=${test}
+  return html`<${Reader} adv=${effective(adv, game.state)} source=${source} game=${game} update=${update} test=${test}
     onRestart=${() => { setGame(null); setPhase('create'); }}
     onSaveAs=${async () => { const s = 'p' + Date.now(); await putSave(adv.id, s, { state: game.state, title: adv.meta.title, section: game.state.section, hero: game.state.hero.name }); toast('Partie sauvegardée.'); }} />`;
 }
@@ -83,17 +96,28 @@ export function Play({ id, query }) {
 /* Création du héros                                                   */
 /* ------------------------------------------------------------------ */
 
-function Creator({ adv, source, onStart }) {
+/** Les greffons de la création (mode de jeu…) complètent l'état du héros ; `choices` = choix de leurs panneaux, par id. */
+function prepareHero(state, adv, choices = {}, ctx = {}) {
+  for (const p of sorted(ui.creatorPanels)) p.beforeStart?.(state, choices[p.id], adv, ctx);
+  return state;
+}
+
+function Creator({ adv: loaded, source, query = {}, onStart }) {
+  const [choices, setChoices] = useState({});
+  // Aventure dans laquelle le héros sera créé : les choix des panneaux (mode de jeu…) peuvent en changer les règles.
+  const adv = useMemo(() => effectiveAdventure(loaded, prepareHero(R.createHero(loaded, { seed: 1 }).state, loaded, choices, { test: false, query })), [loaded, choices]);
   const classes = adv.rules.classes || [];
   const [classId, setClassId] = useState(classes[0]?.id || null);
   const [name, setName] = useState('');
   const [hero, setHero] = useState(null);
   const [stamp, setStamp] = useState(0);
   const rollAll = () => { setHero(R.createHero(adv, { classId, name: name.trim() || 'Héros' })); setStamp(s => s + 1); };
-  useEffect(() => { setHero(null); }, [classId]);
+  const rulesSig = JSON.stringify(adv.rules);
+  useEffect(() => { setHero(null); }, [classId, rulesSig]);
   const cls = classes.find(c => c.id === classId);
   const rows = [...adv.rules.stats.map(s => ({ id: s.id, label: s.label, expr: cls?.rolls?.[s.id] || s.roll })),
     { id: 'gold', label: 'Pièces d’or', expr: cls?.gold || adv.rules.gold || '0' }].filter(r => r.id !== 'gold' || r.expr !== '0');
+  const panel = p => html`<${p.Panel} key=${p.id} adv=${adv} classId=${classId} hero=${hero} query=${query} choice=${choices[p.id]} setChoice=${v => setChoices(c => ({ ...c, [p.id]: v }))} />`;
 
   return html`<main class="creator">
     <div class="stack" style="gap:6px">
@@ -102,6 +126,7 @@ function Creator({ adv, source, onStart }) {
       ${adv.meta.description && html`<p class="muted" style="margin:0">${adv.meta.description}</p>`}
     </div>
     ${adv.meta.cover && html`<div class="illus"><${AssetImg} adv=${adv} source=${source} path=${adv.meta.cover} alt="" /></div>`}
+    ${sorted(ui.creatorPanels).filter(p => p.place === 'top').map(panel)}
     <label class="field">Nom du héros<input type="text" id="hero-name" value=${name} onInput=${e => setName(e.target.value)} placeholder="Héros" /></label>
     ${classes.length > 1 && html`<div class="stack" style="gap:8px"><span class="eyebrow">Classe</span>
       <div class="classes">${classes.map(c => html`<button class="class-opt" aria-pressed=${c.id === classId} onClick=${() => setClassId(c.id)}><b>${c.label}</b><span class="subtle">${c.description || ''}</span></button>`)}</div></div>`}
@@ -113,10 +138,10 @@ function Creator({ adv, source, onStart }) {
       </div>`)}
       <div class="rollrow"><b>Repas</b><span class="formula">${cls?.provisions ?? adv.rules.provisions ?? 0}</span><span class="dice-total">${cls?.provisions ?? adv.rules.provisions ?? 0}</span></div>
     </div>
-    ${sorted(ui.creatorPanels).map(p => html`<${p.Panel} adv=${adv} classId=${classId} hero=${hero} />`)}
+    ${sorted(ui.creatorPanels).filter(p => p.place !== 'top').map(panel)}
     <div class="row">
       <button class="btn ${hero ? '' : 'primary'}" onClick=${rollAll}><${Icon} name="dice" />${hero ? 'Relancer les dés' : 'Lancer les dés'}</button>
-      <button class="btn primary" disabled=${!hero} onClick=${() => { const s = structuredClone(hero.state); s.hero.name = name.trim() || 'Héros'; onStart(s); }}><${Icon} name="play" />Commencer l'aventure</button>
+      <button class="btn primary" disabled=${!hero} onClick=${() => { const s = structuredClone(hero.state); s.hero.name = name.trim() || 'Héros'; prepareHero(s, loaded, choices, { test: false, query }); onStart(s); }}><${Icon} name="play" />Commencer l'aventure</button>
     </div>
   </main>`;
 }

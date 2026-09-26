@@ -4,6 +4,7 @@
 import { zipSync, unzipSync, strToU8, strFromU8 } from '../lib/fflate.js';
 import * as db from './db.js';
 import { normalizeAdventure, slug } from '../core/rules.js';
+import { ext } from '../core/plugins.js';
 
 const BUNDLED = 'adventures/';
 
@@ -100,6 +101,8 @@ function imagePaths(adv) {
     (s.blocks || []).forEach(b => (b.enemies || []).forEach(e => e.image && paths.add(e.image)));
   });
   Object.values(adv.items).forEach(i => i.image && paths.add(i.image));
+  // Fichiers cités par les greffons (registerAssets), ex. l'image d'une carte cliquable.
+  for (const f of ext.assets) { try { (f(adv) || []).forEach(p => p && paths.add(p)); } catch (e) { console.warn('[greffon] registerAssets', e); } }
   return [...paths].filter(p => !/^(https?:|data:|blob:)/.test(p));
 }
 

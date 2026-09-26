@@ -26,12 +26,15 @@ import { registerEffect, registerCondition, registerBlock, registerCombatHook,
 |---|---|---|
 | `registerNormalize(fn)` | valeurs par défaut des règles / de l'aventure | `fn(adv)` modifie `adv` (déjà cloné) |
 | `registerHeroInit(fn)` | champs d'état d'un nouveau héros | `fn(state, adv, cls, rng)` modifie `state` |
+| `registerTargets(fn)` | renvois d'un paragraphe hors choix et blocs (graphe, vérification, paragraphes atteignables) | `fn(sec)` → `[{ to, kind, label, ref }]` (ex. choix des variantes selon le mode) ; renvoyez `[]` si rien |
 | `registerEffect(op, def)` | nouvel effet `{ op: '<op>', … }` | `def.apply(s, e, adv, messages)` modifie `s` (déjà cloné) et pousse `{ kind: 'gain'|'loss'|'info', text }` ; `def.describe(e, adv)` texte court ; `def.print?(e, adv)` phrase de livre (« Vous gagnez… ») ; `def.validate?(e, adv, report, where)` avec `report(level, message)` |
 | `registerCondition(def)` | nouvelle condition | `def.match(c)` → vrai si c'est la sienne (ex. `'counter' in c`) ; `def.check(c, state, adv)` ; `def.describe(c, adv)` (« avoir 3 points de Réputation ») ; `def.print?` ; `def.validate?` |
 | `registerBlock(type, def)` | nouveau bloc interactif (moteur) | `def.targets(b, i)` → `[{ to, kind, label, ref }]` (graphe, vérification) ; `def.remap?(b, m, remapCond)` pour la renumérotation (`m(ancienNuméro)` → nouveau) ; `def.validate?(b, adv, report, where)` ; `def.print?(b, adv, h)` → HTML de la version imprimable, avec `h = { go, esc, UP, plural, condText, effectText }` |
+| `registerRemap(fn)` | renumérotation / renommage des paragraphes | `fn(adv, m, remapCond)` : `adv` est déjà une copie, mettez à jour vos champs hors paragraphes qui citent des numéros (`m(ancien)` → nouveau, `remapCond(c)` pour une condition) |
 | `registerCombatHook(def)` | modifie les combats | `attackMod(state, adv, combat)`, `damageMod(…)`, `armor(…)` (nombres ajoutés/retirés à chaque assaut) ; `round(ctx)` après l'échange principal avec `ctx = { state, adv, combat, rng, lines, roll, target }` (ex. compagnons) : modifiez `ctx.state`, `ctx.combat`, poussez des lignes de journal et, pour l'affichage, `ctx.combat.last.extra.push(texte)` |
 | `registerChoiceGuard(fn)` | bloque tous les choix avec une raison | `fn(state, adv)` → `'Votre sac est trop lourd.'` ou `null` |
 | `registerEnterHook(fn)` | après les effets d'entrée d'un paragraphe | `fn(s, adv, sectionId, messages)` modifie `s` |
+| `registerAssets(fn)` | fichiers à inclure dans l'export `.lhz` | `fn(adv)` → `['images/carte.webp', …]` (images ou sons cités par vos blocs ou vos champs) |
 
 Règles du moteur : **ne jamais modifier les objets reçus** en dehors des crochets qui fournissent un état déjà cloné ;
 les fonctions exportées par un greffon prennent un état et renvoient `{ state, messages }` (état neuf).
@@ -45,7 +48,8 @@ L'état persistant du greffon va dans `state.<nomDuGreffon>` (créé par `regist
 import { registerBlockUI, registerEffectUI, registerConditionUI, registerSheetPanel, registerItemAction,
          registerItemFields, registerRulesSection, registerEditorTab, registerEditorAction, registerSettings,
          registerLibraryExtra, registerLibraryAction, registerCardAction, registerEndingPanel, registerCombatPanel,
-         registerRunHook, registerRoute, registerPrintSection, registerMarkdown, registerCreatorPanel } from '../../ui/registry.js';
+         registerRunHook, registerRoute, registerPrintSection, registerMarkdown, registerCreatorPanel,
+         registerAdvTransform, registerSectionPanel, registerPrintOption, effectiveAdventure } from '../../ui/registry.js';
 ```
 
 | Fonction | Où ça s'affiche | Propriétés |
@@ -67,7 +71,10 @@ import { registerBlockUI, registerEffectUI, registerConditionUI, registerSheetPa
 | `registerRoute(nom, Composant)` | page `#/<nom>/<id>/<sub>?…` | `Composant({ id, sub, query })` |
 | `registerPrintSection(def)` | version imprimable | `where: 'rules' | 'sheet' | 'appendix'`, `Section({ adv })` |
 | `registerMarkdown(def)` | texte des paragraphes | `before(src)` → `{ src, after(html) }` : mettez de côté des morceaux (ex. `$x^2$`) avant l'échappement HTML et réinsérez-les après |
-| `registerCreatorPanel(def)` | création du héros | `Panel({ adv, classId, hero })` |
+| `registerCreatorPanel(def)` | création du héros | `id`, `order`, `place?: 'top'` (avant le nom du héros ; sinon après les dés), `Panel({ adv, classId, hero, choice, setChoice, query })` — `choice` / `setChoice(v)` : mémoire du panneau pendant la création ; `beforeStart?(state, choice, adv, { test, query })` modifie l'état du héros juste avant le départ (`adv` : l'aventure chargée ; aussi en mode test, avec `choice` indéfini : lisez alors `query`). Il est aussi appelé sur un héros provisoire pour savoir dans quelle aventure effective tirer les dés : pas d'effet de bord |
+| `registerAdvTransform(fn)` | aventure effective d'une partie | `fn(adv, state)` → nouvelle aventure (ou `adv` inchangée) ; **ne modifie pas** `adv`. La lecture, les blocs, les choix, la feuille, les crochets de suivi et la création du héros reçoivent l'aventure transformée. Mise en cache par aventure et par `state.mode` : ne dépendez que de champs fixés à la création (ex. `state.mode`). `effectiveAdventure(adv, state)` applique toutes les transformations |
+| `registerSectionPanel(def)` | formulaire d'un paragraphe (éditeur), après les choix | `id`, `order`, `Panel({ adv, sid, sec, set, change })` — `set(patch)` fusionne dans le paragraphe |
+| `registerPrintOption(def)` | contrôles de la version imprimable | `id`, `order`, `init?(query)` → valeur de départ (ex. `?mode=` de l'adresse), `apply?(adv, valeur)` → aventure imprimée (avant le mélange des numéros), `Control({ adv, value, set })` |
 
 Composants et champs réutilisables :
 - `js/ui/common.js` : `html`, `Icon`, `Dice`, `Prose`, `markdown`, `AssetImg`, `Modal`, `toast`, `confirmBox`, `prefs`, `loadCSS`.

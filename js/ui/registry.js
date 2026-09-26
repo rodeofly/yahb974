@@ -42,8 +42,14 @@ export const ui = {
   printSections: [],
   /** [{ before(src) → { src, after(html) → html } }] : extensions du Markdown (mathématiques…) */
   markdown: [],
-  /** [{ id, order, Panel({ adv, classId, hero }) }] : écran de création du héros */
+  /** [{ id, order, place?: 'top'|'bottom', Panel({ adv, classId, hero, choice, setChoice, query }), beforeStart?(state, choice, adv, { test, query }) }] : écran de création du héros */
   creatorPanels: [],
+  /** [(adv, state) → adv] : aventure effective d'une partie (ex. mode de jeu), sans modifier adv ; voir effectiveAdventure */
+  advTransforms: [],
+  /** [{ id, order, Panel({ adv, sid, sec, set, change }) }] : panneaux du formulaire d'un paragraphe (éditeur, après les choix) */
+  sectionPanels: [],
+  /** [{ id, order, init?(query) → valeur, apply?(adv, valeur) → adv, Control({ adv, value, set }) }] : options de la version imprimable */
+  printOptions: [],
 };
 
 export const registerBlockUI = (type, def) => { ui.blocks.set(type, def); };
@@ -66,8 +72,22 @@ export const registerRoute = (name, Component) => { ui.routes.set(name, Componen
 export const registerPrintSection = def => { ui.printSections.push(def); };
 export const registerMarkdown = def => { ui.markdown.push(def); };
 export const registerCreatorPanel = def => { ui.creatorPanels.push(def); };
+export const registerAdvTransform = fn => { ui.advTransforms.push(fn); };
+export const registerSectionPanel = def => { ui.sectionPanels.push(def); };
+export const registerPrintOption = def => { ui.printOptions.push(def); };
 
 export const sorted = list => [...list].sort((a, b) => (a.order ?? 50) - (b.order ?? 50));
+
+/**
+ * Aventure effective d'une partie : l'aventure passée par les transformations des greffons (mode de jeu…).
+ * Sans transformation, renvoie `adv` tel quel. Le jeu met le résultat en cache par aventure et par `state.mode` :
+ * une transformation ne doit dépendre que de champs d'état fixés à la création du héros.
+ */
+export function effectiveAdventure(adv, state) {
+  let a = adv;
+  for (const f of ui.advTransforms) a = f(a, state) || a;
+  return a;
+}
 
 /** Appelle un crochet de suivi sans jamais casser la partie si un greffon échoue. */
 export function runHooks(name, ...args) {
