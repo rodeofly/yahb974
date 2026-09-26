@@ -32,6 +32,7 @@ import { registerEffect, registerCondition, registerBlock, registerCombatHook,
 | `registerCombatHook(def)` | modifie les combats | `attackMod(state, adv, combat)`, `damageMod(…)`, `armor(…)` (nombres ajoutés/retirés à chaque assaut) ; `round(ctx)` après l'échange principal avec `ctx = { state, adv, combat, rng, lines, roll, target }` (ex. compagnons) : modifiez `ctx.state`, `ctx.combat`, poussez des lignes de journal et, pour l'affichage, `ctx.combat.last.extra.push(texte)` |
 | `registerChoiceGuard(fn)` | bloque tous les choix avec une raison | `fn(state, adv)` → `'Votre sac est trop lourd.'` ou `null` |
 | `registerEnterHook(fn)` | après les effets d'entrée d'un paragraphe | `fn(s, adv, sectionId, messages)` modifie `s` |
+| `registerAssets(fn)` | fichiers à inclure dans l'export `.lhz` | `fn(adv)` → `['images/carte.webp', …]` (images ou sons cités par vos blocs ou vos champs) |
 
 Règles du moteur : **ne jamais modifier les objets reçus** en dehors des crochets qui fournissent un état déjà cloné ;
 les fonctions exportées par un greffon prennent un état et renvoient `{ state, messages }` (état neuf).

@@ -11,7 +11,7 @@ import './defis/core.js';
 
 import './zefor/core.js';
 
-// [carte]
+import './carte/core.js';
 
 // [succes]
 

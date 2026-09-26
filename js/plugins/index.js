@@ -14,7 +14,7 @@ import './zefor/index.js';
 
 import './maths/index.js';
 
-// [carte]
+import './carte/index.js';
 
 // [succes]
 
