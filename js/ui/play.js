@@ -5,6 +5,7 @@ import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox } from './common.
 import { loadAdventure, assetUrl } from '../store/library.js';
 import { sfx, ambience, speak, stopSpeaking, ttsAvailable } from './audio.js';
 import { prefs } from './common.js';
+import { InlineText } from './common.js';
 import { putSave, listSaves, deleteSave } from '../store/db.js';
 import * as R from '../core/rules.js';
 import * as C from '../core/combat.js';
@@ -166,7 +167,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
       ${!state.ended && (sec.blocks || []).map((b, i) => html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`)}
       ${!state.ended && !state.combat?.over && choices.length > 0 && html`<nav class="choices" aria-label="Choix">
         ${choices.map(c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
-          <span>${c.text || 'Continuer'}</span><span class="go">${c.to}</span>
+          <${InlineText} text=${c.text || 'Continuer'} /><span class="go">${c.to}</span>
           ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
         </button>`)}
       </nav>`}

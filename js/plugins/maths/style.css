@@ -1,0 +1,41 @@
+/* Greffon « maths » : formules KaTeX et onglet d'aide de l'éditeur.
+   Les formules prennent la couleur du texte qui les entoure : clair, sombre et impression fonctionnent seuls. */
+
+/* ---------- formules ---------- */
+.katex { font-size: 1.08em; text-indent: 0; }
+.prose .katex, .choice .katex, .print-book .katex { hyphens: manual; -webkit-hyphens: manual; }
+/* Formule centrée trop large (téléphone) : elle défile au lieu de déborder. */
+.katex-display { margin: .6em 0; overflow-x: auto; overflow-y: hidden; padding: .1em 0 .2em; }
+.maths-bloc { margin: 0 0 1em; }
+.maths-bloc > .katex-display { margin: .3em 0; }
+.choice .katex-display { margin: 0; }
+/* KaTeX dessine la flèche de \vec dans un <span class="overlay"> : on annule le style des fenêtres de l'application. */
+.katex .overlay { position: static; inset: auto; z-index: auto; display: block; background: none; padding: 0; place-items: normal; }
+
+/* Formule incorrecte : cadre pointillé et croix, pas seulement une couleur. */
+.katex-error { font-family: var(--mono); font-size: .85em; border: 1.5px dashed currentColor; border-radius: 4px; padding: 0 4px; cursor: help; white-space: pre-wrap; }
+.katex-error::before { content: "✗ "; font-weight: 700; }
+/* Commande inconnue dans une formule par ailleurs correcte : soulignée en vagues. */
+.katex [style*="--loss"] { text-decoration: underline wavy; text-underline-offset: 3px; }
+.print-book .katex-error, .print-book .katex [style*="--loss"] { color: #111 !important; }
+@media print { .katex-display { overflow: visible; } }
+
+/* ---------- onglet « Maths » de l'éditeur ---------- */
+.maths-aide h3 { display: flex; gap: 8px; align-items: center; }
+.maths-aide h3 .ico { width: 20px; height: 20px; }
+.maths-code { font-family: var(--mono); font-size: 13px; background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+.maths-rules { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; line-height: 1.55; }
+.maths-preview { border: 1px dashed var(--line); border-radius: 8px; padding: 14px 16px; background: var(--paper); display: grid; gap: 10px; min-width: 0; }
+.maths-preview .prose { max-width: none; margin: 0; }
+.maths-preview .prose > :last-child { margin-bottom: 0; }
+.maths-choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--serif); }
+.maths-choices li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.maths-choices .mono { color: var(--muted); font-weight: 700; white-space: nowrap; }
+.maths-group { display: grid; gap: 8px; }
+.maths-group h4 { margin: 8px 0 0; font-family: var(--display); font-size: 17px; }
+.maths-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 8px; }
+.maths-ex { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 10px 12px; display: grid; gap: 8px; align-content: space-between; min-width: 0; }
+.maths-ex .nom { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.maths-ex .rendu { font-family: var(--serif); font-size: 19px; min-height: 2.4em; display: flex; align-items: center; justify-content: center; overflow-x: auto; overflow-y: hidden; }
+.maths-ex .rendu .katex-display { margin: 0; }
+.maths-aide textarea { font-family: var(--mono); font-size: 14px; line-height: 1.6; }

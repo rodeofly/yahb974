@@ -12,7 +12,7 @@
 
 // [zefor]
 
-// [maths]
+import './maths/index.js';
 
 // [carte]
 
