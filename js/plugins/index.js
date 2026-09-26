@@ -18,7 +18,7 @@
 
 // [succes]
 
-// [echanges]
+import './echanges/index.js';
 
 // [partage]
 

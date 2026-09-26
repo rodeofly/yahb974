@@ -1,0 +1,61 @@
+/* Greffon « échanges » : menu d'export, import Twine, fusion d'aventures. Jetons de couleur de css/app.css. */
+
+.xch-menu-wrap { position: relative; display: inline-flex; }
+.xch-menu-wrap > .btn, .topbar > .btn.xch-btn { white-space: nowrap; flex: none; }
+/* Placé par index.js (position fixe calculée pour rester dans l'écran). */
+.xch-menu {
+  position: fixed; z-index: 40; max-height: calc(100vh - 90px); overflow-y: auto;
+  width: min(360px, calc(100vw - 32px)); display: grid; gap: 2px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / .22);
+}
+.xch-item {
+  display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 10px; align-items: start;
+  text-align: left; border: 1px solid transparent; background: none; border-radius: 8px; padding: 8px 10px; color: var(--ink);
+}
+.xch-item:hover { background: var(--sunk); }
+/* Élément actif au clavier : cadre et barre épaisse à gauche (le survol ne change que le fond). */
+.xch-item:focus-visible, .xch-item:focus { border-color: var(--ink); background: var(--paper); outline: none; box-shadow: inset 5px 0 0 var(--ink); }
+.xch-ext { font-weight: 700; font-size: 13px; text-align: center; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; background: var(--paper); }
+.xch-item-text { display: grid; gap: 2px; }
+.xch-item-text b { font-size: 15px; }
+
+.xch-dialog { gap: 14px; }
+.xch-note { margin: 0; max-width: 70ch; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.xch-title { font-size: 22px; }
+.xch-sub { font-size: 17px; margin-top: 2px; }
+.xch-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.xch-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.xch-stats > div { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 6px 12px; display: grid; gap: 0; min-width: 96px; }
+.xch-stats dt { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.xch-stats dd { margin: 0; font-size: 22px; font-weight: 700; }
+
+.xch-report { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.xch-report li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.xch-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); white-space: nowrap; color: var(--muted); }
+.xch-tag .ico { width: 14px; height: 14px; }
+/* Attention : cadre épais et plein, et le mot « Attention » ; la couleur ne fait que renforcer. */
+.xch-report li.xch-warning { border: 2px solid var(--ink); }
+.xch-warning .xch-tag { border: 2px solid var(--loss); color: var(--loss); }
+/* Renommé : cadre en tirets. */
+.xch-report li.xch-rename { border-style: dashed; }
+.xch-rename .xch-tag { color: var(--ink); border-style: dashed; }
+
+.xch-sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.xch-source { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 14px; display: grid; gap: 10px; align-content: start; }
+.xch-source h3 { display: flex; gap: 8px; align-items: center; font-size: 17px; }
+.xch-source p { margin: 0; }
+
+.xch-options { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 14px; display: grid; gap: 10px; margin: 0; min-width: 0; }
+.xch-options legend { font-weight: 700; padding: 0 6px; }
+.xch-options .grid2 { align-items: end; }
+.xch-options input:disabled { opacity: .55; border-style: dashed; cursor: not-allowed; }
+.xch-check { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; }
+.xch-check input { margin-top: 4px; accent-color: var(--accent); }
+
+/* Sur téléphone, la barre de l'éditeur déborde déjà sans greffon : on la laisse passer à la ligne
+   (règle limitée à la barre qui contient ce greffon ; elle aurait sa place dans css/app.css). */
+@media (max-width: 800px) {
+  .topbar:has(> .xch-menu-wrap) { flex-wrap: wrap; row-gap: 8px; }
+}
