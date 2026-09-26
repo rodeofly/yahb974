@@ -3,7 +3,7 @@
 
 import './equipement/core.js';
 
-// [compteurs]
+import './compteurs/core.js';
 
 // [compagnons]
 

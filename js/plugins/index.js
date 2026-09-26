@@ -4,7 +4,7 @@
 
 import './equipement/index.js';
 
-// [compteurs]
+import './compteurs/index.js';
 
 // [compagnons]
 

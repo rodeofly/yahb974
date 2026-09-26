@@ -1,0 +1,47 @@
+/* Greffon « compteurs » : uniquement les jetons de css/app.css (clair et sombre). */
+
+/* ---------- Feuille d'Aventure ---------- */
+.cpt-sheet .stat .label { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.cpt-sheet .stat .label .ico { width: 16px; height: 16px; color: var(--ink); }
+.cpt-sheet .cpt-bar { height: 8px; }
+.cpt-sheet .cpt-bar > span { background: var(--ink); }
+.cpt-ends { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.cpt-ends > span { display: inline-flex; align-items: center; gap: 4px; }
+.cpt-ends .ico { width: 14px; height: 14px; }
+.cpt-secret { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border: 1px dashed var(--muted); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.cpt-hidden { border-left: 3px dashed var(--line); padding-left: 8px; }
+.cpt-test { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
+.cpt-test .btn.small { min-height: 28px; padding: 2px 10px; font-family: var(--mono); }
+
+/* ---------- création, fin ---------- */
+.cpt-name { display: inline-flex; align-items: center; gap: 6px; }
+.cpt-final { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.cpt-pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--sans); }
+.cpt-pill .ico { width: 16px; height: 16px; }
+
+/* ---------- éditeur ---------- */
+.cpt-card { background: var(--paper); }
+.cpt-card > header h3 { display: inline-flex; align-items: center; gap: 8px; }
+.cpt-iconpick { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.cpt-preview { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.cpt-preview .ico { width: 22px; height: 22px; }
+.cpt-grid { align-items: end; }
+.cpt-grid > label.field:nth-child(3) input { font-family: var(--mono); }
+.cpt-trigger { background: var(--surface); display: flex; flex-wrap: wrap; align-items: flex-end; }
+.cpt-trigger > :nth-child(1) { flex: 1.3 1 170px; }
+.cpt-trigger > :nth-child(2) { flex: .6 1 70px; }
+.cpt-trigger > :nth-child(3) { flex: 1.2 1 150px; }
+.cpt-trigger > .cpt-msg { flex: 2.4 1 200px; min-width: 0; }
+.cpt-trigger > .rm { flex: 0 0 auto; margin-left: auto; }
+.cpt-bad { color: var(--loss); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- version imprimable (papier : noir sur blanc, comme app.css) ---------- */
+.cpt-pr-grid .cpt-pr-box { gap: 4px; }
+.cpt-pr-box .cpt-name .ico { width: 14px; height: 14px; }
+.cpt-track { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; }
+.cpt-cell { min-width: 20px; height: 24px; padding: 0 2px; border: 1px solid #111; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; gap: 1px; font-family: var(--mono); font-size: 10.5px; color: #111; }
+.cpt-cell b { font-weight: 500; }
+.cpt-cell.start { border-width: 2.5px; }
+.cpt-cell.start b { font-weight: 700; }
+.cpt-cell.end { border-style: double; border-width: 3px; }
+.cpt-cell .ico { width: 10px; height: 10px; }
