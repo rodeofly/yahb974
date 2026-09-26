@@ -22,4 +22,4 @@
 
 // [partage]
 
-// [accessibilite]
+import './accessibilite/index.js';

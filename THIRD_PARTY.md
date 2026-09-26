@@ -10,3 +10,4 @@
 | `js/lib/fflate.js` | [fflate](https://github.com/101arrowz/fflate) 0.8.2 | MIT |
 | `fonts/Alegreya*` | [Alegreya, Alegreya SC, Alegreya Sans](https://www.huertatipografica.com/en/fonts/alegreya-ht-pro) | SIL Open Font License 1.1 |
 | `fonts/JetBrainsMono*` | [JetBrains Mono](https://www.jetbrains.com/lp/mono/) | SIL Open Font License 1.1 |
+| `fonts/accessibilite/AtkinsonHyperlegible*`, `fonts/accessibilite/OpenDyslexic*` | [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) (Braille Institute) et [OpenDyslexic](https://opendyslexic.org) 0.920 (Abbie Gonzalez, paquet `@fontsource/opendyslexic` 5.3.0) — greffon « accessibilite », licences dans le dossier | SIL Open Font License 1.1 |

@@ -1,0 +1,133 @@
+/* Greffon « accessibilite » : polices de lecture, portée, interlignage, espacement des lettres,
+   contraste renforcé, animations réduites, guide de lecture. Tout est piloté par des attributs
+   data-a11y-* posés sur <html> par index.js ; sans attribut, rien ne change.
+   Les palettes « très contrasté » sont injectées par index.js (voir core.js, contrastCss). */
+
+/* ---------- polices (SIL Open Font License, fichiers dans fonts/accessibilite/) ---------- */
+/* Atkinson Hyperlegible — Braille Institute of America. Téléchargée seulement si elle est choisie. */
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-400-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-400-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: italic; font-weight: 400; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-400i-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: italic; font-weight: 400; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-400i-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-700-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-700-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: italic; font-weight: 700; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-700i-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Atkinson Hyperlegible'; font-style: italic; font-weight: 700; font-display: swap;
+  src: url(../../../fonts/accessibilite/AtkinsonHyperlegible-700i-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+/* OpenDyslexic — Abbie Gonzalez (paquet @fontsource/opendyslexic 5.3.0, sous-ensemble latin complet). */
+@font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(../../../fonts/accessibilite/OpenDyslexic-400-latin.woff2) format('woff2'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 400; font-display: swap;
+  src: url(../../../fonts/accessibilite/OpenDyslexic-400i-latin.woff2) format('woff2'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(../../../fonts/accessibilite/OpenDyslexic-700-latin.woff2) format('woff2'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 700; font-display: swap;
+  src: url(../../../fonts/accessibilite/OpenDyslexic-700i-latin.woff2) format('woff2'); }
+
+/* ---------- police de lecture ---------- */
+:root {
+  --a11y-book-serif: "Alegreya", "Palatino Linotype", Georgia, serif;
+  --a11y-book-display: "Alegreya SC", "Palatino Linotype", Georgia, serif;
+  --a11y-book-sans: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+}
+:root[data-a11y-font="atkinson"] { --a11y-family: "Atkinson Hyperlegible", "Alegreya Sans", "Segoe UI", system-ui, sans-serif; }
+:root[data-a11y-font="opendyslexic"] { --a11y-family: "OpenDyslexic", "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif; }
+
+/* Portée « texte de l'aventure » : paragraphes (et leurs intertitres) et choix. */
+:root[data-a11y-font] :is(.prose, .choice) { --serif: var(--a11y-family); --display: var(--a11y-family); font-family: var(--a11y-family); }
+/* Portée « toute l'interface » : les jetons de police eux-mêmes (les chiffres gardent la police à chasse fixe). */
+:root[data-a11y-font][data-a11y-scope="all"] { --serif: var(--a11y-family); --display: var(--a11y-family); --sans: var(--a11y-family); }
+
+/* ---------- interlignage aéré ---------- */
+:root[data-a11y-leading="airy"] .prose { line-height: 2; }
+:root[data-a11y-leading="airy"] .prose p { margin-bottom: 1.4em; }
+:root[data-a11y-leading="airy"] .prose li { margin-bottom: .4em; }
+:root[data-a11y-leading="airy"] .choice { line-height: 1.7; padding-block: 14px; }
+:root[data-a11y-leading="airy"] .choices { gap: 12px; }
+:root[data-a11y-leading="airy"][data-a11y-scope="all"] body { line-height: 1.75; }
+:root[data-a11y-leading="airy"][data-a11y-scope="all"] :is(.subtle, .muted, .msg, .block, .sheet, .modal, .inv li) { line-height: 1.75; }
+
+/* ---------- espacement des lettres et des mots (WCAG 1.4.12) ---------- */
+/* OpenDyslexic est déjà très large : on l'espace moins que les autres polices. */
+:root { --a11y-track: .12em; --a11y-track-ui: .05em; }
+:root[data-a11y-font="opendyslexic"] { --a11y-track: .05em; --a11y-track-ui: .02em; }
+:root[data-a11y-spacing="wide"] :is(.prose, .choice) { letter-spacing: var(--a11y-track); word-spacing: .16em; }
+:root[data-a11y-spacing="wide"][data-a11y-scope="all"] body { letter-spacing: var(--a11y-track-ui); word-spacing: .1em; }
+
+/* ---------- version imprimable : mise en page du livre, sauf si l'utilisateur la demande aussi ---------- */
+:root[data-a11y-font]:not([data-a11y-print]) .print-book { --serif: var(--a11y-book-serif); --display: var(--a11y-book-display); --sans: var(--a11y-book-sans); }
+:root[data-a11y-spacing]:not([data-a11y-print]) .print-book { letter-spacing: normal; word-spacing: normal; }
+:root[data-a11y-print][data-a11y-font] .print-book { --serif: var(--a11y-family); --display: var(--a11y-family); --sans: var(--a11y-family); }
+:root[data-a11y-print][data-a11y-leading="airy"] .print-book :is(p, li) { line-height: 1.9; }
+:root[data-a11y-print][data-a11y-spacing="wide"] .print-book :is(p, li, td) { letter-spacing: var(--a11y-track); word-spacing: .16em; }
+
+/* ---------- animations réduites (même effet que prefers-reduced-motion dans app.css) ---------- */
+:root[data-a11y-motion="reduce"] *, :root[data-a11y-motion="reduce"] *::before, :root[data-a11y-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+}
+
+/* ---------- très contrasté : les formes et les bordures restent les repères ---------- */
+:root[data-a11y-contrast] :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+:root[data-a11y-contrast] ::placeholder { color: var(--muted); opacity: 1; }
+:root[data-a11y-contrast] :is(.btn, .choice, .card, .panel, .block, .sheet, .reader, .modal, .fighter, .round, .rollrow, .class-opt, .rowline) { border-color: var(--line); }
+:root[data-a11y-contrast] :is(.modal, .reader, .sheet) { border-width: 2px; }
+:root[data-a11y-contrast] .btn.ghost { border-color: transparent; }
+/* Un bouton inactif garde un texte lisible : bordure en tirets et texte secondaire au lieu de la transparence. */
+:root[data-a11y-contrast] :is(.btn, .choice):disabled { opacity: 1; color: var(--muted); border-style: dashed; }
+:root[data-a11y-contrast] .btn.primary:disabled { background: var(--surface); color: var(--muted); border-color: var(--line); }
+:root[data-a11y-contrast] .fighter.down { opacity: 1; border-style: dashed; }
+:root[data-a11y-contrast] .fighter.down .fname { text-decoration: line-through; text-decoration-thickness: 2px; }
+:root[data-a11y-contrast] .fighter.down .fname::after { display: inline-block; margin-left: .3em; }
+:root[data-a11y-contrast] .fighter.target { border-width: 4px; }
+:root[data-a11y-contrast] .overlay { background: rgb(0 0 0 / .75); }
+:root[data-a11y-contrast] .tabs button[aria-selected="true"] { border-bottom-width: 4px; }
+:root[data-a11y-contrast] .msg { border-width: 2px; }
+:root[data-a11y-contrast] .illus img, :root[data-a11y-contrast] .fighter img { outline: 1px solid var(--line); }
+
+/* ---------- guide de lecture ---------- */
+.a11y-guide { position: fixed; pointer-events: none; z-index: 55; display: none; }
+.a11y-guide.on { display: block; }
+/* Ligne survolée : fond teinté + deux repères épais à gauche et à droite (repère de forme, pas seulement de couleur). */
+.a11y-line { border-left: 6px solid var(--ink); border-right: 6px solid var(--ink); border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); }
+/* Règle de lecture : le reste de l'écran est voilé, la fenêtre est bordée de deux traits. */
+.a11y-mask { left: 0; right: 0; background: color-mix(in srgb, var(--ground) 78%, transparent); }
+.a11y-window { left: 0; right: 0; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+
+/* ---------- fenêtre Réglages ---------- */
+.a11y-panel { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+.a11y-panel fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.a11y-panel legend { font-size: 14px; color: var(--muted); font-weight: 500; padding: 0; margin-bottom: 6px; }
+.a11y-fonts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.a11y-font-opt { position: relative; display: grid; gap: 4px; align-content: start; padding: 10px 12px 10px 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); cursor: pointer; }
+.a11y-font-opt input { position: absolute; left: 12px; top: 13px; margin: 0; width: 18px; height: 18px; accent-color: var(--accent); }
+.a11y-font-opt b { font-size: 15px; }
+.a11y-font-opt .a11y-sample { font-size: 21px; line-height: 1.3; color: var(--ink); }
+.a11y-font-opt .subtle { line-height: 1.35; }
+/* Choix actif : cadre épais + coche (jamais la couleur seule). */
+.a11y-font-opt:has(input:checked) { border: 2px solid var(--ink); padding: 9px 11px 9px 37px; box-shadow: inset 0 0 0 1px var(--ink); }
+.a11y-font-opt:has(input:checked) b::after { content: " ✓"; }
+.a11y-font-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.a11y-check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.a11y-check input { flex: none; width: 18px; height: 18px; margin: .15em 0 0; accent-color: var(--accent); }
+.a11y-preview { border: 1px dashed var(--line); border-radius: 10px; background: var(--paper); padding: 12px 16px; }
+.a11y-preview .prose { max-width: none; font-size: var(--read-size); }
+.a11y-preview .prose p:last-child { margin-bottom: 0; }
+
+@media print { .a11y-guide { display: none !important; } }
