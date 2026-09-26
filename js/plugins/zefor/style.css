@@ -1,0 +1,95 @@
+/* Greffon « zefor » : défis sur zefor974. Jetons de couleur de css/app.css (clair et sombre).
+   Daltonisme : chaque état a sa forme — réussite = cadre plein épais + cercle coché,
+   échec = cadre en tirets + cercle barré, attente = cadre en pointillés + sablier. */
+
+.zf .zf-ico, .zf-return .zf-ico, .zf-summary .zf-ico { width: 1.2em; height: 1.2em; flex: none; }
+.block.zf h3 .zf-ico { width: 22px; height: 22px; }
+.zf-badge { margin-left: auto; }
+.block.zf .prose { font-size: calc(var(--read-size) - 1px); margin: 0; max-width: none; }
+.block.zf .prose p:last-child { margin-bottom: 0; }
+.zf-intro { margin: 0; }
+
+.zf-result { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--paper); }
+.zf-result > div { display: grid; gap: 2px; }
+.zf-result > .zf-ico { width: 32px; height: 32px; }
+.zf-result.ok { border: 3px solid var(--gain); }
+.zf-result.ok > .zf-ico { color: var(--gain); }
+.zf-result.ko { border: 3px dashed var(--loss); }
+.zf-result.ko > .zf-ico { color: var(--loss); }
+.zf-big { font-size: 19px; font-family: var(--display); }
+
+.zf-wait { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-radius: 10px; border: 2px dotted var(--ink); background: var(--paper); }
+.zf-wait > div { display: grid; gap: 2px; }
+.zf-wait > .zf-ico { width: 28px; height: 28px; }
+.zf-spin { animation: zf-turn 2.4s ease-in-out infinite; transform-origin: 50% 50%; }
+@keyframes zf-turn { 0%, 40% { transform: rotate(0); } 60%, 100% { transform: rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { .zf-spin { animation: none; } }
+
+.zf-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); font-weight: 500; }
+.zf-note.ko { color: var(--loss); border: 2px dashed var(--loss); }
+.zf-note.ok { color: var(--gain); border: 2px solid var(--gain); }
+.zf-note .zf-ico { margin-top: 2px; }
+
+.zf-code { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.zf-code .field { flex: 0 1 280px; }
+input.zf-code-input { font-family: var(--mono); font-size: 20px; letter-spacing: .12em; text-transform: uppercase; max-width: 22ch; }
+.zf-more { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--paper); }
+.zf-more[open] { display: grid; gap: 10px; }
+.zf-more summary { cursor: pointer; font-weight: 500; }
+.zf-alt { border-top: 1px solid var(--line); padding-top: 10px; }
+.zf-alt .btn { text-align: left; }
+.zf .btn .mono { white-space: nowrap; }
+.zf-lbl { min-width: 0; }
+.zf-cost { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.zf-tools { border: 2px dashed var(--line); border-radius: 8px; padding: 8px 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.zf-frame { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--paper); display: grid; grid-template-rows: auto 1fr; }
+.zf-frame iframe { width: 100%; height: min(75vh, 760px); border: 0; display: block; background: #fff; }
+.zf-frame.big { position: fixed; inset: 0; z-index: 45; border-radius: 0; border: 0; }
+.zf-frame.big iframe { height: 100%; }
+.zf-frame-bar { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 6px 8px; background: var(--surface); border-bottom: 1px solid var(--line); }
+
+/* Éditeur et règles */
+.zf-mono, textarea.zf-mono, input.zf-mono { font-family: var(--mono); font-size: 13.5px; }
+.zf-wrap { display: block; word-break: break-all; white-space: pre-wrap; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+.zf-help { margin: 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.zf-codes { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0; display: grid; gap: 10px; min-width: 0; }
+.zf-codes legend { font-weight: 700; padding: 0 4px; display: inline-flex; gap: 6px; align-items: center; }
+.zf-hashes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.zf-hashes li { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+.zf-hashes li .btn { margin-left: auto; }
+.zf-rules > summary, .zf-fx > summary, .zf-preview > summary { cursor: pointer; }
+.zf-rules[open] { display: grid; gap: 12px; }
+.zf-fx[open] { display: grid; gap: 12px; }
+.zf-preview[open] { display: grid; gap: 6px; }
+
+/* Page de retour */
+.zf-return { max-width: 720px; }
+.zf-return-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 24px clamp(16px, 4vw, 36px); display: grid; gap: 16px; }
+.zf-return-card .eyebrow { display: inline-flex; gap: 6px; align-items: center; }
+.zf-return-card p { margin: 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+
+.zf-transfer { display: grid; gap: 8px; justify-items: start; padding: 12px 14px; border: 3px double var(--ink); border-radius: 10px; background: var(--surface); }
+.zf-transfer-code { font-size: 32px; letter-spacing: .18em; }
+
+/* Fin de partie */
+.zf-summary { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; background: var(--surface); text-align: left; display: grid; gap: 8px; width: min(100%, 520px); }
+.zf-summary h3 { display: flex; gap: 8px; align-items: center; font-size: 18px; }
+.zf-summary ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.zf-summary li { display: flex; gap: 8px; align-items: flex-start; }
+.zf-summary li.ok .zf-ico { color: var(--gain); }
+.zf-summary li.ko .zf-ico { color: var(--loss); }
+
+/* Version imprimable */
+.zf-url { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
+.zf-pr-codes { gap: 6px; }
+.zf-pr-line { display: flex; gap: 8px; align-items: flex-end; font-size: .92em; }
+.zf-pr-blank { flex: 1; border-bottom: 1px solid #111; min-height: 1.4em; }
+
+@media (max-width: 600px) {
+  .zf-result, .zf-wait { padding: 10px; }
+  input.zf-code-input { max-width: none; }
+  .zf-code .field { flex: 1 1 100%; }
+  .zf-alt .btn { width: 100%; justify-content: flex-start; }
+  .zf-alt .btn .mono { margin-left: auto; }
+}

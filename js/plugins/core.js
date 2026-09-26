@@ -9,7 +9,7 @@ import './compagnons/core.js';
 
 import './defis/core.js';
 
-// [zefor]
+import './zefor/core.js';
 
 // [carte]
 

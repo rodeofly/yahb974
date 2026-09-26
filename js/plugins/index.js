@@ -10,7 +10,7 @@ import './compagnons/index.js';
 
 import './defis/index.js';
 
-// [zefor]
+import './zefor/index.js';
 
 // [maths]
 
