@@ -4,7 +4,7 @@ Application web pour **écrire**, **tester** et **jouer** des livres dont vous �
 illustrations, lancers de dés, feuille d'aventure tenue à jour, combats simulés, boutiques, sauvegardes.
 Elle s'installe comme une application (PWA), fonctionne hors ligne et n'a besoin d'aucun serveur ni base de données.
 
-**En ligne :** <https://rodeofly.github.io/livre-heros/> (installable sur téléphone et ordinateur).
+**En ligne :** <https://rodeofly.github.io/yahb974/> (installable sur téléphone et ordinateur).
 
 La conception complète (inventaire des fonctions, architecture, format des aventures) est dans
 [docs/CONCEPTION.md](docs/CONCEPTION.md).
@@ -14,8 +14,8 @@ La conception complète (inventaire des fonctions, architecture, format des aven
 Il faut seulement servir le dossier en HTTP (les modules JavaScript et le service worker ne marchent pas en `file://`) :
 
 ```sh
-git clone https://github.com/rodeofly/livre-heros.git
-cd livre-heros
+git clone https://github.com/rodeofly/yahb974.git
+cd yahb974
 python3 -m http.server 8080
 ```
 
