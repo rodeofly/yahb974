@@ -4,7 +4,7 @@
 
 // [equipement]
 
-// [compteurs]
+import './compteurs/index.js';
 
 // [compagnons]
 
