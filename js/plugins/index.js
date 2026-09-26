@@ -2,7 +2,7 @@
 // Chaque greffon vit dans js/plugins/<nom>/ : core.js (moteur pur, testable dans Node) et index.js (interface).
 // Une ligne par greffon, séparées par une ligne vide pour que les fusions git ne se gênent pas.
 
-// [equipement]
+import './equipement/index.js';
 
 // [compteurs]
 
