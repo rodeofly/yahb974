@@ -1,0 +1,10 @@
+{
+  "name": "livre-heros",
+  "private": true,
+  "type": "module",
+  "description": "Moteur web (PWA) pour écrire et jouer des livres dont vous êtes le héros.",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "python3 -m http.server 8080"
+  }
+}

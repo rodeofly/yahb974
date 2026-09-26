@@ -1,0 +1,9 @@
+# Dépendances et fichiers système
+node_modules/
+.DS_Store
+*.log
+
+# Aventures exportées et textes de livres : jamais dans le dépôt (droits d'auteur, fichiers personnels)
+*.lhz
+*.txt
+donnees/

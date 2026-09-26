@@ -1,0 +1,10 @@
+[
+  {
+    "id": "la-tour-de-brume",
+    "title": "La Tour de Brume",
+    "author": "Exemple Livre-Héros",
+    "description": "Une courte aventure pour découvrir le moteur : une boutique, des dés, des combats, une énigme, de la magie, une nuit à la belle étoile et deux fins.",
+    "cover": "images/couverture.svg",
+    "sections": 19
+  }
+]

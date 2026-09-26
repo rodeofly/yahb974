@@ -1,0 +1,20 @@
+{
+  "name": "Livre-Héros",
+  "short_name": "Livre-Héros",
+  "description": "Écrire, tester et jouer des livres dont vous êtes le héros, même hors ligne.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#E9EDEA",
+  "theme_color": "#2C6A55",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "file_handlers": [
+    { "action": "./", "accept": { "application/zip": [".lhz"] } }
+  ]
+}

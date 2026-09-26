@@ -1,0 +1,661 @@
+{
+  "format": "livre-heros/1",
+  "id": "la-tour-de-brume",
+  "meta": {
+    "title": "La Tour de Brume",
+    "author": "Exemple Livre-Héros",
+    "description": "Une courte aventure pour découvrir le moteur : une boutique, des dés, des combats, une énigme, de la magie, une nuit à la belle étoile et deux fins.",
+    "cover": "images/couverture.svg",
+    "version": 1
+  },
+  "rules": {
+    "stats": [
+      {
+        "id": "habilete",
+        "label": "Habileté",
+        "roll": "1d6+6"
+      },
+      {
+        "id": "endurance",
+        "label": "Endurance",
+        "roll": "2d6+12"
+      },
+      {
+        "id": "chance",
+        "label": "Chance",
+        "roll": "1d6+6"
+      }
+    ],
+    "classes": [
+      {
+        "id": "guerrier",
+        "label": "Guerrier",
+        "description": "Solide au combat. Commence avec 2 repas de plus.",
+        "rolls": {},
+        "items": [],
+        "provisions": 4
+      },
+      {
+        "id": "eclaireuse",
+        "label": "Éclaireuse",
+        "description": "Moins robuste, mais chanceuse. Commence avec une corde.",
+        "rolls": {
+          "habilete": "1d6+5",
+          "chance": "1d6+7"
+        },
+        "items": [
+          "corde"
+        ]
+      },
+      {
+        "id": "mage",
+        "label": "Mage",
+        "description": "Faible au combat, mais connaît les formules. Chaque formule coûte de l'Endurance.",
+        "rolls": {
+          "habilete": "1d6+4"
+        },
+        "items": []
+      }
+    ],
+    "gold": "1d6+4",
+    "provisions": 2,
+    "meal": {
+      "stat": "endurance",
+      "heal": 4
+    },
+    "combat": {
+      "skill": "habilete",
+      "health": "endurance",
+      "damage": 2,
+      "luck": "chance",
+      "fleeDamage": 2
+    },
+    "startItems": [],
+    "allowBack": true,
+    "time": {
+      "enabled": true,
+      "mealRequired": true,
+      "stat": "endurance",
+      "penalty": 3
+    },
+    "spells": {
+      "enabled": true,
+      "stat": "endurance",
+      "casters": [
+        "mage"
+      ],
+      "typeCode": false,
+      "unknownCost": 1,
+      "book": [
+        {
+          "code": "ZAP",
+          "name": "Éclair",
+          "cost": 3,
+          "description": "Un éclair jaillit de vos doigts et frappe un adversaire. Terriblement efficace contre les créatures faites de chair… ou de brume."
+        },
+        {
+          "code": "LUX",
+          "name": "Lumière",
+          "cost": 2,
+          "description": "Une clarté blanche jaillit de votre main et dissipe les ténèbres et les illusions pendant quelques instants."
+        },
+        {
+          "code": "BOU",
+          "name": "Bouclier",
+          "cost": 2,
+          "description": "Un bouclier invisible vous protège : votre adversaire a plus de mal à vous toucher."
+        }
+      ]
+    }
+  },
+  "items": {
+    "corde": {
+      "name": "Corde",
+      "description": "Quinze mètres de chanvre solide."
+    },
+    "potion": {
+      "name": "Potion de vigueur",
+      "description": "Rend toute votre Endurance.",
+      "use": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "set": "initial"
+        }
+      ]
+    },
+    "trefle": {
+      "name": "Amulette du trèfle",
+      "description": "+1 au total initial de Chance quand on la porte.",
+      "use": [
+        {
+          "op": "stat",
+          "stat": "chance",
+          "addInitial": 1
+        }
+      ]
+    },
+    "cle-bronze": {
+      "name": "Clé de bronze",
+      "description": "Une tête de hibou est gravée sur l'anneau."
+    },
+    "lanterne": {
+      "name": "Lanterne d'argent",
+      "description": "Sa flamme ne vacille jamais, même dans la brume."
+    }
+  },
+  "start": "1",
+  "sections": {
+    "1": {
+      "title": "Brumeval",
+      "text": "Le village de Brumeval se réveille sous un ciel bas. Depuis trois nuits, une brume épaisse descend de la tour du Sorcier et avale les troupeaux un à un. Le bourgmestre vous a confié la mission de rapporter la **Lanterne d'argent**, le seul objet capable de dissiper l'enchantement.\n\nVotre bourse est légère, mais le marché ouvre à l'instant.",
+      "image": null,
+      "place": "Village",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Faire un tour au marché avant de partir",
+          "to": "2"
+        },
+        {
+          "text": "Prendre tout de suite le chemin de la forêt",
+          "to": "4"
+        }
+      ],
+      "ending": null
+    },
+    "2": {
+      "title": "Le marché",
+      "text": "Sous les auvents, une marchande aux doigts couverts de bagues étale ses trésors. « Pour affronter la brume, voyageur ? Regardez, tout est de première qualité. »",
+      "image": null,
+      "place": "Village",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "shop",
+          "label": "L'étal de la marchande",
+          "offers": [
+            {
+              "item": "potion",
+              "price": 4
+            },
+            {
+              "item": "corde",
+              "price": 2
+            },
+            {
+              "item": "trefle",
+              "price": 5,
+              "stock": 1
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "text": "Quitter le marché et prendre le chemin de la forêt",
+          "to": "4"
+        }
+      ],
+      "ending": null
+    },
+    "4": {
+      "title": "La lisière",
+      "text": "Le chemin s'enfonce entre les pins. Très vite, la lumière baisse et le silence devient pesant. Au loin, des hurlements se répondent.",
+      "image": null,
+      "place": "Forêt",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "roll",
+          "label": "Qui rôde dans la forêt ?",
+          "dice": "1d6",
+          "table": [
+            {
+              "min": 1,
+              "max": 2,
+              "to": "5",
+              "text": "Des loups vous ont flairé"
+            },
+            {
+              "min": 3,
+              "max": 6,
+              "to": "6",
+              "text": "Vous passez sans encombre"
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "5": {
+      "title": "Les loups",
+      "text": "Deux loups gris surgissent des fourrés, babines retroussées. Ils attaquent en même temps.",
+      "image": null,
+      "place": "Forêt",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "combat",
+          "mode": "together",
+          "enemies": [
+            {
+              "name": "Premier loup",
+              "skill": 6,
+              "health": 5
+            },
+            {
+              "name": "Second loup",
+              "skill": 5,
+              "health": 4
+            }
+          ],
+          "win": "6",
+          "flee": "6",
+          "fleeDamage": 3
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "6": {
+      "title": "Le pont de cordes",
+      "text": "La forêt s'ouvre sur un ravin. Un pont de cordes tendu au-dessus du vide oscille sous le vent. La tour est visible de l'autre côté, noyée dans la brume.",
+      "image": "images/pont.svg",
+      "place": "Ravin",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "test",
+          "stat": "chance",
+          "label": "Traverser en priant pour que les cordes tiennent",
+          "success": "8",
+          "failure": "7"
+        }
+      ],
+      "choices": [
+        {
+          "text": "Vous assurer avec votre corde avant de traverser",
+          "to": "8",
+          "if": {
+            "has": "corde"
+          }
+        },
+        {
+          "text": "Manger un repas avant de traverser",
+          "to": "6b",
+          "if": {
+            "provisions": true,
+            "gte": 1
+          }
+        }
+      ],
+      "ending": null
+    },
+    "6b": {
+      "title": "",
+      "text": "Vous vous asseyez sur une pierre et mangez en regardant la tour. Le vent tombe un peu.",
+      "image": null,
+      "place": "Ravin",
+      "onEnter": [
+        {
+          "op": "provisions",
+          "add": -1
+        },
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": 4
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Revenir au bord du pont",
+          "to": "6"
+        }
+      ],
+      "ending": null
+    },
+    "7": {
+      "title": "La chute",
+      "text": "Une planche cède sous votre pied. Vous vous rattrapez de justesse à une corde, mais votre épaule heurte violemment les rochers en contrebas avant que vous ne parveniez à vous hisser de l'autre côté.",
+      "image": null,
+      "place": "Ravin",
+      "onEnter": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -4
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Reprendre votre souffle et continuer",
+          "to": "8"
+        }
+      ],
+      "ending": null
+    },
+    "8": {
+      "title": "La gargouille",
+      "text": "La nuit tombe avant que vous n'atteigniez la tour. Vous dormez à même la roche, enroulé dans votre cape, puis vous repartez à l'aube.\n\nAu pied de la tour, une porte de pierre est gardée par une gargouille. Ses yeux s'allument quand vous approchez.\n\n« Je réponds sans avoir de bouche, j'entends sans avoir d'oreilles. Qui suis-je ? »",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [
+        {
+          "op": "newDay"
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "« L'écho. »",
+          "to": "10"
+        },
+        {
+          "text": "« Le vent. »",
+          "to": "9"
+        },
+        {
+          "text": "« L'ombre. »",
+          "to": "9"
+        },
+        {
+          "text": "Ignorer la gargouille et contourner la tour dans la brume",
+          "to": "16"
+        }
+      ],
+      "ending": null
+    },
+    "9": {
+      "title": "La colère de la gargouille",
+      "text": "« Mauvaise réponse », gronde la gargouille. Elle se détache du mur dans un craquement de pierre et fond sur vous.",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "combat",
+          "enemies": [
+            {
+              "name": "Gargouille",
+              "skill": 8,
+              "health": 8,
+              "damage": 2
+            }
+          ],
+          "win": "10"
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "10": {
+      "title": "La salle de l'autel",
+      "text": "La porte s'ouvre sur une grande salle. Sur un autel brille une lanterne à la flamme parfaitement immobile. Dans un coin, un coffre cerclé de fer. Un escalier monte vers le sommet.",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Prendre la lanterne",
+          "to": "10",
+          "effects": [
+            {
+              "op": "give",
+              "item": "lanterne"
+            }
+          ],
+          "if": {
+            "not": {
+              "has": "lanterne"
+            }
+          },
+          "hideIfUnavailable": true
+        },
+        {
+          "text": "Ouvrir le coffre",
+          "to": "11",
+          "if": {
+            "not": {
+              "visited": "11"
+            }
+          },
+          "hideIfUnavailable": true
+        },
+        {
+          "text": "Monter l'escalier",
+          "to": "12"
+        }
+      ],
+      "ending": null
+    },
+    "11": {
+      "title": "Le coffre",
+      "text": "Le coffre n'est pas verrouillé. Vous y trouvez une clé de bronze et quelques pièces.",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [
+        {
+          "op": "give",
+          "item": "cle-bronze"
+        },
+        {
+          "op": "gold",
+          "add": 6
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Retourner dans la salle",
+          "to": "10"
+        }
+      ],
+      "ending": null
+    },
+    "12": {
+      "title": "La porte du sommet",
+      "text": "En haut de l'escalier, une porte de chêne bardée de fer. La serrure a la forme d'une tête de hibou.",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "test",
+          "stat": "habilete",
+          "label": "Enfoncer la porte d'un coup d'épaule",
+          "success": "14",
+          "failure": "13",
+          "cost": 0
+        }
+      ],
+      "choices": [
+        {
+          "text": "Ouvrir avec la clé de bronze",
+          "to": "14",
+          "if": {
+            "has": "cle-bronze"
+          }
+        }
+      ],
+      "ending": null
+    },
+    "13": {
+      "title": "Le piège",
+      "text": "La porte cède, mais une aiguille empoisonnée jaillit de la serrure et vous érafle le bras.",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -3
+        },
+        {
+          "op": "flag",
+          "flag": "empoisonne"
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Entrer malgré la douleur",
+          "to": "14"
+        }
+      ],
+      "ending": null
+    },
+    "14": {
+      "title": "Le Sorcier de Brume",
+      "text": "Le Sorcier de Brume se retourne. Son visage est fait de fumée grise. « Tu es venu mourir chez moi », siffle-t-il en levant son bâton.",
+      "image": null,
+      "place": "Sommet",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "spells",
+          "label": "Lancer une formule contre le sorcier",
+          "costInText": false,
+          "options": [
+            {
+              "code": "ZAP",
+              "to": "17"
+            },
+            {
+              "code": "LUX",
+              "to": "15"
+            },
+            {
+              "code": "BOU",
+              "to": "18"
+            },
+            {
+              "code": "FOL",
+              "to": "19"
+            }
+          ]
+        },
+        {
+          "type": "combat",
+          "enemies": [
+            {
+              "name": "Sorcier de Brume",
+              "skill": 9,
+              "health": 10,
+              "damage": 2
+            }
+          ],
+          "win": "15"
+        }
+      ],
+      "choices": [
+        {
+          "text": "Lever la Lanterne d'argent devant lui",
+          "to": "15",
+          "if": {
+            "has": "lanterne"
+          },
+          "effects": [
+            {
+              "op": "note",
+              "text": "La lumière de la lanterne a dissipé le sorcier."
+            }
+          ]
+        }
+      ],
+      "ending": null
+    },
+    "15": {
+      "title": "Le retour du soleil",
+      "text": "La brume se déchire comme un voile. Le sorcier pousse un long cri et se dissout dans la lumière. Par la fenêtre, vous voyez le soleil inonder la vallée de Brumeval.\n\nOn chantera longtemps votre nom au village.",
+      "image": null,
+      "place": "Sommet",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [],
+      "ending": "victory"
+    },
+    "16": {
+      "title": "Perdu dans la brume",
+      "text": "Vous faites le tour de la tour. La brume se referme derrière vous, si dense que vous ne voyez plus vos mains. Des voix murmurent votre nom. Quand vous voulez revenir sur vos pas, il n'y a plus de chemin.\n\nPersonne ne vous reverra à Brumeval.",
+      "image": null,
+      "place": "Tour",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [],
+      "ending": "death"
+    },
+    "17": {
+      "title": "L'éclair",
+      "text": "Votre éclair traverse le sorcier de part en part. Sa forme de fumée se disperse, puis se reforme lentement, plus pâle. Il est affaibli, mais pas vaincu.",
+      "image": null,
+      "place": "Sommet",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "combat",
+          "enemies": [
+            {
+              "name": "Sorcier de Brume affaibli",
+              "skill": 7,
+              "health": 5
+            }
+          ],
+          "win": "15"
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "18": {
+      "title": "Le bouclier",
+      "text": "Un bouclier invisible scintille devant vous. Le sorcier frappe, et son bâton rebondit dans une gerbe d'étincelles.",
+      "image": null,
+      "place": "Sommet",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "combat",
+          "attackMod": 2,
+          "enemies": [
+            {
+              "name": "Sorcier de Brume",
+              "skill": 9,
+              "health": 10
+            }
+          ],
+          "win": "15"
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "19": {
+      "title": "Le mauvais mot",
+      "text": "« FOL » ? Ce mot ne veut rien dire. Le sorcier éclate d'un rire glacé et vous frappe pendant que vous cherchez vos mots.",
+      "image": null,
+      "place": "Sommet",
+      "onEnter": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -2
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Faire face au sorcier",
+          "to": "14"
+        }
+      ],
+      "ending": null
+    }
+  }
+}
