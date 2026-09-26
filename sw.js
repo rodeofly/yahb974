@@ -4,7 +4,7 @@
 //   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
 // réseau en contournant le cache HTTP du navigateur).
-const VERSION = 'lh-v5';
+const VERSION = 'lh-v6';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
@@ -19,6 +19,7 @@ const SHELL = [
   'js/plugins/compagnons/core.js', 'js/plugins/compagnons/index.js', 'js/plugins/compagnons/style.css',
   'js/plugins/defis/core.js', 'js/plugins/defis/index.js', 'js/plugins/defis/style.css',
   'js/plugins/zefor/core.js', 'js/plugins/zefor/index.js', 'js/plugins/zefor/style.css',
+  'js/plugins/modes/core.js', 'js/plugins/modes/index.js', 'js/plugins/modes/style.css',
   'js/plugins/maths/index.js', 'js/plugins/maths/parse.js', 'js/plugins/maths/render.js', 'js/plugins/maths/aide.js', 'js/plugins/maths/style.css',
   'js/plugins/carte/core.js', 'js/plugins/carte/index.js', 'js/plugins/carte/style.css',
   'js/plugins/succes/core.js', 'js/plugins/succes/index.js', 'js/plugins/succes/style.css',

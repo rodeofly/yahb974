@@ -211,12 +211,16 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
 /* ---------- fins ---------- */
 function Ending({ adv, state, onRestart, onBack }) {
   const win = state.ended === 'victory';
+  // Une fin peut avoir son propre titre et sa propre icône (ex. « Le groupe se replie », icône lune pour les petits).
+  const sec = adv.sections[state.section] || {};
+  const icon = sec.endingIcon || (win ? 'crown' : 'skull');
+  const title = sec.endingTitle || (win ? 'Victoire !' : 'Votre aventure s’achève ici');
   const visited = Object.keys(state.visited).length;
   const total = Object.keys(adv.sections).length;
   useEffect(() => { win ? sfx.win() : sfx.death(); }, []);
   return html`<section class="ending">
-    <span class="mark"><${Icon} name=${win ? 'crown' : 'skull'} /></span>
-    <h2>${win ? 'Victoire !' : 'Votre aventure s’achève ici'}</h2>
+    <span class="mark"><${Icon} name=${icon} /></span>
+    <h2>${title}</h2>
     <p class="muted">${state.endReason || ''}</p>
     <p>${visited} paragraphe${visited > 1 ? 's' : ''} lu${visited > 1 ? 's' : ''} sur ${total} · ${state.turn} étape${state.turn > 1 ? 's' : ''}</p>
     ${sorted(ui.endingPanels).map(p => html`<${p.Panel} adv=${adv} state=${state} />`)}

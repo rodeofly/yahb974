@@ -135,8 +135,7 @@ export function sectionHtml(sec, adv) {
       return `<li>${cond}${inlineMarkdown(c.text || 'Continuer')} : ${go(c.to)}.${fxs.length ? ` <span class="pr-small">(${esc(fxs.join(' '))})</span>` : ''}</li>`;
     }).join('') + '</ul>';
   }
-  if (sec.ending === 'death') h += '<p class="pr-end">FIN</p>';
-  if (sec.ending === 'victory') h += '<p class="pr-end">VICTOIRE</p>';
+  if (sec.ending) h += `<p class="pr-end">${esc(sec.endingTitle || (sec.ending === 'victory' ? 'VICTOIRE' : 'FIN')).toUpperCase()}</p>`;
   return frTypo(h);
 }
 

@@ -342,6 +342,11 @@ function SectionForm({ adv, sid, change, open, addSection, problems }) {
     <section class="panel"><header><h3>À l'arrivée sur ce paragraphe</h3></header>
       <${EffectsEditor} adv=${adv} value=${sec.onEnter} onChange=${v => set({ onEnter: v })} title="Effets appliqués automatiquement" />
       <${Select} label="Fin de l'aventure" value=${sec.ending || ''} onChange=${v => set({ ending: v || null })} options=${[['', 'Non, l’aventure continue'], ['death', 'Mort du héros'], ['victory', 'Victoire']]} />
+      ${sec.ending && html`<div class="grid2">
+        <${Text} label="Titre de l'écran de fin (facultatif)" value=${sec.endingTitle} placeholder=${sec.ending === 'victory' ? 'Victoire !' : 'Votre aventure s’achève ici'} onChange=${v => set({ endingTitle: v || undefined })} />
+        <${Select} label="Icône de la fin" value=${sec.endingIcon || ''} onChange=${v => set({ endingIcon: v || undefined })}
+          options=${[['', sec.ending === 'victory' ? 'Couronne (par défaut)' : 'Tête de mort (par défaut)'], ['moon', 'Lune (repli, nuit)'], ['back', 'Flèche retour (on réessaie)'], ['flag', 'Drapeau (étape)'], ['heart', 'Cœur'], ['star', 'Étoile'], ['sun', 'Soleil'], ['map', 'Carte'], ['crown', 'Couronne'], ['skull', 'Tête de mort']]} />
+      </div>`}
     </section>
 
     <section class="panel"><header><h3>Blocs interactifs</h3>
