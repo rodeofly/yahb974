@@ -100,6 +100,7 @@ function imagePaths(adv) {
     (s.blocks || []).forEach(b => (b.enemies || []).forEach(e => e.image && paths.add(e.image)));
   });
   Object.values(adv.items).forEach(i => i.image && paths.add(i.image));
+  Object.values(adv.companions || {}).forEach(c => c?.image && paths.add(c.image)); // portraits (greffon compagnons)
   return [...paths].filter(p => !/^(https?:|data:|blob:)/.test(p));
 }
 

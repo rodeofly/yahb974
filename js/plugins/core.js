@@ -5,7 +5,7 @@ import './equipement/core.js';
 
 import './compteurs/core.js';
 
-// [compagnons]
+import './compagnons/core.js';
 
 // [defis]
 

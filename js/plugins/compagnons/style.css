@@ -1,0 +1,51 @@
+/* Greffon « compagnons » : uniquement les jetons de css/app.css (clair et sombre fonctionnent seuls).
+   Rien ne repose sur la couleur : nombres, barres, textes d'état, icônes, bordures pointillées, texte barré. */
+
+.cmp-eyebrow { display: inline-flex; align-items: center; gap: 6px; }
+.cmp-eyebrow .ico { width: 18px; height: 18px; }
+
+/* ---------- portrait ---------- */
+.cmp-portrait { position: relative; flex: none; width: 56px; height: 56px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--sunk); display: grid; place-items: center; }
+.cmp-portrait .cmp-initial { font-family: var(--display); font-weight: 700; font-size: 26px; color: var(--muted); line-height: 1; }
+.cmp-portrait img, .fighter .cmp-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; aspect-ratio: auto; }
+.fighter .cmp-portrait { width: 36px; height: 36px; border-radius: 6px; }
+.fighter .cmp-portrait .cmp-initial { font-size: 18px; }
+
+/* ---------- feuille d'aventure ---------- */
+.cmp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cmp-card { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.cmp-body { display: grid; gap: 3px; min-width: 0; }
+.cmp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.cmp-name { font-size: 16px; }
+.cmp-shape { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+.cmp-hp { font-size: 17px; }
+.cmp-hp small { font-size: 13px; color: var(--muted); font-weight: 500; }
+.cmp-body .bar { height: 8px; }
+.cmp-desc { margin: 2px 0 0; font-family: var(--serif); font-size: 14px; color: var(--muted); text-align: justify; hyphens: auto; -webkit-hyphens: auto; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- combat ---------- */
+.cmp-combat { display: grid; gap: 8px; }
+.fighter.cmp-ally { border-left: 4px double var(--ink); }
+.fighter.cmp-ally .fname { gap: 8px; }
+.fighter.cmp-fallen { align-self: start; border-style: dashed; border-left: 4px dashed var(--muted); opacity: .75; }
+.fighter.cmp-fallen .fname s { text-decoration-thickness: 2px; }
+.cmp-last { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 14px; font-weight: 700; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); font-variant-numeric: tabular-nums; }
+.cmp-last .ico { width: 14px; height: 14px; }
+.cmp-last.hit { color: var(--gain); border-width: 2px; }
+.cmp-last.wounded { color: var(--loss); border-style: dashed; border-width: 2px; }
+
+/* ---------- fin de partie ---------- */
+.cmp-ending { display: inline-flex; gap: 8px; align-items: center; margin: 0; flex-wrap: wrap; justify-content: center; }
+.cmp-ending .ico { width: 20px; height: 20px; }
+
+/* ---------- éditeur ---------- */
+.cmp-edit > header h3 { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cmp-uses .btn b { font-size: 14px; }
+
+/* ---------- version imprimable ---------- */
+.cmp-pr-box { min-height: 0; }
+.cmp-pr-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11px; }
+.cmp-pr-table th { text-align: left; font-weight: 700; padding: 2px 4px; border-bottom: 1.5px solid #111; }
+.cmp-pr-table td { border: 1px solid #111; height: 9mm; }
+.cmp-pr-table td:first-child { width: 40%; }
+.print-root.A5 .cmp-pr-table td { height: 7mm; }

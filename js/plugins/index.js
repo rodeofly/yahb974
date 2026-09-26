@@ -6,7 +6,7 @@ import './equipement/index.js';
 
 import './compteurs/index.js';
 
-// [compagnons]
+import './compagnons/index.js';
 
 // [defis]
 
