@@ -206,7 +206,7 @@ function measureDisplays(root) {
 }
 
 /* ---------- écran ---------- */
-export function Print({ id }) {
+export function Print({ id, query = {} }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [shuffle, setShuffle] = useState(false);
@@ -214,6 +214,8 @@ export function Print({ id }) {
   const [images, setImages] = useState(true);
   const [cols, setCols] = useState(true);
   const [format, setFormat] = useState('A5');
+  // Options des greffons (ex. version selon le mode de jeu) : appliquées à l'aventure avant la renumérotation.
+  const [opts, setOpts] = useState(() => Object.fromEntries(ui.printOptions.map(o => [o.id, o.init?.(query)])));
   useEffect(() => { loadAdventure(id).then(setData).catch(e => setError(e.message)); }, [id]);
   useEffect(() => {
     if (!data) return undefined;
@@ -225,8 +227,10 @@ export function Print({ id }) {
   });
   const adv = useMemo(() => {
     if (!data) return null;
-    return shuffle ? renumber(data.adventure, makeRng(seed)).adventure : data.adventure;
-  }, [data, shuffle, seed]);
+    let a = data.adventure;
+    for (const o of sorted(ui.printOptions)) if (o.apply) a = o.apply(a, opts[o.id]) || a;
+    return shuffle ? renumber(a, makeRng(seed)).adventure : a;
+  }, [data, shuffle, seed, opts]);
   if (error) return html`<main class="page"><p>${error}</p></main>`;
   if (!adv) return html`<main class="page"><p class="muted">Préparation…</p></main>`;
   const ids = Object.keys(adv.sections).sort((a, b) => (Number(a) || 1e9) - (Number(b) || 1e9) || a.localeCompare(b));
@@ -238,6 +242,7 @@ export function Print({ id }) {
       <span class="eyebrow">Version imprimable</span>
       <h1>${adv.meta.title}</h1>
       <div class="row">
+        ${sorted(ui.printOptions).map(o => html`<${o.Control} key=${o.id} adv=${data.adventure} value=${opts[o.id]} set=${v => setOpts(x => ({ ...x, [o.id]: v }))} />`)}
         <label class="chk"><input type="checkbox" checked=${shuffle} onChange=${e => setShuffle(e.target.checked)} /> Mélanger les numéros</label>
         ${shuffle && html`<button class="btn small" onClick=${() => setSeed(Math.floor(Math.random() * 1e6))}>Autre tirage</button>`}
         <label class="chk"><input type="checkbox" checked=${images} onChange=${e => setImages(e.target.checked)} /> Illustrations</label>

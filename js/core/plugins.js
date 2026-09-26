@@ -16,6 +16,8 @@ export const ext = {
   combat: [],
   /** [(state, adv, cls, rng) → void] : complète l'état d'un nouveau héros (compteurs, équipement…). */
   heroInit: [],
+  /** [(sec) → [{ to, kind, label, ref }]] : renvois supplémentaires d'un paragraphe hors choix et blocs (ex. variantes selon le mode), pour le graphe et la vérification. */
+  targets: [],
   /** [(adv) → void] : complète les règles d'une aventure chargée (valeurs par défaut). */
   normalize: [],
   /** [(state, adv) → string|null] : si une raison est renvoyée, tous les choix sont bloqués (ex. sac trop plein). */
@@ -32,6 +34,7 @@ export const registerBlock = (type, def) => { ext.blocks.set(type, def); };
 export const registerRemap = fn => { ext.remap.push(fn); };
 export const registerCombatHook = def => { ext.combat.push(def); };
 export const registerHeroInit = fn => { ext.heroInit.push(fn); };
+export const registerTargets = fn => { ext.targets.push(fn); };
 export const registerNormalize = fn => { ext.normalize.push(fn); };
 export const registerChoiceGuard = fn => { ext.choiceGuards.push(fn); };
 export const registerEnterHook = fn => { ext.onEnter.push(fn); };
