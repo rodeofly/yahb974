@@ -20,6 +20,6 @@
 
 // [echanges]
 
-// [partage]
+import './partage/index.js';
 
 // [accessibilite]

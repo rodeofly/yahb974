@@ -1,0 +1,74 @@
+/* Greffon « partage » : fenêtre Partager, QR code, page d'import d'un lien magique, QR de la version imprimable.
+   Couleurs : jetons de css/app.css. Le QR code reste noir sur blanc dans les deux thèmes (c'est ce que lisent les téléphones). */
+
+.share { display: grid; gap: 14px; }
+.share p { margin: 0; }
+.share-part { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.share-part h3 { display: flex; gap: 8px; align-items: center; font-size: 19px; }
+.share-part h3 .ico { width: 22px; height: 22px; }
+.share-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 280px); gap: 18px; align-items: start; }
+.share-linkbox { gap: 8px; }
+.share-url { font-family: var(--mono); font-size: 13px; line-height: 1.4; word-break: break-all; overflow-wrap: anywhere; color: var(--ink); }
+textarea.share-url { resize: vertical; min-height: 5.6em; max-height: 40vh; }
+
+/* Encadrés d'information : icône + mot en gras + bordure épaisse à gauche (jamais la couleur seule). */
+.share-note { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 8px; padding: 10px 12px; background: var(--surface); font-size: 15px; }
+.share-note > .ico { width: 22px; height: 22px; margin-top: 1px; }
+.share-note p { margin: 0; }
+
+/* QR code */
+.share-qr { margin: 0; display: grid; gap: 8px; justify-items: center; align-content: start; }
+.qr-box { background: #fff; border: 2px solid var(--ink); border-radius: 8px; line-height: 0; width: 100%; max-width: 280px; overflow: hidden; }
+.share-qr.dense .qr-box { max-width: 280px; }
+.qr-svg { display: block; width: 100%; height: auto; }
+.share-qr figcaption { font-size: 14px; color: var(--muted); text-align: center; max-width: 34ch; line-height: 1.4; }
+.share-qr figcaption b { color: var(--ink); }
+.share-qr-actions { justify-content: center; }
+.share-qr-actions > :first-child { flex-basis: 100%; max-width: 220px; }
+
+/* Grand QR code (projection en classe) : toujours noir sur blanc, plein écran. */
+.share-big { position: fixed; inset: 0; z-index: 80; background: #fff; color: #111; display: grid; justify-items: center; align-content: center; gap: 14px; padding: 16px; text-align: center; font-family: var(--sans); cursor: zoom-out; }
+.share-big .qr-svg { width: min(88vw, 72vh); border: 2px solid #111; }
+.share-big .share-big-title { font-family: var(--display); font-weight: 700; font-size: clamp(22px, 4vw, 36px); margin: 0; color: #111; }
+.share-big p { margin: 0; font-size: 18px; }
+.share-big .btn { background: #fff; color: #111; border: 2px solid #111; cursor: pointer; }
+.share-big .btn:focus-visible { outline: 3px solid #111; outline-offset: 3px; }
+
+/* Jauge de longueur : l'étape courante a une bordure épaisse, du gras et la mention « votre lien ». */
+.share-size { display: grid; gap: 8px; }
+.share-meter { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; counter-reset: step; }
+.share-meter li { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--muted); display: grid; gap: 2px; align-content: start; }
+.share-meter li b { font-size: 14px; font-weight: 500; }
+.share-meter li[aria-current="step"] { border: 3px solid var(--ink); color: var(--ink); background: var(--surface); padding: 6px 8px; }
+.share-meter li[aria-current="step"] b { font-weight: 700; }
+.share-here { display: inline-flex; gap: 4px; align-items: center; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+/* Page d'import d'un lien magique */
+.share-import { max-width: 780px; display: grid; gap: 16px; }
+.share-import > p { margin: 0; max-width: 66ch; }
+.share-preview { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 20px clamp(16px, 4vw, 28px); display: grid; gap: 12px; }
+.share-preview h1 { font-size: clamp(28px, 5vw, 38px); }
+.share-author { margin: 0; font-size: 18px; }
+.share-preview .prose { margin: 0; max-width: 66ch; }
+.share-preview .prose p { margin: 0; }
+.share-facts { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.share-facts li { border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; background: var(--paper); font-size: 15px; }
+.share-facts b { font-family: var(--mono); }
+.share-alert { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: start; border: 2px solid var(--ink); border-left-width: 8px; border-radius: 12px; padding: 18px; background: var(--surface); }
+.share-alert > .ico { width: 44px; height: 44px; }
+.share-alert h1 { font-size: clamp(24px, 4.5vw, 32px); }
+.share-alert p { margin: 0; max-width: 60ch; }
+.share-done { display: flex; gap: 10px; align-items: center; margin: 0; font-weight: 700; font-size: 18px; border: 2px solid var(--ink); border-radius: 10px; padding: 10px 14px; background: var(--surface); }
+.share-done .ico { width: 24px; height: 24px; flex: none; }
+
+@media (max-width: 640px) {
+  .share-grid { grid-template-columns: 1fr; }
+  .share-qr .qr-box { max-width: min(100%, 300px); }
+  .share-meter { grid-template-columns: 1fr; }
+}
+
+/* Version imprimable : encadré avec QR code à la fin des règles. */
+.share-print { display: grid; grid-template-columns: 30mm minmax(0, 1fr); gap: 5mm; align-items: center; border: 1.5px solid #111; border-radius: 4px; padding: 3mm 4mm; margin-top: 5mm; break-inside: avoid; page-break-inside: avoid; }
+.share-print .qr-svg { width: 30mm; height: 30mm; }
+.print-book .share-print p { margin: 0; text-align: left; hyphens: manual; }
+.share-print-url { font-family: var(--mono); font-size: .78em; word-break: break-all; color: #333; }
