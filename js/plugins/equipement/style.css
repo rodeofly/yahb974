@@ -1,0 +1,60 @@
+/* Greffon « equipement » : feuille d'aventure, combat, éditeur, impression.
+   Couleurs : uniquement les jetons de css/app.css (clair et sombre). Aucune information portée par la couleur seule :
+   emplacement vide = bordure en tirets + « — » ; sac trop plein = cases hachurées + cadre épais + icône + texte. */
+
+/* ---------- feuille d'aventure ---------- */
+.eq-panel { display: grid; gap: 8px; }
+.eq-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.eq-slot { display: grid; grid-template-columns: minmax(4.5em, auto) minmax(0, 1fr) auto; gap: 0 8px; align-items: center;
+  min-height: 40px; padding: 4px 4px 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+.eq-slot.empty { border-style: dashed; background: none; }
+.eq-slot .eq-label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.eq-slot .eq-item { font-weight: 700; overflow-wrap: anywhere; }
+.eq-slot.empty .eq-item { color: var(--muted); font-weight: 400; }
+.eq-slot .eq-bonus { grid-column: 2 / -1; font-size: 13px; color: var(--muted); padding-bottom: 2px; }
+.eq-slot .btn.small { min-height: 30px; padding: 2px 8px; }
+.eq-total, .eq-warn { display: flex; gap: 6px; align-items: flex-start; margin: 0; font-size: 14px; }
+.eq-total .ico, .eq-warn .ico { margin-top: .15em; }
+.eq-warn { font-weight: 700; color: var(--loss); }
+
+.eq-cap { display: grid; gap: 6px; }
+.eq-cap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.eq-cap-head b { font-size: 16px; }
+.eq-meter { display: flex; gap: 3px; align-items: stretch; height: 16px; }
+.eq-meter i { flex: 1 1 0; min-width: 4px; border: 1.5px solid var(--muted); border-radius: 3px; background: var(--paper); }
+.eq-meter i.on { background: var(--accent); border-color: var(--accent); }
+.eq-meter i.x { border: 2px solid var(--loss); background: repeating-linear-gradient(45deg, var(--loss) 0 2px, transparent 2px 5px); }
+.eq-meter .eq-sep { flex: none; width: 3px; margin: -3px 2px; border-radius: 2px; background: var(--ink); }
+.eq-meter .eq-fill { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.eq-meter:has(.eq-fill) { display: block; border: 1.5px solid var(--muted); border-radius: 5px; padding: 1px; background: var(--paper); }
+.eq-cap.over .eq-cap-head b { text-decoration: underline wavy; text-underline-offset: 3px; }
+
+.eq-dropped { display: grid; gap: 4px; padding: 6px 8px; border: 1px dashed var(--line); border-radius: 6px; }
+
+/* ---------- combat ---------- */
+.eq-combat { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 14px; }
+.eq-combat-title { display: flex; gap: 6px; align-items: center; font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.eq-combat ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.eq-combat li { display: flex; gap: 6px; align-items: flex-start; }
+.eq-combat li .ico { margin-top: .15em; }
+.eq-combat li.unarmed { font-weight: 700; color: var(--loss); }
+
+/* ---------- création du héros ---------- */
+.eq-start { grid-template-columns: 140px 1fr auto; }
+.eq-start > .ico { width: 22px; height: 22px; color: var(--muted); }
+
+/* ---------- éditeur ---------- */
+.eq-chk { align-self: end; min-height: 38px; font-size: 14px; }
+.eq-fields { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px 12px; margin: 0; display: grid; gap: 10px; background: var(--paper); }
+.eq-fields legend { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 0 6px; }
+.eq-slotline { grid-template-columns: minmax(140px, 2fr) minmax(110px, 1fr) auto auto; }
+@media (max-width: 700px) { .eq-slotline { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- version imprimable (page blanche, encre noire comme print.js) ---------- */
+.eq-print .eq-pr-items th { text-align: left; border: 1px solid #999; padding: 2px 6px; font-family: var(--sans); font-size: .9em; }
+.eq-pr-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(28mm, 1fr)); gap: 6px; margin-top: 6px; }
+.eq-pr-slot { border: 1.5px solid #111; border-radius: 4px; min-height: 16mm; padding: 3px 5px; font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+.eq-pr-bag { margin: 6px 0 0; padding-left: 2.2em; columns: 2; column-gap: 8mm; font-size: 11px; }
+.eq-pr-bag li { border-bottom: 1px solid #111; height: 7mm; break-inside: avoid; }
+.print-root.A5 .eq-pr-slot { min-height: 11mm; }
+.print-root.A5 .eq-pr-bag li { height: 6mm; }
