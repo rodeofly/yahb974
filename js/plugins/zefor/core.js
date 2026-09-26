@@ -2,15 +2,21 @@
 // Relie l'aventure à zefor974 (« Maths974 — entraîne-toi » : exercices, Blokaly, Pezali, Aljeb…) :
 // un parcours réussi sur zefor débloque la suite du livre. Aucun serveur côté Livre-Héros.
 //
-// Trois façons de recevoir le résultat :
+// Quatre façons de recevoir le résultat :
 //   code    : zefor affiche un code de réussite, le joueur le tape (empreinte SHA-256 comparée, ou code personnel HMAC) ;
 //   message : zefor, ouvert en fenêtre (ou dans un cadre), envoie un message au livre (postMessage) ;
 //   retour  : zefor redirige vers <application>#/zefor-retour/<aventure>?nonce=…&success=1&score=…&sig=…
+//   integre : l'activité zefor (labyrinthe, brume, balance) est jouée DANS la page, à partir du paquet
+//             vendor/zefor/ (construit hors du dépôt, voir docs/plugins/zefor.md § Mode intégré).
 //
 // Bloc « zefor » :
 //   { type: 'zefor', title, description (Markdown), url, exercise?, mode: 'code'|'message'|'retour', display?: 'fenetre'|'cadre',
 //     codeHashes: ['<sha256 hex de « sel:CODE »>'], codeSalt?, minScore?, success, failure?,
 //     allowSkip?, skipLabel?, skipTo?, skipEffects?: [], successEffects?: [], failureEffects?: [] }
+// Bloc « zefor » en mode intégré :
+//   { type: 'zefor', mode: 'integre', title, description, activity: { kind: 'maze'|'brume'|'pezali', level: {…} },
+//     pass?: { minScore?: 0…1, minStars?: 1…4 }, fallback?: { mode: 'code'|'message'|'retour', url, exercise?, codeHashes, codeSalt?, display? },
+//     success, failure?, allowSkip?, skipLabel?, skipTo?, skipEffects?, successEffects?, failureEffects? }
 // Règles : adv.rules.zefor = { origin?: 'https://…' (une ou plusieurs origines), publicKeyJwk?: clé ECDSA P-256, codeKey?: clé HMAC }
 // État pendant la visite du paragraphe : state.blocks[index] = { nonce, status: 'pending'|'success'|'failure', opened, tries, wrong, result }
 // Bilan de la partie : state.zefor.done['<paragraphe>#<index>'] = { ok, via, score, title, section }
@@ -21,7 +27,9 @@ import { enter } from '../../core/rules.js';
 import { checkEffects } from '../../core/validate.js';
 
 export const TYPE = 'zefor';
-export const MODES = ['code', 'message', 'retour'];
+export const MODES = ['code', 'message', 'retour', 'integre'];
+/** Modes où le parcours se joue sur zefor974 (hors du livre) : ceux que peut prendre un repli. */
+export const REMOTE_MODES = ['code', 'message', 'retour'];
 export const CHANNEL = 'livre-heros-zefor';
 export const KV = 'zefor|';
 export const RESULT_TYPE = 'zefor:result';
@@ -352,8 +360,9 @@ export function parseBlockRef(ref) {
 export async function transferCode(adv, ref, result) {
   const { codeKey, publicKeyJwk } = rulesOf(adv);
   const r = parseBlockRef(ref);
-  const block = r && adv?.sections?.[r.section]?.blocks?.[r.index];
-  if (!codeKey || !publicKeyJwk || !block || block.type !== TYPE || modeOf(block) !== 'retour' || !result?.nonce) return null;
+  const raw = r && adv?.sections?.[r.section]?.blocks?.[r.index];
+  const block = raw && isIntegre(raw) ? fallbackBlock(raw) : raw;
+  if (!codeKey || !publicKeyJwk || !block || raw.type !== TYPE || modeOf(block) !== 'retour' || !result?.nonce) return null;
   const chk = await checkResult(result, { adv, block, nonce: result.nonce, channel: 'retour' });
   if (!chk.ok || !chk.success || !chk.verified) return null;
   try { return await personalCode(codeKey, result.nonce); } catch { return null; }
@@ -376,15 +385,17 @@ export function openChallenge(state, adv, index, nonce) {
   return { state: s, nonce: s.blocks[index].nonce };
 }
 
-const VIA = { code: 'code de réussite', personal: 'code personnel', message: 'message de Zefor', retour: 'retour de Zefor', simulation: 'simulation (mode test)' };
+const VIA = { code: 'code de réussite', personal: 'code personnel', message: 'message de Zefor', retour: 'retour de Zefor', simulation: 'simulation (mode test)', integre: 'l’activité jouée dans le livre' };
 export const viaLabel = v => VIA[v] || v || '';
 
 /** Enregistre un résultat (déjà vérifié) pour le bloc. */
-export function recordResult(state, adv, index, { success, score = null, via = 'code', exercise = '', scoreOk = true } = {}) {
+export function recordResult(state, adv, index, { success, score = null, via = 'code', exercise = '', scoreOk = true, stars = null, maxStars = null } = {}) {
   const s = structuredClone(state);
   const prev = s.blocks[index] || {};
-  s.blocks[index] = { tries: 0, ...prev, status: success ? 'success' : 'failure', wrong: false, result: { success: !!success, score, via, exercise, scoreOk } };
-  const sc = score != null ? ` (score : ${String(score).replace('.', ',')})` : '';
+  const result = { success: !!success, score, via, exercise, scoreOk };
+  if (stars != null) Object.assign(result, { stars, maxStars });
+  s.blocks[index] = { tries: 0, ...prev, status: success ? 'success' : 'failure', wrong: false, result };
+  const sc = stars != null ? ` (${starsText(stars, maxStars)})` : score != null ? ` (score : ${String(score).replace('.', ',')})` : '';
   const messages = [success
     ? { kind: 'gain', text: `Défi Zefor réussi${sc}.` }
     : { kind: 'loss', text: `Défi Zefor non réussi${sc}${scoreOk ? '' : ' : score insuffisant'}.` }];
@@ -441,6 +452,301 @@ export function summary(state) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Mode « integre » : l'activité zefor jouée dans la page              */
+/* ------------------------------------------------------------------ */
+
+/** Activités du paquet vendor/zefor/ : module, feuille de style, nom de l'export (construits par zefor-paquet/construire.mjs). */
+export const KINDS = {
+  maze: { label: 'Labyrinthe Blokaly', short: 'labyrinthe', module: 'maze.js', css: 'maze.css', export: 'LABYRINTHE', stars: true },
+  brume: { label: 'Brume : combien sous la brume ?', short: 'brume', module: 'brume.js', css: null, export: 'BRUME', stars: true },
+  pezali: { label: 'Balance Pezali', short: 'balance', module: 'pezali.js', css: 'pezali.css', export: 'PEZALI', stars: false },
+};
+/** Dossier du paquet, relatif à la racine du site. */
+export const VENDOR_DIR = 'vendor/zefor/';
+export const MAX_STARS = 4;
+
+export const isIntegre = b => b?.mode === 'integre';
+export const kindOf = b => (KINDS[b?.activity?.kind] ? b.activity.kind : null);
+export const levelOf = b => (b?.activity?.level && typeof b.activity.level === 'object' && !Array.isArray(b.activity.level) ? b.activity.level : null);
+export const kindLabel = k => KINDS[k]?.label || String(k || '');
+
+/** Bloc de repli (modes code, message ou retour) d'un bloc intégré : ses champs + ceux du repli. null s'il n'y en a pas. */
+export function fallbackBlock(b) {
+  const f = b?.fallback;
+  if (!f || typeof f !== 'object' || !REMOTE_MODES.includes(f.mode || 'code')) return null;
+  const { activity, pass, fallback, ...rest } = b;
+  return { ...rest, ...f, mode: f.mode || 'code', minScore: f.minScore };
+}
+
+const clamp01 = n => Math.min(1, Math.max(0, n));
+const round2 = n => Math.round(n * 100) / 100;
+
+/**
+ * Score normalisé (0 à 1) d'un résultat d'activité (argument de onPass).
+ *   maze, brume : étoiles / étoiles maximum (4 au plus ; une victoire vaut toujours au moins 1 étoile) ;
+ *   pezali : 1 (Pezali ne signale que les réussites) ;
+ *   résultat absent ou raté : 0.
+ */
+export function scoreIntegre(kind, r) {
+  if (!r || typeof r !== 'object' || r.passed === false) return 0;
+  if (kind === 'pezali') return 1;
+  const s = starsOf(r);
+  return round2(clamp01(s.stars / s.maxStars));
+}
+/** Étoiles d'un résultat : { stars, maxStars } (maxEtoiles absent ou invalide → 4 ; au moins 1 étoile pour une victoire). */
+export function starsOf(r) {
+  const m = Number(r?.maxEtoiles ?? r?.maxStars);
+  const maxStars = Number.isFinite(m) && m >= 1 ? Math.round(m) : MAX_STARS;
+  const n = Number(r?.etoiles ?? r?.stars);
+  const stars = Math.min(maxStars, Math.max(1, Number.isFinite(n) ? Math.round(n) : 1));
+  return { stars, maxStars };
+}
+export const starsText = (n, max = MAX_STARS) => `${n} étoile${n > 1 ? 's' : ''} sur ${max}`;
+
+/** Exigences de réussite : { minScore: 0…1 | null, minStars: entier | null }. */
+export function passOf(b) {
+  const p = b?.pass && typeof b.pass === 'object' ? b.pass : {};
+  const num = v => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+  return { minScore: num(p.minScore), minStars: num(p.minStars) };
+}
+
+/**
+ * Verdict d'un bloc intégré pour un résultat d'activité (onPass) :
+ * { success, score, stars?, maxStars?, scoreOk } — success : activité réussie ET exigences atteintes.
+ */
+export function judgeIntegre(b, r) {
+  const kind = kindOf(b);
+  const passed = !!r && typeof r === 'object' && r.passed !== false;
+  const score = passed ? scoreIntegre(kind, r) : 0;
+  const out = { success: false, score, scoreOk: true };
+  if (passed && KINDS[kind]?.stars) Object.assign(out, starsOf(r));
+  const { minScore, minStars } = passOf(b);
+  if (minScore != null && score < minScore - 1e-9) out.scoreOk = false;
+  if (minStars != null && out.stars != null && out.stars < minStars) out.scoreOk = false;
+  out.success = passed && out.scoreOk;
+  return out;
+}
+
+/** Une nouvelle partie de l'activité commence (premier montage ou « Réessayer ») : l'ancien résultat est effacé. */
+export function startIntegre(state, index) {
+  const s = structuredClone(state);
+  const prev = s.blocks[index] || {};
+  s.blocks[index] = { tries: 0, ...prev, status: 'pending', opened: (prev.opened || 0) + 1, wrong: false, result: null };
+  return { state: s, messages: [] };
+}
+/** Un essai raté dans l'activité (programme qui n'arrive pas, mauvaise réponse) : on compte, sans conclure. */
+export function missIntegre(state, index) {
+  const s = structuredClone(state);
+  const prev = s.blocks[index] || {};
+  s.blocks[index] = { ...prev, tries: (prev.tries || 0) + 1 };
+  return { state: s, messages: [] };
+}
+
+/* ---------- vérification d'un niveau (éditeur et onglet Vérifier) ---------- */
+
+const isInt = v => Number.isInteger(v);
+const textOf = v => (typeof v === 'string' ? v : v && typeof v === 'object' ? String(v.fr ?? Object.values(v)[0] ?? '') : '');
+export const levelText = level => textOf(level?.instruction) || textOf(level?.consigne) || '';
+
+/** Noms de décor connus du labyrinthe (voir zefor-paquet/construire.mjs) : sinon un pictogramme court. */
+export const MAZE_DECOR = {
+  danger: ['yeux', 'buisson', 'rocher', 'ronces', 'eau', 'chien', 'chasseur', 'lanterne', 'stop'],
+  but: ['drapeau', 'cascade', 'maison', 'grotte', 'etoile', 'tresor', 'feu', 'arbre', 'campement'],
+};
+/** Codes des cases du labyrinthe. */
+export const CELL = { CHEMIN: 1, DEPART: 2, ARRIVEE: 3, MUR: 4, DANGER: 5 };
+export const MAZE_BLOCKS = ['maze_move_forward', 'maze_turn', 'maze_forever', 'maze_if', 'maze_if_else'];
+
+/** Plus court chemin du départ à une arrivée, sans mur ni danger (nombre de cases), ou null. */
+export function mazePath(level) {
+  const g = level?.grid, p = level?.startPos;
+  if (!Array.isArray(g) || !p) return null;
+  const free = (x, y) => Array.isArray(g[y]) && isInt(g[y][x]) && ![0, CELL.MUR, CELL.DANGER].includes(g[y][x]);
+  const seen = new Set([`${p.x},${p.y}`]);
+  let front = [[p.x, p.y]], d = 0;
+  while (front.length) {
+    const next = [];
+    for (const [x, y] of front) {
+      if (g[y]?.[x] === CELL.ARRIVEE) return d;
+      for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        const k = `${x + dx},${y + dy}`;
+        if (!seen.has(k) && free(x + dx, y + dy)) { seen.add(k); next.push([x + dx, y + dy]); }
+      }
+    }
+    front = next; d++;
+  }
+  return null;
+}
+
+function checkMaze(level, add) {
+  const g = level.grid;
+  if (!Array.isArray(g) || !g.length || !g.every(r => Array.isArray(r) && r.length)) { add('error', 'il faut une grille « grid » : un tableau de lignes de nombres (1 chemin, 2 départ, 3 arrivée, 4 mur, 5 danger).'); return; }
+  const w = g[0].length;
+  if (!g.every(r => r.length === w)) add('error', 'toutes les lignes de la grille doivent avoir la même longueur.');
+  if (!g.flat().every(c => isInt(c) && c >= 0 && c <= 5)) add('error', 'la grille ne doit contenir que les nombres 0 à 5.');
+  if (!g.flat().includes(CELL.ARRIVEE)) add('error', 'la grille n’a pas d’arrivée (case 3).');
+  const p = level.startPos;
+  if (!p || !isInt(p.x) || !isInt(p.y)) add('error', 'il faut une position de départ « startPos » : { "x": colonne, "y": ligne, "dir": 0 } (comptées depuis 0).');
+  else if (!Array.isArray(g[p.y]) || g[p.y][p.x] == null) add('error', `le départ (${p.x}, ${p.y}) est hors de la grille.`);
+  else if ([0, CELL.MUR, CELL.DANGER].includes(g[p.y][p.x])) add('error', 'le départ est sur un mur ou une case danger.');
+  else if (g.flat().includes(CELL.ARRIVEE) && mazePath(level) == null) add('error', 'aucun chemin ne mène du départ à l’arrivée sans passer par un mur ou une case danger.');
+  if (p && p.dir != null && ![0, 1, 2, 3].includes(p.dir)) add('error', 'la direction de départ « dir » vaut 0 (est), 1 (sud), 2 (ouest) ou 3 (nord).');
+  if (level.allowedBlocks != null) {
+    if (!Array.isArray(level.allowedBlocks) || !level.allowedBlocks.length) add('error', '« allowedBlocks » doit être une liste de blocs non vide.');
+    else {
+      const bad = level.allowedBlocks.filter(x => !MAZE_BLOCKS.includes(x));
+      if (bad.length) add('warning', `blocs inconnus : ${bad.join(', ')} (connus : ${MAZE_BLOCKS.join(', ')}).`);
+      if (!level.allowedBlocks.includes('maze_move_forward')) add('error', 'sans le bloc « maze_move_forward », le robot ne peut pas avancer.');
+    }
+  }
+  if (level.maxBlocks != null && !(isInt(level.maxBlocks) && level.maxBlocks > 0)) add('error', '« maxBlocks » doit être un nombre entier positif.');
+  const d = level.decor;
+  if (d != null) {
+    if (typeof d !== 'object' || Array.isArray(d)) add('error', '« decor » doit être un objet { "danger": …, "but": … }.');
+    else for (const k of ['danger', 'but']) {
+      const v = d[k];
+      if (v == null) continue;
+      if (typeof v !== 'string' || !v.trim()) add('warning', `décor « ${k} » vide.`);
+      else if (!MAZE_DECOR[k].includes(v.trim().toLowerCase()) && [...v.trim()].length > 4) add('warning', `décor « ${k} » : « ${v} » n’est pas un nom connu (${MAZE_DECOR[k].join(', ')}) ni un pictogramme court ; le décor par défaut sera utilisé.`);
+    }
+  }
+  if (g.flat().includes(CELL.DANGER) && !(d && d.danger)) add('info', 'les cases danger montreront le décor par défaut (des yeux) : précisez « decor.danger » si vous voulez autre chose.');
+}
+
+export const BRUME_TEINTES = ['A', 'B', 'C'];
+function checkBrume(level, add) {
+  if (!(isInt(level.total) && level.total >= 1)) add('error', 'il faut un « total » entier (le nombre d’objets en tout).');
+  const pts = level.points, brumes = level.brumes;
+  if (!Array.isArray(pts) || !pts.length) add('error', 'il faut une liste « points » : [{ "x": 0 à 100, "y": 0 à 70, "sous": numéro de la brume (facultatif) }].');
+  else if (!pts.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y))) add('error', 'chaque point doit avoir des coordonnées « x » et « y ».');
+  else if (pts.some(p => p.x < 0 || p.x > 100 || p.y < 0 || p.y > 70)) add('warning', 'des points sortent du dessin (x de 0 à 100, y de 0 à 70).');
+  if (!Array.isArray(brumes) || !brumes.length) { add('error', 'il faut au moins une brume : « brumes » : [{ "teinte": "A", "x": …, "y": …, "r": … }].'); return; }
+  if (!brumes.every(b => b && BRUME_TEINTES.includes(b.teinte))) add('error', 'la teinte d’une brume vaut « A », « B » ou « C ».');
+  if (!brumes.every(b => b && Number.isFinite(b.x) && Number.isFinite(b.y) && Number.isFinite(b.r) && b.r > 0)) add('error', 'chaque brume a un centre « x », « y » et un rayon « r » positif.');
+  const teintes = [...new Set(brumes.map(b => b?.teinte))];
+  const caches = level.caches && typeof level.caches === 'object' ? level.caches : null;
+  if (!caches) { add('error', 'il faut « caches » : combien d’objets sous chaque teinte, par ex. { "A": 8 }.'); return; }
+  for (const t of teintes) if (!(isInt(caches[t]) && caches[t] >= 1)) add('error', `« caches.${t} » doit être un entier au moins égal à 1.`);
+  const vals = teintes.map(t => caches[t]);
+  if (new Set(vals).size !== vals.length) add('error', 'deux teintes différentes doivent cacher des nombres différents.');
+  if (!Array.isArray(pts)) return;
+  const visibles = pts.filter(p => p?.sous == null).length;
+  const nb = t => brumes.filter(b => b?.teinte === t).length;
+  const somme = visibles + teintes.reduce((s, t) => s + nb(t) * (Number(caches[t]) || 0), 0);
+  if (isInt(level.total) && somme !== level.total) add('error', `les comptes ne tombent pas juste : ${visibles} visibles + cachés = ${somme}, pas ${level.total}.`);
+  if (pts.some(p => p?.sous != null && !(isInt(p.sous) && p.sous >= 0 && p.sous < brumes.length))) add('error', '« sous » doit être le numéro d’une brume (0 pour la première).');
+  brumes.forEach((b, i) => {
+    const n = pts.filter(p => p?.sous === i).length;
+    if (b && n && n !== Number(caches[b.teinte])) add('warning', `la brume n° ${i} recouvre ${n} points dessinés mais en cache ${caches[b.teinte]} : quand elle se lève, l’enfant ne comptera pas le bon nombre.`);
+  });
+}
+
+/** Côté d'une équation « 3x + 2 » → { a, b } (coefficients entiers) ou null. */
+export function parseLinear(str) {
+  const s = String(str ?? '').replace(/\s+/g, '').replace(/−/g, '-').toLowerCase();
+  if (!s || !/^[-+]?[0-9x+\-*]+$/.test(s)) return null;
+  const terms = s.match(/[+-]?[^+-]+/g) || [];
+  let a = 0, b = 0;
+  for (const t of terms) {
+    const m = t.match(/^([+-]?)(\d*)\*?(x?)$/);
+    if (!m || (!m[2] && !m[3])) return null;
+    const n = (m[1] === '-' ? -1 : 1) * (m[2] ? Number(m[2]) : 1);
+    if (m[3]) a += n; else b += n;
+  }
+  return { a, b };
+}
+export const PEZALI_OPS = ['add', 'sub', 'mul', 'div'];
+function checkPezali(level, add) {
+  if (level.equationMode != null && !['fixe', 'tirage'].includes(level.equationMode)) add('error', '« equationMode » vaut « fixe » (équation imposée) ou « tirage ».');
+  if (level.equationMode !== 'tirage') {
+    const L = parseLinear(level.gauche), R = parseLinear(level.droite);
+    if (!L || !R) add('error', 'il faut une équation : « gauche » et « droite », par ex. "3x + 2" et "11" (nombres entiers et x).');
+    else if (L.a === R.a) add('error', 'l’inconnue x doit rester d’un seul côté après simplification (coefficients de x différents).');
+    else {
+      const x = (R.b - L.b) / (L.a - R.a);
+      if (!Number.isInteger(x)) add('error', `la solution n’est pas un nombre entier (x = ${String(Math.round(x * 1000) / 1000).replace('.', ',')}) : Pezali ne pèse que des entiers.`);
+      else if (L.a < 0 || R.a < 0 || L.b < 0 || R.b < 0) add('info', 'l’équation contient des nombres négatifs : réservez-la aux plus grands.');
+    }
+  }
+  if (level.operations != null) {
+    if (!Array.isArray(level.operations) || !level.operations.length) add('error', '« operations » doit être une liste non vide parmi add, sub, mul, div.');
+    else if (level.operations.some(o => !PEZALI_OPS.includes(o))) add('error', `opérations inconnues : ${level.operations.filter(o => !PEZALI_OPS.includes(o)).join(', ')} (connues : ${PEZALI_OPS.join(', ')}).`);
+  }
+}
+
+/** Vérifie un niveau : liste de { level: 'error'|'warning'|'info', text }. Vide = rien à signaler. */
+export function checkLevel(kind, level) {
+  const out = [];
+  const add = (lv, text) => out.push({ level: lv, text });
+  if (!KINDS[kind]) { add('error', `type d’activité inconnu « ${kind ?? ''} » (maze, brume ou pezali).`); return out; }
+  if (!level || typeof level !== 'object' || Array.isArray(level)) { add('error', 'le niveau doit être un objet JSON { … }.'); return out; }
+  if (kind === 'maze') checkMaze(level, add);
+  else if (kind === 'brume') checkBrume(level, add);
+  else checkPezali(level, add);
+  if (!levelText(level)) add('warning', `pas de consigne (« ${kind === 'pezali' ? 'consigne' : 'instruction'} » : { "fr": "…" }).`);
+  return out;
+}
+
+/** Niveau de départ proposé par l'éditeur pour chaque activité (exemples du livre). */
+export function sampleLevel(kind) {
+  if (kind === 'maze') return {
+    instruction: { fr: 'Guide le groupe jusqu’à la cascade sans passer devant le chasseur.' },
+    grid: [[4, 4, 4, 4, 4, 4, 4], [4, 2, 1, 1, 5, 4, 4], [4, 4, 4, 1, 4, 4, 4], [4, 4, 4, 1, 1, 3, 4], [4, 4, 4, 4, 4, 4, 4]],
+    startPos: { x: 1, y: 1, dir: 0 }, allowedBlocks: ['maze_move_forward', 'maze_turn'], maxBlocks: 8,
+    decor: { danger: 'yeux', but: 'cascade' },
+  };
+  if (kind === 'brume') {
+    const points = [];
+    for (let i = 0; i < 8; i++) points.push({ x: 18 + (i % 4) * 7, y: 22 + Math.floor(i / 4) * 9, sous: 0 });
+    for (let i = 0; i < 7; i++) points.push({ x: 60 + (i % 4) * 8, y: 20 + Math.floor(i / 4) * 12 });
+    return { instruction: { fr: 'Il y a 15 mangues. Combien sont cachées sous la brume ?' }, total: 15, unique: true, points, brumes: [{ teinte: 'A', x: 28, y: 27, r: 16 }], caches: { A: 8 } };
+  }
+  if (kind === 'pezali') return { equationMode: 'fixe', gauche: '3x + 2', droite: '11', operations: ['sub', 'div'], consigne: { fr: 'Trois sacs de provisions et 2 kg de riz pèsent autant que 11 kg. Combien pèse un sac ?' } };
+  return {};
+}
+
+/** Niveau passé à l'activité : champs attendus par zefor ajoutés (type du labyrinthe). */
+/**
+ * JSON d'un niveau, lisible dans l'éditeur : indenté, mais chaque tableau de nombres (une ligne de la grille)
+ * et chaque petit objet sans imbrication (un point, une brume, startPos) tient sur une ligne.
+ */
+export function prettyLevel(level) {
+  const leaf = x => x === null || typeof x !== 'object';
+  const fmt = (v, pad) => {
+    if (leaf(v)) return JSON.stringify(v) ?? 'null';
+    const arr = Array.isArray(v);
+    const entries = arr ? null : Object.entries(v).filter(([, x]) => x !== undefined);
+    if (arr ? !v.length : !entries.length) return arr ? '[]' : '{}';
+    const inner = pad + '  ';
+    if (arr ? v.every(leaf) : entries.every(([, x]) => leaf(x))) {
+      const one = arr ? `[${v.map(x => JSON.stringify(x) ?? 'null').join(', ')}]` : `{ ${entries.map(([k, x]) => `${JSON.stringify(k)}: ${JSON.stringify(x)}`).join(', ')} }`;
+      if (inner.length + one.length <= 78) return one;
+    }
+    return arr
+      ? `[\n${v.map(x => inner + fmt(x, inner)).join(',\n')}\n${pad}]`
+      : `{\n${entries.map(([k, x]) => `${inner}${JSON.stringify(k)}: ${fmt(x, inner)}`).join(',\n')}\n${pad}}`;
+  };
+  return fmt(level ?? {}, '');
+}
+
+export function levelForMount(kind, level) {
+  if (kind === 'maze') return { type: 'MAZE', ...level };
+  if (kind === 'pezali') return { equationMode: 'fixe', ...level };
+  return { ...level };
+}
+
+/** Grille du labyrinthe pour la version imprimable (tableau de cases, symboles lisibles sans couleur). */
+function printMaze(level, h) {
+  const g = level?.grid;
+  if (!Array.isArray(g) || !g.length) return '';
+  const p = level.startPos || {};
+  const arrow = ['→', '↓', '←', '↑'][p.dir ?? 0] || '→';
+  const sym = (c, x, y) => (x === p.x && y === p.y ? `<b>${arrow}</b>` : c === CELL.ARRIVEE ? '<b>A</b>' : c === CELL.DANGER ? '<b>!</b>' : '');
+  const rows = g.map((r, y) => `<tr>${r.map((c, x) => `<td class="${c === CELL.MUR || c === 0 ? 'zf-pr-mur' : 'zf-pr-case'}">${sym(c, x, y)}</td>`).join('')}</tr>`).join('');
+  return `<table class="zf-pr-laby" aria-label="Labyrinthe">${rows}</table><p class="zf-pr-legende">${h.esc(`${arrow} : départ (le groupe regarde dans le sens de la flèche) ; A : arrivée ; « ! » : danger, à éviter ; cases hachurées : murs.`)}</p>`;
+}
+
+/* ------------------------------------------------------------------ */
 /* Enregistrement dans le moteur                                       */
 /* ------------------------------------------------------------------ */
 
@@ -466,6 +772,7 @@ export function printBlock(b, adv, h) {
   const head = `<p><b>${b.title ? `Défi Zefor${NNBSP}: ${h.esc(b.title)}` : 'Défi Zefor'}.</b></p>`;
   // La consigne est rendue comme à l'écran (Markdown et formules) quand l'impression fournit le moteur Markdown.
   const desc = b.description ? (h.markdown ? `<div class="zf-pr-desc">${h.markdown(b.description)}</div>` : `<p>${h.esc(plain(b.description))}</p>`) : '';
+  if (isIntegre(b)) return printIntegre(b, adv, h, head, desc);
   const url = String(b.url || '').trim();
   const where = `<p class="zf-pr-where">Ce défi se fait sur zefor974${NNBSP}:</p><p class="zf-url">${url ? urlHtml(url, h.esc) : '(adresse à compléter)'}</p>`;
   const parts = [];
@@ -477,7 +784,59 @@ export function printBlock(b, adv, h) {
   return `<div class="pr-block zf-print">${head}${desc}${where}<p>${parts.join(' ')}</p></div>`;
 }
 
+/**
+ * Version imprimable d'un défi intégré : il ne se joue que dans l'application. Le texte de repli le dit, recopie la consigne
+ * (et, pour un labyrinthe, la grille à résoudre sur papier), puis donne la porte de secours : le parcours zefor974 avec
+ * son code (repli), ou « renoncer au défi » si l'auteur l'a permis.
+ */
+function printIntegre(b, adv, h, head, desc) {
+  const kind = kindOf(b), level = levelOf(b) || {};
+  const consigne = levelText(level);
+  const parts = [`<p class="zf-pr-app">Ce défi se joue dans l’application Livre-Héros${kind ? ` (${h.esc(KINDS[kind].short)})` : ''}.${consigne ? ` Consigne${NNBSP}: ${h.esc(frSpaces(consigne))}` : ''}</p>`];
+  if (kind === 'maze') parts.push(printMaze(level, h));
+  const fb = fallbackBlock(b);
+  const next = [];
+  if (fb) {
+    const url = String(fb.url || '').trim();
+    next.push(url
+      ? `Sur papier, faites-le sur zefor974${NNBSP}:</p><p class="zf-url">${urlHtml(url, h.esc)}</p><p>Quand vous l'avez réussi, notez le code obtenu, ${fxClause(b.successEffects, adv, h)}puis ${h.go(b.success)}.`
+      : `Sur papier, demandez le code de secours à l'adulte qui vous accompagne${NNBSP}; notez-le, ${fxClause(b.successEffects, adv, h)}puis ${h.go(b.success)}.`);
+  } else next.push(`Dans l'application, sa réussite vous mène au <b>${h.esc(b.success || '?')}</b>.`);
+  if (b.failure) next.push(`Si vous n'y parvenez pas, ${fxClause(b.failureEffects, adv, h)}${h.go(b.failure)}.`);
+  if (b.allowSkip) next.push(`Vous pouvez aussi renoncer au défi${NNBSP}: ${fxClause(b.skipEffects, adv, h)}${h.go(b.skipTo || b.success)}.`);
+  return `<div class="pr-block zf-print zf-print-integre">${head}${desc}${parts.join('')}<p>${next.join(' ')}</p></div>`;
+}
+
+function validateIntegre(b, adv, report, where) {
+  const kind = kindOf(b);
+  if (!b.activity || typeof b.activity !== 'object') report('error', `${where} : activité intégrée sans « activity » ({ kind, level }).`);
+  else if (!kind) report('error', `${where} : type d’activité inconnu « ${b.activity.kind ?? ''} » (maze, brume ou pezali).`);
+  else for (const p of checkLevel(kind, b.activity.level)) report(p.level, `${where} : ${KINDS[kind].short}, ${p.text}`);
+  if (!b.success) report('error', `${where} : pas de destination en cas de réussite du défi Zefor.`);
+  const { minScore, minStars } = passOf(b);
+  const raw = b.pass || {};
+  if (raw.minScore != null && raw.minScore !== '' && (minScore == null || minScore < 0 || minScore > 1)) report('error', `${where} : « pass.minScore » est une part des étoiles, entre 0 et 1 (0,5 = au moins 2 étoiles sur 4).`);
+  if (raw.minStars != null && raw.minStars !== '' && (minStars == null || minStars < 1 || minStars > MAX_STARS)) report('error', `${where} : « pass.minStars » vaut de 1 à ${MAX_STARS}.`);
+  if (kind === 'pezali' && ((minScore != null && minScore > 0) || minStars != null)) report('info', `${where} : Pezali ne donne pas d’étoiles (toute réussite vaut 1) : l’exigence de score n’a pas d’effet.`);
+  if (b.fallback != null) {
+    const fb = fallbackBlock(b);
+    if (!fb) report('error', `${where} : le repli doit être en mode code, message ou retour.`);
+    else {
+      const url = String(fb.url || '').trim();
+      if (url && !urlOrigin(url)) report('error', `${where}, repli : l'adresse du parcours Zefor doit commencer par https://.`);
+      if (!url && fb.mode !== 'code') report('error', `${where}, repli : l'adresse du parcours Zefor est vide.`);
+      if (fb.mode === 'code' && !hasCodes(adv, fb)) report('error', `${where}, repli : aucun code de secours. Ajoutez-en un (ou activez les codes personnels dans Règles › Zefor).`);
+      if (fb.mode === 'message' && !allowedOrigins(adv, fb).length) report('error', `${where}, repli : indiquez l'origine de Zefor (Règles › Zefor) pour accepter ses messages.`);
+    }
+  } else if (!b.allowSkip) report('warning', `${where} : si le paquet zefor ne se charge pas (application hors ligne avant d’avoir joué ce défi, site sans vendor/zefor/), le joueur reste bloqué. Ajoutez un repli (code de secours) ou permettez de continuer sans le défi.`);
+  if (b.allowSkip && b.skipTo === b.success && !(b.skipEffects || []).length) report('info', `${where} : continuer sans le défi ne coûte rien.`);
+  checkEffects(b.successEffects, adv, report, `${where}, effets de réussite`);
+  checkEffects(b.failureEffects, adv, report, `${where}, effets d’échec`);
+  checkEffects(b.skipEffects, adv, report, `${where}, effets sans le défi`);
+}
+
 export function validateBlock(b, adv, report, where) {
+  if (isIntegre(b)) { validateIntegre(b, adv, report, where); return; }
   const mode = modeOf(b);
   const url = String(b.url || '').trim();
   if (!url) report('warning', `${where} : l'adresse du parcours Zefor est vide (le bouton « Ouvrir le parcours » ne marchera pas).`);

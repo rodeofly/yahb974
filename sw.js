@@ -1,10 +1,12 @@
 // Service worker : l'application fonctionne hors ligne après la première visite.
 // - Fichiers de l'application : servis depuis le cache, mis à jour en arrière-plan (requête conditionnelle).
+// - Paquet zefor (vendor/zefor/, mode intégré du greffon zefor) : PAS dans SHELL (≈ 600 Ko compressés que seuls les
+//   défis intégrés utilisent) ; mis en cache à la première utilisation, comme tout fichier du même site.
 // - Aventures publiées (adventures/) : préchargées à l'installation (adventure.json et fichiers cités) ;
 //   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
 // réseau en contournant le cache HTTP du navigateur).
-const VERSION = 'lh-v6';
+const VERSION = 'lh-v7';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
@@ -118,5 +120,7 @@ async function staleWhileRevalidate(req, event) {
   // Requête conditionnelle (If-None-Match) : 304 quand rien n'a changé, jamais une copie périmée du cache HTTP.
   const update = fetch(req, { cache: 'no-cache' }).then(res => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
   if (hit) { event.waitUntil(update); return hit; }
-  return (await update) || (await cache.match('index.html')) || new Response('Hors ligne', { status: 503 });
+  // Hors ligne sans copie : la page d'accueil pour une navigation seulement. Un script ou une feuille absents
+  // (ex. le paquet vendor/zefor/ jamais chargé) reçoivent une vraie erreur, que l'application sait afficher.
+  return (await update) || (req.mode === 'navigate' && (await cache.match('index.html'))) || new Response('Hors ligne', { status: 503, statusText: 'Hors ligne' });
 }

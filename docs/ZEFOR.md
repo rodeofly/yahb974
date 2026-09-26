@@ -18,10 +18,15 @@ Tout passe par l'adresse ouverte, et par un résultat que zefor renvoie de lui-m
 | **retour** | rediriger vers `lh_return` avec le résultat | rien | faible sans signature, forte avec une signature serveur |
 | **message** (onglet) | `window.opener.postMessage(…)` | rien | faible sans signature, forte avec une signature serveur |
 | **message** (cadre m974) | brancher le SDK `@maths974/embed/child` déjà présent dans zefor | rien | idem |
+| **integre** | rien : le labyrinthe, la brume et la balance sont construits en paquet (`zefor-paquet/construire.mjs`, hors dépôt) et joués dans la page | joue dans le livre | faible (outils du navigateur), sans enjeu à cet âge |
 
 Ordre conseillé : 1) **code fixe** (aucun changement de code, juste un texte affiché) ; 2) **code personnel** ou
 **retour** ; 3) **cadre m974**, qui réutilise ton protocole existant ; 4) **signature côté serveur** si tu veux une vraie
 garantie.
+
+Le mode **integre** ne demande aucun changement dans zefor974 : voir « Mode intégré » dans
+[docs/plugins/zefor.md](plugins/zefor.md) et `zefor-paquet/README.md` (bouchons de construction, décor du labyrinthe).
+Une vraie option de décor dans `robot.js` (`level.decor`) rendrait inutile la transformation faite à la construction.
 
 ---
 

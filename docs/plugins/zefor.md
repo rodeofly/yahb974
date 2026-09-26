@@ -5,13 +5,14 @@ Automaths, Blokaly, Pezali, Aljeb…). À un moment de l'histoire, le livre prop
 un parcours sur zefor, le réussit, et la suite de l'aventure se débloque. S'il échoue, il peut réessayer, accepter
 l'échec (s'il existe un paragraphe prévu pour cela) ou, si vous l'autorisez, continuer sans le défi contre un prix.
 
-Livre-Héros reste un site sans serveur. Le résultat voyage d'une de trois façons, au choix de l'auteur, pour chaque défi.
+Livre-Héros reste un site sans serveur. Le résultat voyage d'une de quatre façons, au choix de l'auteur, pour chaque défi.
 
 | Mode | Ce que fait l'élève | Ce que doit faire zefor | Remarques |
 |---|---|---|---|
 | **Code** | tape le code de réussite affiché par zefor | afficher un code à la fin du parcours | marche partout, même sur un autre appareil et sur papier ; un code fixe peut circuler, pas un code personnel |
 | **Message** | rien : le livre se débloque seul | envoyer un message à la fenêtre du livre (`postMessage`) | le parcours s'ouvre dans un nouvel onglet ou **dans le paragraphe** (cadre, protocole m974 de Maths974) |
 | **Retour** | rien : zefor le ramène au livre | rediriger vers l'adresse de retour du livre | pratique sur téléphone ; le résultat passe à l'onglet de l'aventure ou attend la reprise de la partie |
+| **Intégré** | joue l'activité **dans le paragraphe** (labyrinthe, brume, balance) | rien : le livre embarque le moteur zefor (paquet `vendor/zefor/`) | résultat immédiat, hors ligne une fois l'activité jouée ; voir [Mode intégré](#mode-intégré) |
 
 Le détail technique, côté zefor, est dans [docs/ZEFOR.md](../ZEFOR.md).
 
@@ -143,9 +144,155 @@ Une aventure sans défi Zefor, ou une ancienne sauvegarde, fonctionne comme avan
 
 Plus loin, un choix conditionné par le mot-clé `robot-allie` ouvre un arc réservé à ceux qui ont réussi.
 
+## Mode intégré
+
+Le défi se joue **dans la page** : l'enfant programme le labyrinthe, compte sous la brume ou équilibre la balance sans
+quitter le livre, sans code à taper ni réseau (une fois l'activité mise en cache). Trois activités de zefor974 :
+
+| Activité (`kind`) | Ce que fait l'enfant | Score normalisé (0 à 1) |
+|---|---|---|
+| `maze` — labyrinthe Blokaly | programme le groupe avec des blocs (avancer, tourner…) jusqu'à l'arrivée, sans passer par une case danger | étoiles ÷ 4 (4 étoiles = le nombre de blocs optimal ; une victoire vaut au moins 1 étoile) |
+| `brume` — combien sous la brume ? | compte les objets visibles et trouve combien la brume en cache | étoiles ÷ 4 (4 au premier essai, 2 au second, 1 si la brume a été levée) |
+| `pezali` — balance | isole x sur une balance (retirer, diviser…) | 1 (la balance ne donne pas d'étoiles) |
+
+### Dans l'éditeur
+
+1. Bloc **Défi Zefor**, liste **Où se joue le défi** : *Dans le livre : activité zefor intégrée*.
+2. **Activité jouée dans le livre** : labyrinthe, brume ou balance (changer d'activité propose un niveau d'exemple).
+3. **Réussite exigée** : il suffit de réussir, ou au moins 2, 3 ou 4 étoiles sur 4 (`pass.minScore` = 0,5, 0,75 ou 1).
+4. **Niveau (JSON)** : le niveau de l'activité, vérifié à chaque frappe. Une erreur de syntaxe garde le dernier niveau
+   valide ; les erreurs du niveau (départ sur un mur, arrivée inaccessible, comptes de la brume faux, solution de la
+   balance non entière…) sont listées en clair et reprises par l'onglet **Vérifier**.
+5. **Essayer l'activité** ouvre l'activité dans une fenêtre et dit si le défi serait réussi (étoiles, score).
+6. **Repli si l'activité ne se charge pas** (recommandé) : adresse du parcours zefor974 et **codes de secours**
+   (empreintes, comme en mode code). Sans repli, cochez au moins *Permettre de continuer sans le défi* : sinon le
+   lecteur hors ligne qui n'a encore jamais joué ce défi reste bloqué (l'onglet Vérifier le signale).
+
+### Pendant la partie
+
+- L'activité apparaît dans un cadre **à fond clair**, même en thème sombre (la carte zefor n'existe qu'en clair). Le
+  bouton **Agrandir** la passe en plein écran (Échap pour réduire), **Recommencer** la remet à zéro. Sur téléphone, le plateau du labyrinthe passe
+  au-dessus des blocs.
+- Un essai raté (le programme n'arrive pas, mauvaise réponse) est compté (« 2 essais sans réussir ») sans conclure le défi.
+- Réussite : **Défi réussi !**, les étoiles en symboles (★★★☆) et en toutes lettres (« 3 étoiles sur 4 »), puis
+  **Continuer → N** (effets de réussite, paragraphe de réussite).
+- Réussite sans assez d'étoiles : **Défi pas encore réussi** (cadre en tirets, cercle barré), l'exigence rappelée,
+  **Recommencer l'activité** ou **Accepter l'échec → N**.
+- **J'abandonne le défi** (s'il y a un paragraphe d'échec) et **Continuer sans le défi** (si permis) restent proposés.
+- **Paquet absent** (site sans `vendor/zefor/`, ou hors ligne avant la première partie) : « L'activité zefor n'a pas pu
+  se charger : … », **Réessayer de charger l'activité**, puis le **repli** (parcours zefor974 et code de secours) ou
+  *Continuer sans le défi*.
+- Mode test : **Simuler une réussite** (4 étoiles) et **Simuler un échec**.
+- Changer de paragraphe démonte l'activité (Blockly, minuteries, écouteurs).
+
+### Version imprimable
+
+« **Défi Zefor : Le chemin discret.** Ce défi se joue dans l'application Livre-Héros (labyrinthe). Consigne : … »,
+suivi, pour un labyrinthe, de **la grille à résoudre sur papier** (→ départ, A arrivée, « ! » danger, cases hachurées
+pour les murs), puis du repli : « Sur papier, faites-le sur zefor974 : <adresse>. Quand vous l'avez réussi, notez le code
+obtenu, puis rendez-vous au 71. » (ou « demandez le code de secours à l'adulte qui vous accompagne »), et « Si vous n'y
+parvenez pas… », « Vous pouvez aussi renoncer au défi… ». Seuls les défis intégrés avec repli ont une ligne dans la case
+**Codes des défis Zefor** de la Feuille d'Aventure.
+
+### Format JSON du bloc
+
+```jsonc
+{
+  "type": "zefor",
+  "mode": "integre",
+  "title": "Le chemin discret",
+  "description": "Laverdure trace dans la poussière le chemin qui évite les chasseurs. **Programme-le !**",
+  "activity": {
+    "kind": "maze",                                  // "maze" | "brume" | "pezali"
+    "level": { … }                                   // voir ci-dessous
+  },
+  "pass": { "minScore": 0.5 },                       // facultatif : part des étoiles (0 à 1), ou "minStars": 1 à 4
+  "fallback": {                                      // facultatif : même format qu'un bloc code, message ou retour
+    "mode": "code",
+    "url": "https://zefor.maths974.fr/#jeu=maze&niveau=mission-neurones.lvl_4",
+    "exercise": "maze:mission-neurones.lvl_4",
+    "codeHashes": ["<sha256 de « sel:CODE »>"], "codeSalt": "mon-aventure"
+  },
+  "success": "71", "failure": "70",
+  "allowSkip": true, "skipTo": "72", "skipEffects": [],
+  "successEffects": [], "failureEffects": []
+}
+```
+
+**Niveaux** (écrits comme dans zefor974 ; un texte peut être une chaîne ou `{ "fr": "…", "rcf": "…" }`) :
+
+```jsonc
+// Labyrinthe : 1 chemin, 2 départ, 3 arrivée, 4 mur, 5 danger ; x = colonne, y = ligne, comptées depuis 0 ;
+// dir : 0 est, 1 sud, 2 ouest, 3 nord.
+{ "instruction": { "fr": "Guide le groupe jusqu’à la cascade sans passer devant le chasseur." },
+  "grid": [[4,4,4,4,4,4,4],[4,2,1,1,5,4,4],[4,4,4,1,4,4,4],[4,4,4,1,1,3,4],[4,4,4,4,4,4,4]],
+  "startPos": { "x": 1, "y": 1, "dir": 0 },
+  "allowedBlocks": ["maze_move_forward", "maze_turn"],   // aussi maze_forever, maze_if, maze_if_else
+  "maxBlocks": 8,
+  "decor": { "danger": "yeux", "but": "cascade" } }
+
+// Brume : total, points (x de 0 à 100, y de 0 à 70 ; « sous » = numéro de la brume qui le cache),
+// brumes (teinte A, B ou C : chaque teinte a aussi sa forme, ◆ ▼ ★), caches (combien sous chaque teinte).
+{ "instruction": { "fr": "Il y a 15 mangues. Combien sont cachées sous la brume ?" },
+  "total": 15, "points": [{ "x": 18, "y": 22, "sous": 0 }, …, { "x": 60, "y": 20 }, …],
+  "brumes": [{ "teinte": "A", "x": 28, "y": 27, "r": 16 }], "caches": { "A": 8 } }
+
+// Balance : équation à coefficients entiers, solution entière ; opérations parmi add, sub, mul, div.
+{ "equationMode": "fixe", "gauche": "3x + 2", "droite": "11", "operations": ["sub", "div"],
+  "consigne": { "fr": "Trois sacs de provisions et 2 kg de riz pèsent autant que 11 kg. Combien pèse un sac ?" } }
+```
+
+**Décor du labyrinthe** (`decor`, facultatif) : zefor dessine une tête de mort sur les cases danger ; le paquet de
+Livre-Héros la remplace **à la construction** par un décor neutre, choisi par le niveau. Noms connus, dessinés par un
+pictogramme lisible sans la couleur :
+
+| `decor.danger` | | `decor.but` | |
+|---|---|---|---|
+| `yeux` (par défaut), `chasseur` | 👀 on est vu | `drapeau` (par défaut) | 🏁 |
+| `buisson` | 🌿 | `cascade` | 💧 |
+| `rocher` | 🪨 | `maison` | 🏠 |
+| `ronces` | 🌵 | `grotte` | ⛰️ |
+| `eau` | 🌊 | `etoile` | ⭐ |
+| `chien` | 🐕 | `tresor` | 💎 |
+| `lanterne` | 🏮 | `feu` | 🔥 |
+| `stop` | ⛔ | `arbre`, `campement` | 🌳, ⛺ |
+
+On peut aussi donner directement un pictogramme ou un mot court (4 caractères au plus). Ailleurs, le décor par défaut.
+
+**Pendant la partie**, `state.blocks[i] = { status: "pending"|"success"|"failure", tries, opened, result }` avec
+`result = { success, score (0 à 1), via: "integre", scoreOk, stars?, maxStars? }` ; le bilan de fin compte le défi comme
+les autres (`state.zefor.done`).
+
+### Le paquet `vendor/zefor/`
+
+Le moteur de zefor974 est un **code propriétaire** : il n'est pas dans le dépôt (public) de Livre-Héros, qui ignore
+`vendor/zefor/` (`.gitignore`). On le construit hors des deux dépôts, sans rien modifier dans zefor974 :
+
+```sh
+node /home/florian/Ibrahim/livre-heros/zefor-paquet/construire.mjs            # trois modules autonomes
+node /home/florian/Ibrahim/livre-heros/zefor-paquet/construire.mjs --partage  # morceaux communs (plusieurs activités)
+```
+
+Le script écrit `maze.js` + `maze.css` + `blockly-media/`, `brume.js`, `pezali.js` + `pezali.css` + `logo.svg` (≈ 330,
+100 et 140 Ko compressés ; voir `zefor-paquet/README.md`). Le greffon les charge **à la demande** par `import()` (chemin
+`vendor/zefor/<activité>.js` à la racine du site) : une aventure sans défi intégré ne télécharge rien. Le service worker
+ne les précharge pas (pas dans `SHELL`) ; il les garde **à la première utilisation**, comme tout fichier du site : un défi
+déjà joué une fois fonctionne ensuite hors ligne. Pour publier le livre avec ses défis, copiez `vendor/zefor/` sur le
+serveur à côté de `index.html` (hors git).
+
+Pour les tests, l'activité montée est exposée dans `window.__zeforIntegre = { kind, api, host, level }` (par exemple
+`api.ecrireXml(xml)` puis `api.run()` pour le labyrinthe). Le crochet de test de Pezali (`.pz-root.__lhTest`) n'existe que
+si `globalThis.__LH_ZEFOR_TEST__` est vrai avant le montage.
+
 ## Limites
 
 - Le parcours zefor a besoin d'Internet ; prévoyez « continuer sans le défi » pour le hors-ligne.
+- Mode intégré : seuls le labyrinthe, la brume et la balance sont dans le paquet (pas encore de fiche Automaths ni
+  d'énoncé DSL, ni de frise, de tortue ou de prédiction). Un défi intégré ne laisse aucune trace dans zefor974.
+- Mode intégré : la balance Pezali ne supporte qu'une instance par page (identifiants HTML fixes) et laisse deux petits
+  écouteurs sur `document` après son démontage (sans effet). Son bouton ↻ (« nouvelle équation » tirée au hasard) est
+  masqué dans le livre : le bouton **Recommencer** du cadre remet la balance du niveau.
+- Mode intégré : la solution est lisible par un enfant qui ouvrirait les outils du navigateur. Sans enjeu à cet âge.
 - Sans signature, un élève motivé peut fabriquer un faux résultat (console du navigateur, adresse de retour tapée à la main).
   Les codes personnels et les signatures compliquent beaucoup la triche, sans la rendre impossible sur un site statique
   (voir docs/ZEFOR.md). Pour un jeu en classe, c'est assumé.

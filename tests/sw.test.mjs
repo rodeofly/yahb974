@@ -39,3 +39,8 @@ test('sw.js : les polices citées par les feuilles existent', () => {
   }
   assert.ok(n > 20);
 });
+
+test('sw.js : le paquet zefor (vendor/zefor/) n’est pas préchargé, et un fichier absent hors ligne n’est pas remplacé par la page d’accueil', () => {
+  assert.ok(!SHELL.some(f => f.startsWith('vendor/')), 'vendor/zefor/ ne doit pas être dans SHELL (mis en cache à la première utilisation)');
+  assert.match(sw, /req\.mode === 'navigate' && \(await cache\.match\('index\.html'\)\)/);
+});

@@ -7,3 +7,6 @@ node_modules/
 *.lhz
 *.txt
 donnees/
+
+# Paquet zefor974 construit par ../zefor-paquet/construire.mjs : code propriétaire, jamais dans ce dépôt public
+vendor/zefor/

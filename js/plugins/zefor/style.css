@@ -98,3 +98,55 @@ input.zf-code-input { font-family: var(--mono); font-size: 20px; letter-spacing:
   .zf-alt .btn { width: 100%; justify-content: flex-start; }
   .zf-alt .btn .mono { margin-left: auto; }
 }
+
+/* ---------- Mode intégré : l'activité zefor jouée dans le paragraphe ----------
+   La carte zefor n'existe qu'en clair (couleurs en dur) : son conteneur reste clair, y compris en thème sombre,
+   avec color-scheme: light pour que ses champs et ses boutons natifs restent clairs aussi. */
+.zf-stage-wrap { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--paper); display: flex; flex-direction: column; position: relative; }
+.zf-stage-wrap.big { position: fixed; inset: 0; z-index: 45; border-radius: 0; border: 0; }
+.zf-stage { color-scheme: light; background: #fff; color: #1b2733; position: relative; width: 100%; height: clamp(440px, 72vh, 600px); overflow: hidden;
+  text-align: left; hyphens: manual; -webkit-hyphens: manual; font-family: system-ui, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.35;
+  /* Les jetons de l'application restent clairs à l'intérieur (champs, boutons stylés par css/app.css). */
+  --ground: #E9EDEA; --surface: #F7F9F7; --paper: #FFFFFF; --sunk: #DFE5E1; --ink: #18221E; --muted: #56655E; --line: #C3CEC8;
+  --accent: #2C6A55; --accent-ink: #FFFFFF; --loss: #A12A1F; --gain: #1F6B4F; }
+.zf-stage > div { width: 100%; height: 100%; }
+/* Le défi intégré prend toute la largeur de la page (le plateau et l'atelier de blocs ont besoin de place). */
+.block.zf-integre { max-width: none; }
+.block.zf-integre > .prose, .block.zf-integre > .zf-intro { max-width: 66ch; }
+/* Consigne du labyrinthe en entier (zefor la tronque sur une ligne) ; bandeau de Pezali dégagé de son bouton ↻. */
+.zf-stage .bk-head { flex-wrap: wrap; }
+.zf-stage .bk-head-goal { white-space: normal; overflow: visible; }
+.zf-stage .pz-consigne { padding-right: 64px; }
+/* Pezali : en niveau imposé, son bouton ↻ tirerait une AUTRE équation au hasard (dont la réussite compterait pour le
+   défi). On le masque : « Recommencer » (barre du cadre) remonte la balance du livre. */
+.zf-stage #btn-new-eq { display: none !important; }
+.zf-consigne { margin: 0; padding: 8px 12px; background: #fff; color: #1b2733; color-scheme: light; border-bottom: 1px solid #e3e7ec; font-weight: 600; text-align: var(--align, justify); hyphens: auto; -webkit-hyphens: auto; }
+.zf-stage[data-kind="pezali"] { height: clamp(480px, 78vh, 660px); }
+.zf-stage[data-kind="brume"] { height: clamp(420px, 70vh, 560px); }
+.zf-stage-wrap.big .zf-stage { height: auto; flex: 1; min-height: 0; }
+.zf-stage:empty { display: grid; place-items: center; }
+.zf-loading { position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); z-index: 2; margin: 0; display: flex; gap: 8px; align-items: center;
+  padding: 8px 14px; border: 2px dotted #1b2733; border-radius: 8px; background: #fff; color: #1b2733; font-weight: 600; }
+.zf-stage-wrap .zf-loading .zf-ico { width: 1.3em; height: 1.3em; }
+.zf-stars { display: inline-flex; gap: 4px; align-items: baseline; flex-wrap: wrap; }
+.zf-stars > span:first-child { font-size: 1.25em; letter-spacing: .08em; }
+.zf-tries .zf-ico, .zf-problems .zf-ico { margin-top: 2px; }
+.zf-problems { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.zf-problems li { font-weight: 400; }
+.zf-level textarea { min-height: 12em; }
+.zf-fallback { display: grid; gap: 12px; }
+.zf-load-error { align-items: flex-start; }
+/* Labyrinthe Blokaly sur un écran étroit : le plateau au-dessus des blocs (runner-blokaly.css n'a pas de @media). */
+@media (max-width: 720px) {
+  .zf-stage[data-kind="maze"] { height: min(92vh, 860px); }
+  .zf-stage .bk-stage { flex-direction: column; }
+  .zf-stage .bk-game { flex: 0 0 40%; border-right: none; border-bottom: 1px solid #e3e7ec; }
+  .zf-stage .bk-side { flex: 1 1 60%; }
+  .zf-stage .bk-head-goal { white-space: normal; }
+}
+
+/* Impression d'un défi intégré : la grille du labyrinthe, symboles lisibles sans couleur. */
+.zf-pr-laby { border-collapse: collapse; margin: .4em 0; break-inside: avoid; page-break-inside: avoid; }
+.zf-pr-laby td { width: 1.6em; height: 1.6em; border: 1px solid #111; text-align: center; vertical-align: middle; font-family: var(--sans); padding: 0; }
+.zf-pr-laby td.zf-pr-mur { background: repeating-linear-gradient(45deg, #bbb 0 2px, #fff 2px 5px); }
+.zf-pr-legende { font-size: .88em; }

@@ -374,3 +374,208 @@ test('vérification et renumérotation : effets et conditions des effets du bloc
   assert.deepEqual(b.failureEffects[0].if, { visited: '40' });
   assert.deepEqual(b.skipEffects[0].if, { not: { visited: '40' } });
 });
+
+/* ---------- mode intégré : activité zefor jouée dans la page ---------- */
+
+const integre = (more = {}) => sample({
+  mode: 'integre', url: undefined, codeHashes: undefined,
+  activity: { kind: 'maze', level: Z.sampleLevel('maze') }, pass: { minScore: 0.5 }, allowSkip: true, skipTo: '4', ...more,
+});
+
+test('intégré : score normalisé (étoiles / maximum, au moins 1 étoile pour une victoire, Pezali = 1)', () => {
+  assert.equal(Z.scoreIntegre('maze', { passed: true, etoiles: 3, maxEtoiles: 4 }), 0.75);
+  assert.equal(Z.scoreIntegre('maze', { passed: true, etoiles: 4, maxEtoiles: 4 }), 1);
+  assert.equal(Z.scoreIntegre('maze', { passed: true, etoiles: 0, maxEtoiles: 4 }), 0.25, 'une victoire vaut au moins 1 étoile');
+  assert.equal(Z.scoreIntegre('maze', { passed: true }), 0.25, 'sans étoiles : 1 sur 4');
+  assert.equal(Z.scoreIntegre('brume', { passed: true, etoiles: 2, maxEtoiles: 4 }), 0.5);
+  assert.equal(Z.scoreIntegre('brume', { passed: true, etoiles: 1 }), 0.25, 'brume levée : 1 étoile');
+  assert.equal(Z.scoreIntegre('maze', { passed: true, etoiles: 9, maxEtoiles: 4 }), 1, 'plafonné');
+  assert.equal(Z.scoreIntegre('maze', { passed: true, etoiles: 2, maxEtoiles: 3 }), 0.67);
+  assert.equal(Z.scoreIntegre('maze', { passed: true, etoiles: 2, maxEtoiles: 0 }), 0.5, 'maximum invalide → 4');
+  assert.equal(Z.scoreIntegre('pezali', { passed: true, value: 3, etoiles: 4, maxEtoiles: 4 }), 1);
+  assert.equal(Z.scoreIntegre('pezali', { passed: true }), 1);
+  assert.equal(Z.scoreIntegre('maze', { passed: false, etoiles: 4 }), 0);
+  assert.equal(Z.scoreIntegre('maze', null), 0);
+  assert.equal(Z.scoreIntegre('brume', 'réussi'), 0);
+  assert.deepEqual(Z.starsOf({ etoiles: 3, maxEtoiles: 4 }), { stars: 3, maxStars: 4 });
+  assert.equal(Z.starsText(1), '1 étoile sur 4');
+  assert.equal(Z.starsText(3, 4), '3 étoiles sur 4');
+});
+
+test('intégré : verdict selon pass.minScore et pass.minStars', () => {
+  const b = { mode: 'integre', activity: { kind: 'maze', level: {} }, pass: { minScore: 0.5 } };
+  assert.deepEqual(Z.judgeIntegre(b, { passed: true, etoiles: 1, maxEtoiles: 4 }), { success: false, score: 0.25, scoreOk: false, stars: 1, maxStars: 4 });
+  assert.equal(Z.judgeIntegre(b, { passed: true, etoiles: 2, maxEtoiles: 4 }).success, true);
+  assert.equal(Z.judgeIntegre({ ...b, pass: { minStars: 3 } }, { passed: true, etoiles: 2 }).success, false);
+  assert.equal(Z.judgeIntegre({ ...b, pass: { minStars: 3 } }, { passed: true, etoiles: 3 }).success, true);
+  assert.equal(Z.judgeIntegre({ ...b, pass: undefined }, { passed: true, etoiles: 1 }).success, true, 'sans exigence : réussir suffit');
+  assert.equal(Z.judgeIntegre({ ...b, pass: { minScore: 0.75 } }, { passed: true, etoiles: 3 }).success, true, '0,75 pile');
+  assert.equal(Z.judgeIntegre(b, { passed: false }).success, false);
+  const pz = { mode: 'integre', activity: { kind: 'pezali', level: {} }, pass: { minScore: 1 } };
+  const v = Z.judgeIntegre(pz, { passed: true, value: 3 });
+  assert.deepEqual(v, { success: true, score: 1, scoreOk: true }, 'Pezali : pas d’étoiles, score 1');
+  assert.deepEqual(Z.passOf({ pass: { minScore: '0.5', minStars: '' } }), { minScore: 0.5, minStars: null });
+});
+
+test('intégré : vérification des niveaux (labyrinthe, brume, balance)', () => {
+  for (const k of Object.keys(Z.KINDS)) assert.deepEqual(Z.checkLevel(k, Z.sampleLevel(k)), [], `exemple ${k}`);
+  const errs = (k, l) => Z.checkLevel(k, l).filter(p => p.level === 'error').map(p => p.text).join(' | ');
+  const maze = Z.sampleLevel('maze');
+  assert.equal(Z.mazePath(maze), 6, 'plus court chemin du chemin discret');
+  assert.match(errs('maze', { ...maze, grid: [[4, 4, 4, 4], [4, 2, 5, 3], [4, 4, 4, 4]], startPos: { x: 1, y: 1 } }), /aucun chemin/);
+  assert.match(errs('maze', { ...maze, startPos: { x: 0, y: 0 } }), /départ est sur un mur/);
+  assert.match(errs('maze', { ...maze, startPos: { x: 20, y: 0 } }), /hors de la grille/);
+  assert.match(errs('maze', { ...maze, grid: [[2, 1, 1]] }), /pas d’arrivée/);
+  assert.match(errs('maze', { ...maze, grid: [[2, 3], [1]] }), /même longueur/);
+  assert.match(errs('maze', { ...maze, grid: 'abc' }), /grille/);
+  assert.match(errs('maze', { ...maze, allowedBlocks: ['maze_turn'] }), /ne peut pas avancer/);
+  assert.match(errs('maze', { ...maze, maxBlocks: -2 }), /maxBlocks/);
+  assert.match(errs('maze', { ...maze, startPos: { x: 1, y: 1, dir: 7 } }), /direction/);
+  assert.ok(Z.checkLevel('maze', { ...maze, decor: { danger: 'un grand méchant loup' } }).some(p => p.level === 'warning' && /décor « danger »/.test(p.text)));
+  assert.deepEqual(Z.checkLevel('maze', { ...maze, decor: { danger: '🐍', but: 'maison' } }), [], 'pictogramme court ou nom connu');
+  assert.ok(Z.checkLevel('maze', { ...maze, decor: undefined }).some(p => p.level === 'info' && /yeux/.test(p.text)));
+  const brume = Z.sampleLevel('brume');
+  assert.match(errs('brume', { ...brume, total: 16 }), /ne tombent pas juste/);
+  assert.match(errs('brume', { ...brume, caches: { A: 0 } }), /caches\.A/);
+  assert.match(errs('brume', { ...brume, brumes: [{ teinte: 'Z', x: 1, y: 1, r: 3 }] }), /teinte/);
+  assert.match(errs('brume', { ...brume, brumes: [{ teinte: 'A', x: 1, y: 1, r: 3 }, { teinte: 'B', x: 50, y: 30, r: 5 }], caches: { A: 4, B: 4 } }), /nombres différents/);
+  assert.ok(Z.checkLevel('brume', { ...brume, points: brume.points.map((p, i) => (i === 0 ? { x: p.x, y: p.y } : p)), total: 15 }).some(p => /recouvre 7 points/.test(p.text)));
+  const pz = Z.sampleLevel('pezali');
+  assert.match(errs('pezali', { ...pz, droite: '12' }), /pas un nombre entier/);
+  assert.match(errs('pezali', { ...pz, gauche: 'x + y' }), /il faut une équation/);
+  assert.match(errs('pezali', { ...pz, gauche: 'x + 2', droite: 'x + 5' }), /un seul côté/);
+  assert.match(errs('pezali', { ...pz, operations: ['sub', 'racine'] }), /racine/);
+  assert.deepEqual(Z.parseLinear('3x + 2'), { a: 3, b: 2 });
+  assert.deepEqual(Z.parseLinear(' -x − 4 + 2x'), { a: 1, b: -4 });
+  assert.deepEqual(Z.parseLinear('11'), { a: 0, b: 11 });
+  assert.equal(Z.parseLinear('3y'), null);
+  assert.equal(Z.parseLinear(''), null);
+  assert.match(errs('balance', {}), /type d’activité inconnu/);
+  assert.match(errs('maze', null), /objet JSON/);
+  assert.ok(Z.checkLevel('pezali', { ...pz, consigne: undefined }).some(p => p.level === 'warning' && /consigne/.test(p.text)));
+  assert.equal(Z.levelForMount('maze', { grid: [] }).type, 'MAZE');
+  assert.equal(Z.levelForMount('pezali', { gauche: 'x' }).equationMode, 'fixe');
+});
+
+test('intégré : vérification de l’aventure (activité, exigence, repli, sortie de secours)', async () => {
+  const msgs = adv => validate(adv).filter(p => p.section === '1').map(p => `${p.level}: ${p.message}`);
+  const ok = msgs(integre());
+  assert.ok(!ok.some(m => /^(error|warning)/.test(m)), ok.join('\n'));
+  assert.ok(!ok.some(m => /adresse du parcours/.test(m)), 'pas d’adresse exigée en mode intégré');
+  assert.ok(msgs(integre({ activity: { kind: 'tortue', level: {} } })).some(m => m.startsWith('error') && /inconnu « tortue »/.test(m)));
+  assert.ok(msgs(integre({ activity: undefined })).some(m => m.startsWith('error') && /activity/.test(m)));
+  assert.ok(msgs(integre({ activity: { kind: 'maze', level: { ...Z.sampleLevel('maze'), startPos: { x: 0, y: 0 } } } })).some(m => m.startsWith('error') && /labyrinthe, le départ est sur un mur/.test(m)));
+  assert.ok(msgs(integre({ success: '' })).some(m => m.startsWith('error') && /destination/.test(m)));
+  assert.ok(msgs(integre({ pass: { minScore: 70 } })).some(m => m.startsWith('error') && /entre 0 et 1/.test(m)));
+  assert.ok(msgs(integre({ pass: { minStars: 5 } })).some(m => m.startsWith('error') && /minStars/.test(m)));
+  assert.ok(msgs(integre({ allowSkip: false })).some(m => m.startsWith('warning') && /reste bloqué/.test(m)));
+  assert.ok(msgs(integre({ allowSkip: false, fallback: { mode: 'code', url: '', codeHashes: [] } })).some(m => m.startsWith('error') && /repli : aucun code de secours/.test(m)));
+  const h = await Z.codeHash(ID, 'SECOURS-1');
+  const good = msgs(integre({ allowSkip: false, fallback: { mode: 'code', url: 'https://zefor.maths974.fr/#jeu=maze', codeHashes: [h], codeSalt: ID } }));
+  assert.ok(!good.some(m => /^(error|warning)/.test(m)), good.join('\n'));
+  assert.ok(msgs(integre({ fallback: { mode: 'code', url: 'ftp://x', codeHashes: [h] } })).some(m => m.startsWith('error') && /https/.test(m)));
+  assert.ok(msgs(integre({ fallback: { mode: 'integre' } })).some(m => m.startsWith('error') && /code, message ou retour/.test(m)));
+  assert.ok(msgs(integre({ activity: { kind: 'pezali', level: Z.sampleLevel('pezali') }, pass: { minScore: 1 } })).some(m => m.startsWith('info') && /Pezali ne donne pas d’étoiles/.test(m)));
+});
+
+test('intégré : cibles du graphe et renumérotation (le niveau et le repli ne bougent pas)', () => {
+  const adv = integre({ fallback: { mode: 'code', url: 'https://zefor.maths974.fr/', codeHashes: [] }, failureEffects: [{ op: 'gold', add: 1, if: { visited: '4' } }] });
+  assert.deepEqual(targetsOf(adv.sections['1']).map(x => [x.to, x.label]), [['2', 'défi réussi'], ['3', 'défi raté'], ['4', 'sans le défi']]);
+  const { adventure, mapping } = renumber(adv, makeRng(7));
+  const b = adventure.sections[mapping['1']].blocks[0];
+  assert.equal(b.mode, 'integre');
+  assert.equal(b.success, mapping['2']); assert.equal(b.failure, mapping['3']); assert.equal(b.skipTo, mapping['4']);
+  assert.deepEqual(b.failureEffects[0].if, { visited: mapping['4'] });
+  assert.deepEqual(b.activity, adv.sections['1'].blocks[0].activity, 'le niveau n’est pas renuméroté');
+  assert.deepEqual(b.fallback, adv.sections['1'].blocks[0].fallback);
+  assert.deepEqual(b.pass, { minScore: 0.5 });
+});
+
+test('intégré : partie jouée (essais ratés, réussite avec étoiles, bilan, recommencer)', () => {
+  const adv = integre({ successEffects: [{ op: 'gold', add: 3 }] });
+  const gold = hero(adv).gold;
+  let s = Z.missIntegre(hero(adv), 0).state;
+  s = Z.missIntegre(s, 0).state;
+  assert.equal(s.blocks[0].tries, 2);
+  assert.equal(s.blocks[0].status, undefined, 'un essai raté ne conclut rien');
+  const v1 = Z.judgeIntegre(adv.sections['1'].blocks[0], { passed: true, etoiles: 1, maxEtoiles: 4 });
+  let r = Z.recordResult(s, adv, 0, { success: v1.success, score: v1.score, via: 'integre', scoreOk: v1.scoreOk, stars: v1.stars, maxStars: v1.maxStars });
+  assert.equal(r.state.blocks[0].status, 'failure');
+  assert.equal(r.messages[0].text, 'Défi Zefor non réussi (1 étoile sur 4) : score insuffisant.');
+  assert.throws(() => Z.continueChallenge(r.state, adv, 0), /pas encore réussi/);
+  s = Z.startIntegre(r.state, 0).state;
+  assert.equal(s.blocks[0].status, 'pending'); assert.equal(s.blocks[0].result, null);
+  const v2 = Z.judgeIntegre(adv.sections['1'].blocks[0], { passed: true, etoiles: 3, maxEtoiles: 4 });
+  r = Z.recordResult(s, adv, 0, { success: v2.success, score: v2.score, via: 'integre', scoreOk: v2.scoreOk, stars: v2.stars, maxStars: v2.maxStars });
+  assert.equal(r.messages[0].text, 'Défi Zefor réussi (3 étoiles sur 4).');
+  assert.deepEqual(r.state.blocks[0].result, { success: true, score: 0.75, via: 'integre', exercise: '', scoreOk: true, stars: 3, maxStars: 4 });
+  const done = Z.continueChallenge(r.state, adv, 0).state;
+  assert.equal(done.section, '2');
+  assert.equal(done.gold, gold + 3, 'effet de réussite appliqué');
+  assert.deepEqual(done.zefor.done['1#0'], { ok: true, via: 'integre', score: 0.75, title: 'La balance', section: '1' });
+  assert.equal(Z.viaLabel('integre'), 'l’activité jouée dans le livre');
+  // Abandon après des essais ratés : paragraphe d'échec.
+  const lost = Z.failChallenge(Z.missIntegre(hero(adv), 0).state, adv, 0).state;
+  assert.equal(lost.section, '3');
+  assert.equal(lost.zefor.done['1#0'].via, 'abandon');
+});
+
+test('intégré : repli (bloc effectif, code de secours, code de transfert en mode retour)', async () => {
+  const h = await Z.codeHash(ID, 'SECOURS-1');
+  const adv = integre({ fallback: { mode: 'code', url: 'https://zefor.maths974.fr/#jeu=maze', codeHashes: [h], codeSalt: ID, exercise: 'maze:chemin' } });
+  const b = adv.sections['1'].blocks[0];
+  const fb = Z.fallbackBlock(b);
+  assert.equal(fb.mode, 'code'); assert.equal(fb.url, 'https://zefor.maths974.fr/#jeu=maze'); assert.equal(fb.success, '2');
+  assert.equal(fb.activity, undefined); assert.equal(fb.fallback, undefined); assert.equal(fb.pass, undefined);
+  assert.equal(await Z.checkCode(adv, fb, 'secours 1'), 'static');
+  assert.equal(Z.fallbackBlock({ ...b, fallback: undefined }), null);
+  assert.equal(Z.fallbackBlock({ ...b, fallback: { mode: 'integre' } }), null);
+  assert.equal(Z.fallbackBlock({ ...b, fallback: { url: 'https://x.fr' } }).mode, 'code', 'mode code par défaut');
+  // Repli en mode retour : le code de transfert fonctionne comme pour un bloc « retour ».
+  const adv2 = integre({ fallback: { mode: 'retour', url: 'https://zefor.maths974.fr/' } });
+  adv2.rules.zefor.codeKey = Z.newCodeKey();
+  const { publicJwk, privateJwk } = await Z.generateKeyPair();
+  adv2.rules.zefor.publicKeyJwk = publicJwk;
+  const nonce = Z.newNonce();
+  const res = Z.parseReturn({ nonce, success: '1' });
+  res.signature = await Z.signResult(privateJwk, res);
+  assert.equal(await Z.transferCode(adv2, '1.0', res), await Z.personalCode(adv2.rules.zefor.codeKey, nonce));
+  adv2.sections['1'].blocks[0].fallback = undefined;
+  assert.equal(await Z.transferCode(adv2, '1.0', res), null, 'sans repli retour : pas de code de transfert');
+});
+
+test('intégré : version imprimable (texte de repli, grille du labyrinthe, code de secours)', async () => {
+  const { ext } = await import('../js/core/plugins.js');
+  const print = (b, adv) => ext.blocks.get('zefor').print(b, adv, { go: n => `rendez-vous au <b>${n}</b>`, esc: s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'), effectText: () => 'vous perdez 1 point de CHANCE.' });
+  const adv = integre({ skipEffects: [{ op: 'stat', stat: 'chance', add: -1 }] });
+  const out = print(adv.sections['1'].blocks[0], adv);
+  assert.match(out, /Défi Zefor : La balance\./);
+  assert.match(out, /Ce défi se joue dans l’application Livre-Héros \(labyrinthe\)\. Consigne : Guide le groupe/);
+  assert.match(out, /<table class="zf-pr-laby"/);
+  assert.equal((out.match(/<tr>/g) || []).length, 5, 'une ligne de tableau par ligne de la grille');
+  assert.match(out, /<b>→<\/b>/); assert.match(out, /<b>A<\/b>/); assert.match(out, /<b>!<\/b>/);
+  assert.match(out, /Dans l'application, sa réussite vous mène au <b>2<\/b>\./);
+  assert.match(out, /Si vous n'y parvenez pas, rendez-vous au <b>3<\/b>/);
+  assert.match(out, /renoncer au défi : vous perdez 1 point de CHANCE, rendez-vous au <b>4<\/b>/);
+  assert.doesNotMatch(out, /undefined/);
+  const withFb = print({ ...adv.sections['1'].blocks[0], fallback: { mode: 'code', url: 'https://zefor.maths974.fr/#jeu=maze', codeHashes: [] } }, adv);
+  assert.match(withFb, /Sur papier, faites-le sur zefor974 :<\/p><p class="zf-url">https:/);
+  assert.match(withFb, /notez le code obtenu, puis rendez-vous au <b>2<\/b>\./);
+  const teacher = print({ ...adv.sections['1'].blocks[0], fallback: { mode: 'code', codeHashes: [] } }, adv);
+  assert.match(teacher, /demandez le code de secours à l'adulte qui vous accompagne/);
+  const pz = print({ ...adv.sections['1'].blocks[0], activity: { kind: 'pezali', level: Z.sampleLevel('pezali') } }, adv);
+  assert.match(pz, /\(balance\)\. Consigne : Trois sacs/);
+  assert.doesNotMatch(pz, /zf-pr-laby/);
+});
+
+test('intégré : JSON du niveau lisible dans l’éditeur (une ligne de grille par ligne), sans perte', () => {
+  for (const k of Object.keys(Z.KINDS)) {
+    const lvl = Z.sampleLevel(k);
+    assert.deepEqual(JSON.parse(Z.prettyLevel(lvl)), lvl, k);
+  }
+  const t = Z.prettyLevel(Z.sampleLevel('maze'));
+  assert.match(t, /\n {4}\[4, 2, 1, 1, 5, 4, 4\],\n/);
+  assert.match(t, /"startPos": \{ "x": 1, "y": 1, "dir": 0 \}/);
+  assert.equal(Z.prettyLevel(undefined), '{}');
+  assert.deepEqual(JSON.parse(Z.prettyLevel({ a: [], b: {}, c: undefined, d: [1, [2, 3]], e: 'x, y' })), { a: [], b: {}, d: [1, [2, 3]], e: 'x, y' });
+});
