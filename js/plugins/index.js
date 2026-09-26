@@ -10,7 +10,7 @@
 
 // [defis]
 
-// [zefor]
+import './zefor/index.js';
 
 // [maths]
 

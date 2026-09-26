@@ -9,7 +9,7 @@
 
 // [defis]
 
-// [zefor]
+import './zefor/core.js';
 
 // [carte]
 
