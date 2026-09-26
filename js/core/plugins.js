@@ -10,6 +10,8 @@ export const ext = {
   conditions: [],
   /** type → { targets(b, i) → [{ to, kind, label, ref }], remap?(b, m) → b, validate?(b, adv, report, where), print?(b, adv, h) → html } */
   blocks: new Map(),
+  /** [(adv, m, remapCond) → void] : renumérotation / renommage des paragraphes ; `adv` (copie) est modifiable, m(ancien) → nouveau. */
+  remap: [],
   /** [{ attackMod?(state, adv, combat) → n, damageMod?(state, adv, combat) → n, armor?(state, adv, combat) → n, round?(ctx) }] */
   combat: [],
   /** [(state, adv, cls, rng) → void] : complète l'état d'un nouveau héros (compteurs, équipement…). */
@@ -27,6 +29,7 @@ export const ext = {
 export const registerEffect = (op, def) => { ext.effects.set(op, def); };
 export const registerCondition = def => { ext.conditions.push(def); };
 export const registerBlock = (type, def) => { ext.blocks.set(type, def); };
+export const registerRemap = fn => { ext.remap.push(fn); };
 export const registerCombatHook = def => { ext.combat.push(def); };
 export const registerHeroInit = fn => { ext.heroInit.push(fn); };
 export const registerNormalize = fn => { ext.normalize.push(fn); };

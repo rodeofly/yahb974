@@ -13,6 +13,6 @@ import './zefor/core.js';
 
 import './carte/core.js';
 
-// [succes]
+import './succes/core.js';
 
 // [echanges]

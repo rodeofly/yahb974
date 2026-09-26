@@ -16,7 +16,7 @@ import './maths/index.js';
 
 import './carte/index.js';
 
-// [succes]
+import './succes/index.js';
 
 // [echanges]
 
