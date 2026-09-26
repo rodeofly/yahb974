@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B2440"/><stop offset=".55" stop-color="#4E4470"/><stop offset="1" stop-color="#D98A5C"/>
+    </linearGradient>
+    <linearGradient id="mer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B5566"/><stop offset="1" stop-color="#132B36"/>
+    </linearGradient>
+    <linearGradient id="faisceau" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#FFE7A3" stop-opacity=".75"/><stop offset="1" stop-color="#FFE7A3" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#FFF2C4"/><stop offset=".35" stop-color="#FFD978" stop-opacity=".8"/><stop offset="1" stop-color="#FFD978" stop-opacity="0"/></radialGradient>
+    <radialGradient id="lave" cx=".5" cy="1" r=".8"><stop offset="0" stop-color="#F08A45" stop-opacity=".9"/><stop offset="1" stop-color="#F08A45" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#ciel)"/>
+  <g fill="#FFF6DD">
+    <circle cx="80" cy="60" r="1.6"/><circle cx="170" cy="110" r="1.2"/><circle cx="260" cy="45" r="1.8"/><circle cx="350" cy="90" r="1.1"/>
+    <circle cx="430" cy="35" r="1.5"/><circle cx="520" cy="75" r="1.2"/><circle cx="610" cy="40" r="1.7"/><circle cx="700" cy="95" r="1.1"/>
+    <circle cx="790" cy="55" r="1.4"/><circle cx="860" cy="120" r="1.2"/><circle cx="120" cy="170" r="1"/><circle cx="560" cy="150" r="1"/>
+  </g>
+  <!-- volcan et panache -->
+  <path d="M40 330 C60 300 140 280 200 300 C250 250 300 210 330 196 L372 196 C410 220 470 270 520 300 C600 285 660 300 700 330 L700 430 H40Z" fill="#2E2A3D" opacity=".85"/>
+  <ellipse cx="351" cy="197" rx="40" ry="16" fill="url(#lave)"/>
+  <path d="M345 190 C330 150 360 130 350 95 C342 70 370 55 382 40" fill="none" stroke="#E6DDEE" stroke-width="18" stroke-linecap="round" opacity=".13"/>
+  <!-- mer -->
+  <rect y="410" width="900" height="190" fill="url(#mer)"/>
+  <g stroke="#9CC3CC" stroke-width="2" stroke-linecap="round" opacity=".35" fill="none">
+    <path d="M40 450 q20 -6 40 0 t40 0"/><path d="M220 480 q20 -6 40 0 t40 0 t40 0"/><path d="M90 530 q20 -6 40 0 t40 0"/>
+    <path d="M420 505 q20 -6 40 0 t40 0"/><path d="M300 565 q20 -6 40 0 t40 0 t40 0"/><path d="M560 455 q20 -6 40 0 t40 0"/>
+  </g>
+  <!-- faisceau -->
+  <path d="M742 205 L0 150 L0 290 Z" fill="url(#faisceau)"/>
+  <circle cx="742" cy="205" r="46" fill="url(#halo)"/>
+  <!-- pointe rocheuse et digue -->
+  <path d="M640 440 C680 400 700 380 720 372 L790 368 C830 380 870 400 900 410 V600 H640Z" fill="#1A1C22"/>
+  <g fill="#262A31"><ellipse cx="600" cy="452" rx="22" ry="7"/><ellipse cx="560" cy="460" rx="20" ry="7"/><ellipse cx="520" cy="468" rx="18" ry="6"/><ellipse cx="482" cy="474" rx="16" ry="6"/></g>
+  <!-- phare -->
+  <path d="M726 372 L734 232 H750 L758 372 Z" fill="#EDE8DE"/>
+  <path d="M730.5 320 L753.5 320 L755 344 L729 344 Z M733 270 L751 270 L752 292 L732 292 Z" fill="#B8453A"/>
+  <rect x="725" y="224" width="34" height="8" rx="2" fill="#2B2B30"/>
+  <rect x="731" y="194" width="22" height="30" rx="3" fill="#FFE39A"/>
+  <path d="M727 194 H757 L742 178 Z" fill="#2B2B30"/>
+  <!-- bateaux -->
+  <g fill="#0E1A20">
+    <path d="M150 505 h46 l-8 10 h-32 z"/><rect x="170" y="485" width="3" height="20"/>
+    <path d="M300 470 h36 l-6 8 h-24 z"/><rect x="316" y="455" width="2.5" height="15"/>
+    <path d="M420 440 h28 l-5 7 h-18 z"/><rect x="433" y="428" width="2" height="12"/>
+  </g>
+  <g fill="#FFD978"><circle cx="191" cy="500" r="2.5"/><circle cx="331" cy="466" r="2"/><circle cx="445" cy="437" r="1.8"/></g>
+</svg>

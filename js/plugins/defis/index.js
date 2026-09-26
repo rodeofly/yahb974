@@ -508,7 +508,7 @@ function Solutions({ adv }) {
     <p class="pr-small pr-defi-center">Classées par numéro de paragraphe. Ne lisez que celle du défi en cours.</p>
     <dl class="pr-defi-sol">${list.map(s => html`<div class="pr-defi-sol-item">
       <dt>${s.label}</dt>
-      <dd>${s.title && html`<b>${s.title} : </b>`}${s.hashed ? html`<i>${s.solution}</i>` : s.solution}.
+      <dd>${s.title && html`<b>${s.title} : </b>`}${s.hashed ? html`<i>${s.solution}</i>` : html`<span dangerouslySetInnerHTML=${{ __html: inline(s.solution) }}></span>`}.
         ${s.explanation.trim() && html`<div class="pr-small pr-defi-explain" dangerouslySetInnerHTML=${{ __html: markdown(s.explanation) }}></div>`}</dd>
     </div>`)}</dl>
   </div>`;

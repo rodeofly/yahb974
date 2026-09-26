@@ -1,0 +1,1528 @@
+{
+  "format": "livre-heros/1",
+  "id": "le-phare-des-nombres",
+  "meta": {
+    "title": "Le Phare des Nombres",
+    "author": "Livre-Héros (aventure de démonstration)",
+    "description": "À La Réunion, rallumez le vieux phare avant la nuit : du volcan au lagon, avec Anissa, des énigmes et des formules. Pour les 11-14 ans. Aventure de démonstration de tous les greffons ; pour les testeurs, le défi Zefor du paragraphe 21 accepte le code de démonstration PHARE974.",
+    "cover": "images/couverture.svg",
+    "version": 1,
+    "worldMap": {
+      "image": "images/carte-ile.svg",
+      "alt": "Carte de La Réunion : le Piton de la Fournaise à l’est, la forêt et Ti-Port au sud-est, le lagon au sud, le phare sur la pointe est.",
+      "places": {
+        "Ti-Port": {
+          "x": 67.8,
+          "y": 85.8
+        },
+        "Forêt de Mare-Longue": {
+          "x": 66.4,
+          "y": 75.5
+        },
+        "Piton de la Fournaise": {
+          "x": 71.1,
+          "y": 52.5
+        },
+        "Gîte du volcan": {
+          "x": 60.5,
+          "y": 46.5
+        },
+        "Tunnel de lave": {
+          "x": 75.5,
+          "y": 62
+        },
+        "Route des laves": {
+          "x": 83.5,
+          "y": 68
+        },
+        "Phare des Nombres": {
+          "x": 83.6,
+          "y": 39.7
+        },
+        "Lagon": {
+          "x": 44.4,
+          "y": 88
+        }
+      },
+      "revealUnvisited": true,
+      "showPath": true
+    }
+  },
+  "rules": {
+    "stats": [
+      {
+        "id": "habilete",
+        "label": "Habileté",
+        "roll": "1d6+6"
+      },
+      {
+        "id": "endurance",
+        "label": "Endurance",
+        "roll": "2d6+12"
+      },
+      {
+        "id": "chance",
+        "label": "Chance",
+        "roll": "1d6+6"
+      }
+    ],
+    "classes": [
+      {
+        "id": "randonnee",
+        "label": "Randonnée",
+        "description": "Vous connaissez les sentiers de l’île par cœur. Solidité et endurance : un repas de plus au départ.",
+        "rolls": {},
+        "items": [],
+        "provisions": 3
+      },
+      {
+        "id": "plongee",
+        "label": "Plongée",
+        "description": "Vous nagez depuis que vous savez marcher. Plus de chance, moins de force : un masque de plongée au départ.",
+        "rolls": {
+          "chance": "1d6+7",
+          "endurance": "2d6+10"
+        },
+        "items": [
+          "masque"
+        ]
+      },
+      {
+        "id": "mathemagie",
+        "label": "Mathémagie",
+        "description": "Vous connaissez les Formules des Nombres, à taper de mémoire. Moins d’habileté au combat, et chaque formule coûte de l’Endurance.",
+        "rolls": {
+          "habilete": "1d6+4"
+        },
+        "items": []
+      }
+    ],
+    "gold": "1d6+3",
+    "provisions": 2,
+    "meal": {
+      "stat": "endurance",
+      "heal": 4
+    },
+    "combat": {
+      "skill": "habilete",
+      "health": "endurance",
+      "damage": 2,
+      "luck": "chance",
+      "fleeDamage": 2
+    },
+    "startItems": [
+      "baton"
+    ],
+    "allowBack": true,
+    "time": {
+      "enabled": true,
+      "mealRequired": true,
+      "stat": "endurance",
+      "penalty": 2
+    },
+    "spells": {
+      "enabled": true,
+      "stat": "endurance",
+      "casters": [
+        "mathemagie"
+      ],
+      "typeCode": true,
+      "unknownCost": 1,
+      "book": [
+        {
+          "code": "PHI",
+          "name": "Nombre d’or",
+          "cost": 2,
+          "description": "Une lumière dorée, aux proportions parfaites, jaillit de vos mains. Elle traverse le brouillard le plus épais."
+        },
+        {
+          "code": "RAC",
+          "name": "Racine carrée",
+          "cost": 2,
+          "description": "Des racines aux angles bien droits sortent du sol et retiennent tout ce qui bouge."
+        },
+        {
+          "code": "INF",
+          "name": "Infini",
+          "cost": 3,
+          "description": "Une boucle sans fin : ce que vous visez se met à tourner en rond, sans jamais arriver nulle part."
+        }
+      ]
+    },
+    "equipment": {
+      "enabled": true,
+      "slots": [
+        {
+          "id": "arme",
+          "label": "Arme"
+        },
+        {
+          "id": "armure",
+          "label": "Vêtement"
+        },
+        {
+          "id": "bijou",
+          "label": "Porte-bonheur"
+        }
+      ],
+      "capacity": 6,
+      "unarmedPenalty": 2,
+      "weaponSlot": "arme"
+    },
+    "counters": [
+      {
+        "id": "courage",
+        "label": "Courage",
+        "start": 1,
+        "min": 0,
+        "max": 8,
+        "visible": true,
+        "icon": "flame",
+        "triggers": [
+          {
+            "when": "gte",
+            "value": 5,
+            "action": "message",
+            "message": "Votre cœur bat fort, mais vos mains ne tremblent plus : vous vous sentez capable de tout."
+          }
+        ]
+      },
+      {
+        "id": "maree",
+        "label": "Marée",
+        "start": 0,
+        "min": 0,
+        "max": 10,
+        "visible": true,
+        "icon": "moon",
+        "triggers": [
+          {
+            "when": "gte",
+            "value": 6,
+            "action": "message",
+            "message": "L’eau commence à recouvrir la digue du phare : il faut se dépêcher !"
+          },
+          {
+            "when": "gte",
+            "value": 10,
+            "action": "death",
+            "message": "La marée haute a englouti la digue : plus personne ne peut atteindre le phare avant la nuit. Les bateaux resteront au large jusqu’à l’aube."
+          }
+        ]
+      },
+      {
+        "id": "entraide",
+        "label": "Entraide",
+        "start": 0,
+        "min": 0,
+        "visible": false,
+        "icon": "heart",
+        "triggers": []
+      }
+    ],
+    "zefor": {
+      "origin": "https://zefor.maths974.fr",
+      "publicKeyJwk": null,
+      "codeKey": ""
+    }
+  },
+  "items": {
+    "carte-gardien": {
+      "name": "Carte du gardien",
+      "description": "Un papier jauni où Gramoun Lucien a dessiné la route du volcan et le chemin du phare.",
+      "small": true
+    },
+    "baton": {
+      "name": "Bâton de goyavier",
+      "description": "Solide et léger, coupé dans le goyavier de la cour.",
+      "slot": "arme",
+      "attack": 1
+    },
+    "cire": {
+      "name": "Ciré de pêcheur",
+      "description": "Épais et jaune, il protège de la pluie… et des coups.",
+      "slot": "armure",
+      "armor": 1
+    },
+    "lampe": {
+      "name": "Lampe frontale",
+      "description": "Indispensable sous terre."
+    },
+    "samoussas": {
+      "name": "Samoussas",
+      "description": "Encore tièdes. De quoi faire un vrai repas.",
+      "use": [
+        {
+          "op": "meal"
+        }
+      ]
+    },
+    "bonbons": {
+      "name": "Bonbons coco",
+      "description": "Sucrés et moelleux : +2 Endurance.",
+      "use": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": 2
+        }
+      ]
+    },
+    "masque": {
+      "name": "Masque de plongée",
+      "description": "Pour voir clair sous l’eau."
+    },
+    "braise": {
+      "name": "Braise de la Fournaise",
+      "description": "Une pierre de lave qui ne refroidit jamais. Elle bat doucement, comme un cœur.",
+      "small": true
+    },
+    "collier": {
+      "name": "Collier de nacre",
+      "description": "Offert par le vieux plongeur. La nacre détourne les coups.",
+      "slot": "bijou",
+      "armor": 1,
+      "small": true
+    },
+    "olivine": {
+      "name": "Cristal d’olivine",
+      "description": "Un petit cristal vert né dans le feu du volcan. Le serrer dans sa main redonne confiance : +1 Chance, même au total initial.",
+      "small": true,
+      "use": [
+        {
+          "op": "stat",
+          "stat": "chance",
+          "addInitial": 1
+        }
+      ]
+    }
+  },
+  "companions": {
+    "anissa": {
+      "name": "Anissa",
+      "skill": 8,
+      "health": 10,
+      "damage": 2,
+      "image": "images/anissa.svg",
+      "description": "Votre voisine, élève de 4e et championne de moringue du collège. Elle connaît la forêt comme sa poche et nage comme un poisson."
+    }
+  },
+  "achievements": [
+    {
+      "id": "gardien-lumiere",
+      "title": "Gardien de la lumière",
+      "description": "Rallumer le Phare des Nombres.",
+      "secret": false,
+      "when": "end",
+      "ending": "victory"
+    },
+    {
+      "id": "bu-la-tasse",
+      "title": "Bu la tasse",
+      "description": "Terminer une aventure sur un échec.",
+      "secret": false,
+      "when": "end",
+      "ending": "death"
+    },
+    {
+      "id": "avant-la-maree",
+      "title": "Avant la marée",
+      "description": "Rallumer le phare avec une Marée de 6 ou moins.",
+      "secret": false,
+      "when": "end",
+      "ending": "victory",
+      "cond": {
+        "counter": "maree",
+        "lte": 6
+      }
+    },
+    {
+      "id": "toujours-ensemble",
+      "title": "Toujours ensemble",
+      "description": "Rallumer le phare avec Anissa à vos côtés.",
+      "secret": false,
+      "when": "end",
+      "ending": "victory",
+      "cond": {
+        "companion": "anissa"
+      }
+    },
+    {
+      "id": "programmeur",
+      "title": "Programmeur de phare",
+      "description": "Réveiller l’automate grâce au défi Zefor.",
+      "secret": false,
+      "when": "anytime",
+      "ending": null,
+      "cond": {
+        "flag": "automate-reveille"
+      }
+    },
+    {
+      "id": "coeur-de-volcan",
+      "title": "Cœur de volcan",
+      "description": "Découvrir la salle aux cristaux.",
+      "secret": false,
+      "when": "anytime",
+      "ending": null,
+      "cond": {
+        "visited": "30"
+      }
+    },
+    {
+      "id": "ami-des-tortues",
+      "title": "Au secours des tortues",
+      "description": "Libérer la tortue du lagon.",
+      "secret": false,
+      "when": "anytime",
+      "ending": null,
+      "cond": {
+        "visited": "27"
+      }
+    },
+    {
+      "id": "main-tendue",
+      "title": "Main tendue",
+      "description": "Aider trois fois quelqu’un en chemin, sans rien attendre en retour.",
+      "secret": true,
+      "when": "anytime",
+      "ending": null,
+      "cond": {
+        "counter": "entraide",
+        "gte": 3
+      }
+    }
+  ],
+  "start": "1",
+  "sections": {
+    "1": {
+      "title": "L’appel du phare",
+      "text": "Samedi matin, à Ti-Port. Le vent sent le sel et la vanille, et les coqs du voisin ont réveillé tout le quartier. Vous finissez votre bol de chocolat quand Gramoun Lucien, le vieux gardien du phare, frappe au carreau de la cuisine. Il a le bras en écharpe et l’air soucieux.\n\n« Le Phare des Nombres s’est éteint cette nuit, souffle-t-il. La flamme de la lanterne est morte, et moi, avec ce bras, je ne peux plus monter les cent vingt marches. Or une houle australe arrive demain soir. Les pêcheurs, ton tonton Théo sur le *Ti-Lamé* comme les autres, rentreront dans le noir. Sans le phare, jamais ils ne trouveront la passe entre les récifs. »\n\nIl vous tend un papier plié en quatre. « La lanterne ne s’allume qu’avec une **Braise de la Fournaise**, une pierre de lave qui ne refroidit jamais. Le Gardien de basalte la garde, là-haut, près du cratère. Rapporte-la au phare avant la nuit de demain, et surtout avant que la marée ne recouvre la digue. Tu es la seule personne à qui je peux demander ça. »",
+      "image": "images/couverture.svg",
+      "place": "Ti-Port",
+      "onEnter": [
+        {
+          "op": "give",
+          "item": "carte-gardien"
+        },
+        {
+          "op": "revealPlace",
+          "place": "Piton de la Fournaise"
+        },
+        {
+          "op": "revealPlace",
+          "place": "Phare des Nombres"
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Passer d’abord à la boutique de Madame Grondin, au bout de la rue",
+          "to": "2"
+        },
+        {
+          "text": "Déplier tout de suite la carte du gardien",
+          "to": "4"
+        }
+      ],
+      "ending": null
+    },
+    "2": {
+      "title": "La boutique de Madame Grondin",
+      "text": "La boutique de Madame Grondin vend de tout : des piles, des cordes, des bonbons coco, des cirés de pêcheur et des samoussas encore tièdes. La commerçante écoute l’histoire du phare en hochant la tête.\n\n« Lucien a raison de s’inquiéter. Et si tu passes par le lagon, méfie-toi du courant de la passe : même les tortues s’y font prendre. »\n\nDu menton, elle montre des caisses de letchis empilées devant la porte. « Tu n’aurais pas deux minutes pour m’aider à rentrer tout ça ? Mon dos n’est plus ce qu’il était. »",
+      "image": null,
+      "place": "Ti-Port",
+      "onEnter": [
+        {
+          "op": "revealPlace",
+          "place": "Lagon"
+        }
+      ],
+      "blocks": [
+        {
+          "type": "shop",
+          "label": "Le comptoir de Madame Grondin",
+          "offers": [
+            {
+              "item": "cire",
+              "price": 3,
+              "stock": 1
+            },
+            {
+              "item": "lampe",
+              "price": 3,
+              "stock": 1
+            },
+            {
+              "item": "samoussas",
+              "price": 1,
+              "stock": 3
+            },
+            {
+              "item": "bonbons",
+              "price": 1,
+              "stock": 2
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "text": "Aider Madame Grondin à rentrer ses caisses",
+          "to": "3",
+          "if": {
+            "not": {
+              "visited": "3"
+            }
+          },
+          "hideIfUnavailable": true
+        },
+        {
+          "text": "Prendre congé et déplier la carte du gardien",
+          "to": "4"
+        }
+      ],
+      "ending": null
+    },
+    "3": {
+      "title": "Un coup de main",
+      "text": "Les caisses sont lourdes, mais à deux, on en vient vite à bout. Quand la dernière est rangée, Madame Grondin vous fait asseoir sur un tabouret derrière le comptoir et pose devant vous une assiette de cari poulet fumant, avec du riz et des grains.\n\n« On ne part pas à l’aventure le ventre vide ! »\n\nVous mangez de bon cœur. Au moment de partir, elle vous glisse encore deux samoussas enveloppés dans du papier journal.",
+      "image": null,
+      "place": "Ti-Port",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "entraide",
+          "add": 1
+        },
+        {
+          "op": "counter",
+          "counter": "courage",
+          "add": 1
+        },
+        {
+          "op": "meal"
+        },
+        {
+          "op": "give",
+          "item": "samoussas",
+          "qty": 2
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Remercier Madame Grondin et déplier la carte du gardien",
+          "to": "4"
+        }
+      ],
+      "ending": null
+    },
+    "4": {
+      "title": "La carte du gardien",
+      "text": "Sur le muret du front de mer, vous dépliez la carte de Gramoun Lucien. Il l’a dessinée au stylo bille, avec des flèches et des petites notes dans les marges : « forêt = raccourci », « navette : 2 pièces », « digue : attention marée ! ».\n\nLe phare, lui, est entouré trois fois. À côté, Lucien a écrit : *sans la Braise, inutile d’y aller.*",
+      "image": null,
+      "place": "Ti-Port",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "map",
+          "image": "images/carte-gardien.svg",
+          "label": "Par où commencer ?",
+          "alt": "Carte dessinée à la main : la forêt de Mare-Longue à l’ouest, le volcan au nord, l’arrêt de la navette sur la route, Ti-Port au sud, le lagon au sud-ouest et le phare sur sa pointe, à l’est.",
+          "hotspots": [
+            {
+              "x": 10,
+              "y": 35,
+              "w": 26,
+              "h": 40,
+              "label": "La forêt de Mare-Longue, à pied",
+              "to": "5"
+            },
+            {
+              "x": 38,
+              "y": 53,
+              "w": 17,
+              "h": 15,
+              "label": "La navette du volcan (2 pièces d’or)",
+              "to": "16",
+              "if": {
+                "gold": true,
+                "gte": 2
+              },
+              "effects": [
+                {
+                  "op": "gold",
+                  "add": -2
+                }
+              ]
+            },
+            {
+              "x": 2,
+              "y": 74,
+              "w": 36,
+              "h": 16,
+              "label": "Le lagon",
+              "to": "25",
+              "if": {
+                "placeKnown": "Lagon"
+              },
+              "hideIfUnavailable": true
+            },
+            {
+              "x": 82,
+              "y": 17,
+              "w": 16,
+              "h": 42,
+              "label": "Le Phare des Nombres",
+              "to": "17",
+              "if": {
+                "has": "braise"
+              }
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "5": {
+      "title": "Sous les bois de couleurs",
+      "text": "La forêt de Mare-Longue vous avale d’un coup : troncs couverts de mousse, fanjans aux grandes feuilles en dentelle, racines qui serpentent sur la lave ancienne. Il fait frais et humide ; quelque part, un tec-tec lance son petit cri.\n\n« Hé ! Attends-moi ! » Anissa, votre voisine, championne de moringue du collège, court derrière vous, son sac sur l’épaule. « Tonton Théo, c’est aussi un peu mon tonton. Je viens avec toi, et ne discute pas. »\n\nUn peu plus loin, le sentier se sépare en deux. Sur un vieux panneau de bois, quelqu’un a gravé une devinette : la bonne réponse indique le raccourci.",
+      "image": "images/foret.svg",
+      "place": "Forêt de Mare-Longue",
+      "onEnter": [
+        {
+          "op": "companion",
+          "companion": "anissa",
+          "action": "join"
+        }
+      ],
+      "blocks": [
+        {
+          "type": "challenge",
+          "kind": "text",
+          "title": "La devinette du panneau",
+          "question": "*Je suis un nombre pair, et pourtant je suis premier. Je suis même le seul dans ce cas.* Qui suis-je ?",
+          "answers": [
+            "deux",
+            "2",
+            "le deux",
+            "le nombre deux",
+            "le 2"
+          ],
+          "attempts": 2,
+          "allowGiveUp": false,
+          "revealAnswer": true,
+          "ignoreSpaces": false,
+          "hints": [],
+          "success": "7",
+          "failure": "6",
+          "successEffects": [
+            {
+              "op": "counter",
+              "counter": "courage",
+              "add": 1
+            }
+          ],
+          "failureEffects": [],
+          "explanation": "Un nombre premier a exactement deux diviseurs : 1 et lui-même. Tous les nombres pairs sont divisibles par 2… mais 2 n’a que deux diviseurs, 1 et 2 : c’est le seul nombre premier pair."
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "6": {
+      "title": "Le long détour",
+      "text": "Le sentier que vous avez pris plonge dans une ravine, remonte, redescend… Anissa soupire : « Je crois qu’on tourne en rond. » Il vous faut une bonne heure pour retrouver le bon chemin. Pendant ce temps, sur la côte, la mer continue de monter.",
+      "image": null,
+      "place": "Forêt de Mare-Longue",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        },
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -1
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Reprendre la montée",
+          "to": "7"
+        }
+      ],
+      "ending": null
+    },
+    "7": {
+      "title": "Le bassin",
+      "text": "Le sentier vous mène au bord d’un bassin d’eau claire, au pied d’une petite cascade. C’est l’endroit idéal pour reprendre son souffle… mais un drôle de bourdonnement monte des fougères.",
+      "image": null,
+      "place": "Forêt de Mare-Longue",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "roll",
+          "label": "Que se passe-t-il au bord du bassin ?",
+          "dice": "1d6",
+          "table": [
+            {
+              "min": 1,
+              "max": 2,
+              "to": "8",
+              "text": "Un nid de guêpes est caché dans les fougères"
+            },
+            {
+              "min": 3,
+              "max": 6,
+              "to": "9",
+              "text": "Ce n’était qu’un bourdon : vous repartez vers le volcan"
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "8": {
+      "title": "Les guêpes",
+      "text": "Vous avez posé le pied tout près d’un nid de guêpes ! Il faut courir, sauter par-dessus les racines, plonger sous les branches. Quand le bourdonnement s’éloigne enfin, votre bras vous brûle de trois piqûres. Anissa, hors d’haleine, éclate de rire : « Tu as couru plus vite qu’au cross du collège ! »",
+      "image": null,
+      "place": "Forêt de Mare-Longue",
+      "onEnter": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -2
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Sortir de la forêt",
+          "to": "9"
+        }
+      ],
+      "ending": null
+    },
+    "9": {
+      "title": "La coulée",
+      "text": "Au sortir des arbres, le paysage change d’un coup. Plus une plante : seulement la lave, noire, figée en vagues et en cordages. Le volcan a craché une nouvelle coulée la semaine dernière, et elle fume encore par endroits.\n\nPour atteindre le cratère, il faut la traverser en sautant de rocher en rocher. Certains sont solides ; d’autres cachent, juste dessous, une lave encore chaude.",
+      "image": null,
+      "place": "Piton de la Fournaise",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "test",
+          "stat": "chance",
+          "label": "Traverser la coulée en choisissant bien vos appuis",
+          "success": "11",
+          "failure": "10"
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "10": {
+      "title": "La semelle fondue",
+      "text": "Crac ! Le rocher bascule et votre pied glisse dans une fente encore chaude. Vous le retirez aussitôt : la semelle de votre chaussure a fondu et votre cheville vous lance. Vous serrez les dents. La coulée est derrière vous, et avoir surmonté cette peur vous donne des forces.",
+      "image": null,
+      "place": "Piton de la Fournaise",
+      "onEnter": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -2
+        },
+        {
+          "op": "counter",
+          "counter": "courage",
+          "add": 1
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Continuer vers le cratère",
+          "to": "11"
+        }
+      ],
+      "ending": null
+    },
+    "11": {
+      "title": "Le Gardien de basalte",
+      "text": "Au bord du cratère, un tas de galets noirs se met à trembler. Les pierres roulent, s’emboîtent, se dressent : un géant de basalte se lève devant vous, deux fois plus grand qu’un adulte. Dans sa poitrine, à travers les fissures, rougeoie une braise.\n\n« Qui vient réveiller le Gardien ? gronde-t-il d’une voix de rochers qui s’écroulent. La Braise est à moi ! »\n\nIl ne vous laissera pas passer sans épreuve. Mais un gardien, cela peut aussi s’apaiser…",
+      "image": "images/gardien.svg",
+      "place": "Piton de la Fournaise",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "spells",
+          "label": "Prononcer une Formule des Nombres",
+          "costInText": false,
+          "options": [
+            {
+              "code": "RAC",
+              "to": "13"
+            }
+          ]
+        },
+        {
+          "type": "combat",
+          "enemies": [
+            {
+              "name": "Gardien de basalte",
+              "skill": 8,
+              "health": 12,
+              "damage": 2,
+              "image": "images/gardien.svg"
+            }
+          ],
+          "win": "12"
+        }
+      ],
+      "choices": [
+        {
+          "text": "Lui parler calmement pour l’apaiser",
+          "to": "12",
+          "if": {
+            "counter": "courage",
+            "gte": 4
+          },
+          "effects": [
+            {
+              "op": "note",
+              "text": "Le Gardien de basalte s’est apaisé en vous écoutant."
+            }
+          ]
+        }
+      ],
+      "ending": null
+    },
+    "12": {
+      "title": "La Braise de la Fournaise",
+      "text": "Le Gardien s’assied lourdement au bord du cratère. Sa voix n’est plus qu’un murmure. « Il y a bien longtemps qu’on ne m’avait pas tenu tête… Prends la Braise, et porte-la au phare. C’est pour cela qu’elle existe. »\n\nIl ouvre sa poitrine de pierre. La Braise tient dans le creux de votre main : chaude, mais elle ne brûle pas. Elle bat doucement, comme un cœur.\n\nDerrière le Gardien, une bouche noire s’ouvre dans la roche : l’entrée d’un ancien tunnel de lave. Le soleil, lui, commence à descendre.",
+      "image": null,
+      "place": "Piton de la Fournaise",
+      "onEnter": [
+        {
+          "op": "give",
+          "item": "braise",
+          "if": {
+            "not": {
+              "has": "braise"
+            }
+          }
+        },
+        {
+          "op": "counter",
+          "counter": "courage",
+          "add": 1
+        },
+        {
+          "op": "revealPlace",
+          "place": "Tunnel de lave"
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Aider le Gardien à remettre en place les pierres de son épaule, puis descendre au gîte",
+          "to": "14",
+          "effects": [
+            {
+              "op": "counter",
+              "counter": "entraide",
+              "add": 1
+            }
+          ]
+        },
+        {
+          "text": "Explorer le tunnel de lave",
+          "to": "29",
+          "if": {
+            "any": [
+              {
+                "has": "lampe"
+              },
+              {
+                "counter": "courage",
+                "gte": 5
+              }
+            ]
+          }
+        },
+        {
+          "text": "Descendre au gîte du volcan pour la nuit",
+          "to": "14"
+        }
+      ],
+      "ending": null
+    },
+    "13": {
+      "title": "Les racines du nombre",
+      "text": "Vous tendez la main et prononcez la formule. Aussitôt, des racines carrées (oui, carrées, avec des angles bien nets) jaillissent du sol et s’enroulent autour des jambes du Gardien. Il gronde, tire, puis s’immobilise et se met… à rire, d’un rire de rochers.\n\n« Une Formule des Nombres ! Cela faisait des siècles… Tu as gagné. »",
+      "image": null,
+      "place": "Piton de la Fournaise",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Vous approcher du Gardien",
+          "to": "12"
+        }
+      ],
+      "ending": null
+    },
+    "14": {
+      "title": "La nuit au gîte",
+      "text": "Le gîte du volcan est une maison de bois perchée au bord du rempart. La gardienne, Madame Payet, vous ouvre sans poser de questions et vous prête une couverture. Pendant la nuit, le vent siffle sous les tôles. Par la fenêtre, la pleine lune brille au-dessus de l’océan : c’est la lune des grandes marées. Demain, la mer montera plus haut que d’habitude.\n\nAu petit matin, Madame Payet s’escrime sur un tas de bois mouillé par la rosée pour allumer son fourneau.",
+      "image": null,
+      "place": "Gîte du volcan",
+      "onEnter": [
+        {
+          "op": "newDay"
+        },
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 2
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Aider Madame Payet à allumer son feu (elle vous offre le petit-déjeuner)",
+          "to": "15",
+          "effects": [
+            {
+              "op": "counter",
+              "counter": "entraide",
+              "add": 1
+            },
+            {
+              "op": "meal"
+            }
+          ]
+        },
+        {
+          "text": "La remercier et partir aussitôt",
+          "to": "15"
+        }
+      ],
+      "ending": null
+    },
+    "15": {
+      "title": "La route des laves",
+      "text": "Vous descendez vers la côte par la route des laves, qui traverse les coulées anciennes jusqu’à la mer. Des panneaux indiquent l’année de chaque éruption : 1977, 1986, 2007… Au loin, sur sa pointe, le Phare des Nombres attend, tout blanc sous un ciel qui se charge.\n\nUn pêcheur qui répare ses filets vous fait signe. « Vous allez au phare ? Faites vite, la marée monte. Par le lagon, vous gagnerez un peu de chemin… ou vous en perdrez beaucoup ! »",
+      "image": null,
+      "place": "Route des laves",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Filer droit vers la digue du phare",
+          "to": "17"
+        },
+        {
+          "text": "Faire un détour par le lagon",
+          "to": "25",
+          "if": {
+            "not": {
+              "visited": "25"
+            }
+          },
+          "hideIfUnavailable": true
+        }
+      ],
+      "ending": null
+    },
+    "16": {
+      "title": "La navette du volcan",
+      "text": "La navette arrive dans un nuage de poussière. Vous payez vos deux pièces au chauffeur, qui écoute du maloya à plein volume, et vous vous installez près de la fenêtre. La route grimpe en lacets à travers les champs de cannes, puis la forêt, puis la plaine des Sables, rouge comme la planète Mars.\n\nAu terminus, il reste encore une bonne marche jusqu’au cratère.",
+      "image": null,
+      "place": "",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Marcher jusqu’à la coulée",
+          "to": "9"
+        }
+      ],
+      "ending": null
+    },
+    "17": {
+      "title": "La digue",
+      "text": "Le Phare des Nombres se dresse au bout d’une longue digue de galets. À marée basse, on y va à pied sec ; à marée haute, les vagues passent par-dessus. Aujourd’hui, l’écume lèche déjà les pierres.\n\nLa porte du phare est fermée par un gros cadenas à molettes. Gramoun Lucien vous a prévenu : il change le code chaque année, mais il en laisse toujours l’énigme gravée sur la porte.",
+      "image": "images/digue.svg",
+      "place": "Phare des Nombres",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        }
+      ],
+      "blocks": [
+        {
+          "type": "challenge",
+          "kind": "number",
+          "title": "Le cadenas du phare",
+          "question": "Le code du cadenas est **le plus petit nombre entier positif** divisible à la fois par 2, 3, 4, 5 et 6.",
+          "answers": [
+            "c89eda2c2fe2810c869fff67d3e07a9bfaa07d3f555560b0f8ac1b2a30c766b8"
+          ],
+          "attempts": 3,
+          "allowGiveUp": false,
+          "revealAnswer": false,
+          "hints": [],
+          "success": "19",
+          "failure": "18",
+          "successEffects": [],
+          "failureEffects": [],
+          "explanation": "Un nombre divisible par 4, 3 et 5 est divisible par $4 \\times 3 \\times 5 = 60$ ; 60 est aussi divisible par 2 et par 6. Aucun nombre plus petit ne convient : c’est le plus petit multiple commun.",
+          "hashed": true,
+          "salt": "le-phare-des-nombres"
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "18": {
+      "title": "Par la lucarne",
+      "text": "Le cadenas refuse de s’ouvrir. Tant pis : vous faites le tour du phare, les pieds dans l’eau, jusqu’à une petite lucarne mal fermée. Il faut grimper sur les rochers glissants et se faufiler à l’intérieur. Vous atterrissez sur le carrelage, les vêtements trempés jusqu’aux genoux… et la mer a encore gagné du terrain.",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [
+        {
+          "op": "stat",
+          "stat": "endurance",
+          "add": -2
+        },
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Chercher l’escalier",
+          "to": "19"
+        }
+      ],
+      "ending": null
+    },
+    "19": {
+      "title": "L’escalier aux nombres",
+      "text": "À l’intérieur, un escalier en colimaçon monte vers la lanterne. Mais attention : sur certaines marches sont peints des nombres, et Gramoun Lucien vous a expliqué la règle. Il faut poser le pied sur ces marches **du plus petit nombre au plus grand**. Une erreur, et le vieux mécanisme bloque l’escalier : il faudra redescendre et tout recommencer.",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "challenge",
+          "kind": "order",
+          "title": "Les marches peintes",
+          "question": "Rangez ces nombres **du plus petit au plus grand** (le plus petit en haut de la liste).",
+          "answers": [
+            "$-3$",
+            "$-\\frac{1}{2}$",
+            "$0,2$",
+            "$\\frac{1}{3}$",
+            "$2^2$"
+          ],
+          "attempts": 2,
+          "allowGiveUp": false,
+          "revealAnswer": true,
+          "hints": [],
+          "success": "20",
+          "failure": "20",
+          "successEffects": [
+            {
+              "op": "counter",
+              "counter": "courage",
+              "add": 1
+            }
+          ],
+          "failureEffects": [
+            {
+              "op": "counter",
+              "counter": "maree",
+              "add": 1
+            },
+            {
+              "op": "stat",
+              "stat": "endurance",
+              "add": -1
+            }
+          ],
+          "explanation": "$-3 < -\\frac{1}{2} < 0,2 < \\frac{1}{3} < 2^2$ : les nombres négatifs d’abord, puis $0,2$, puis $\\frac{1}{3} \\approx 0,33$, et enfin $2^2 = 4$."
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "20": {
+      "title": "La Lentille des Nombres",
+      "text": "En haut, la salle de la lanterne est entièrement vitrée. Au centre trône la Lentille des Nombres : une énorme lentille de verre taillée en anneaux, posée sur un plateau tournant. Vous déposez la Braise au cœur de la lampe : une petite flamme bleue s’élève aussitôt.\n\nMais la lentille est mal orientée. Sur le plateau, une plaque de cuivre indique le réglage :\n\n$$\\frac{3}{4} \\times 48 - 2^3$$\n\nIl faut tourner la manivelle d’autant de crans que la valeur de ce calcul.",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [
+        {
+          "op": "take",
+          "item": "braise"
+        },
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        }
+      ],
+      "blocks": [
+        {
+          "type": "challenge",
+          "kind": "number",
+          "title": "Le réglage de la lentille",
+          "question": "Calculez $\\frac{3}{4} \\times 48 - 2^3$.",
+          "answers": {
+            "value": 28,
+            "tolerance": 0
+          },
+          "unit": "crans",
+          "attempts": 3,
+          "allowGiveUp": false,
+          "revealAnswer": true,
+          "hints": [
+            {
+              "text": "Commencez par la puissance : $2^3 = 2 \\times 2 \\times 2$.",
+              "cost": [
+                {
+                  "op": "gold",
+                  "add": -1
+                }
+              ]
+            },
+            {
+              "text": "Les $\\frac{3}{4}$ de 48, c’est 48 divisé par 4, puis multiplié par 3.",
+              "cost": [
+                {
+                  "op": "stat",
+                  "stat": "chance",
+                  "add": -1
+                }
+              ]
+            }
+          ],
+          "success": "21",
+          "failure": "21",
+          "successEffects": [],
+          "failureEffects": [
+            {
+              "op": "counter",
+              "counter": "maree",
+              "add": 2
+            }
+          ],
+          "explanation": "Priorités opératoires : la puissance et le produit avant la soustraction. $\\frac{3}{4} \\times 48 = 36$ et $2^3 = 8$, donc $36 - 8 = 28$ crans."
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "21": {
+      "title": "L’automate",
+      "text": "La lentille est réglée, mais elle doit aussi **tourner**, pour que le faisceau balaie la mer. Autrefois, c’était le travail de l’automate du phare, un robot de cuivre et de laiton qui dort dans un coin de la salle, couvert de poussière. Sur son dos, une plaque : *PROGRAMME-MOI*.\n\nIl faut lui réapprendre son chemin autour de la lanterne. Dehors, le ciel devient violet et les premières vagues de la houle frappent la digue.",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        }
+      ],
+      "blocks": [
+        {
+          "type": "zefor",
+          "title": "Le labyrinthe de l’automate",
+          "description": "Sur **zefor974**, programmez le robot pour qu’il sorte du labyrinthe (activité Blokaly). À la fin du parcours, zefor affiche un code : tapez-le ici pour réveiller l’automate.",
+          "url": "https://zefor.maths974.fr/?activity=blokaly:maze:4",
+          "exercise": "blokaly:maze:4",
+          "mode": "code",
+          "codeHashes": [
+            "e6c01267b26b8ec8c1dc513fb2c63fe68fb011f6aeae23c88e9f422eb38a0c67"
+          ],
+          "codeSalt": "le-phare-des-nombres",
+          "success": "22",
+          "successEffects": [
+            {
+              "op": "flag",
+              "flag": "automate-reveille"
+            },
+            {
+              "op": "counter",
+              "counter": "courage",
+              "add": 1
+            }
+          ],
+          "failureEffects": [],
+          "allowSkip": true,
+          "skipLabel": "Faire tourner la lentille à la main",
+          "skipTo": "22",
+          "skipEffects": [
+            {
+              "op": "stat",
+              "stat": "endurance",
+              "add": -3
+            },
+            {
+              "op": "counter",
+              "counter": "maree",
+              "add": 2
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "22": {
+      "title": "Dans la brume",
+      "text": "Le faisceau s’allume enfin et se met à tourner. Mais au large, une brume épaisse est tombée sur la mer, et la lumière s’y perd comme dans du lait. Par la radio du phare, la voix de tonton Théo grésille :\n\n« Trois bateaux devant la passe ! Dis-nous dans quel ordre entrer, on ne voit rien ! Je sais seulement que le *Ti-Lamé* est **juste derrière** la *Belle-Créole*, et que le *Paille-en-queue* n’est **pas le dernier**. »\n\nPour guider les pêcheurs, il faut d’abord savoir quel bateau passe en tête.",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "spells",
+          "label": "Prononcer une Formule des Nombres",
+          "costInText": false,
+          "options": [
+            {
+              "code": "PHI",
+              "to": "23"
+            }
+          ]
+        },
+        {
+          "type": "challenge",
+          "kind": "qcm",
+          "title": "L’ordre des bateaux",
+          "question": "Quel bateau doit entrer **en premier** dans la passe ?",
+          "answers": [
+            {
+              "text": "Le *Paille-en-queue*",
+              "correct": true
+            },
+            {
+              "text": "La *Belle-Créole*",
+              "correct": false
+            },
+            {
+              "text": "Le *Ti-Lamé*",
+              "correct": false
+            }
+          ],
+          "attempts": 2,
+          "allowGiveUp": false,
+          "revealAnswer": true,
+          "hints": [],
+          "success": "23",
+          "failure": "24",
+          "successEffects": [],
+          "failureEffects": [],
+          "explanation": "Le *Ti-Lamé* suit juste la *Belle-Créole* : ces deux bateaux se suivent. Si le *Paille-en-queue* était derrière eux, il serait le dernier, ce qui est exclu. Il est donc devant : *Paille-en-queue*, *Belle-Créole*, puis *Ti-Lamé*."
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "23": {
+      "title": "La lumière revient",
+      "text": "La lumière du phare perce enfin la brume. Un à un, les feux des bateaux en sortent et glissent dans la passe, juste entre les récifs : le *Paille-en-queue* d’abord, puis la *Belle-Créole*, puis le *Ti-Lamé*. Quand tonton Théo touche le quai de Ti-Port, tout le village l’accueille en criant et en applaudissant.\n\nLe lendemain, Gramoun Lucien vous remet solennellement la deuxième clé du phare. « Un phare, ça ne se garde pas seul. Désormais, on sera deux. »",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [],
+      "ending": "victory"
+    },
+    "24": {
+      "title": "Au large",
+      "text": "Vous donnez vos consignes dans le micro. Un long silence, puis un grincement lointain : un bateau a frôlé les récifs, et les trois équipages ont dû faire demi-tour pour s’éloigner de la passe.\n\nLes pêcheurs passeront la nuit au large, ballottés par la houle, trempés et furieux, mais sains et saufs. Au matin, tonton Théo vous serrera dans ses bras sans rien dire. Le phare était allumé… mais cette nuit, cela n’a pas suffi.",
+      "image": null,
+      "place": "Phare des Nombres",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [],
+      "ending": "death"
+    },
+    "25": {
+      "title": "Le lagon",
+      "text": "Le lagon est d’un bleu incroyable, protégé de la houle par la barrière de corail. Mais près de la passe, là où l’eau devient plus sombre, quelque chose se débat : une tortue verte, prisonnière d’un vieux filet de pêche abandonné. Elle n’arrive plus à remonter respirer.\n\nLe courant de la passe est fort. Il faut faire vite.",
+      "image": "images/lagon.svg",
+      "place": "Lagon",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "maree",
+          "add": 1
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Plonger avec votre masque",
+          "to": "27",
+          "if": {
+            "has": "masque"
+          }
+        },
+        {
+          "text": "Plonger avec Anissa, qui nage comme un poisson",
+          "to": "27",
+          "if": {
+            "companion": "anissa"
+          }
+        },
+        {
+          "text": "Plonger sans masque, en retenant votre souffle",
+          "to": "26"
+        },
+        {
+          "text": "Laisser la tortue et partir vers la forêt",
+          "to": "5",
+          "if": {
+            "not": {
+              "visited": "12"
+            }
+          },
+          "hideIfUnavailable": true
+        },
+        {
+          "text": "Laisser la tortue et rejoindre la digue du phare",
+          "to": "17",
+          "if": {
+            "visited": "12"
+          },
+          "hideIfUnavailable": true
+        }
+      ],
+      "ending": null
+    },
+    "26": {
+      "title": "Sans masque",
+      "text": "Vous remplissez vos poumons et vous plongez. Sous l’eau, tout est flou ; le sel vous pique les yeux. Le courant vous tire vers la passe…",
+      "image": null,
+      "place": "Lagon",
+      "onEnter": [],
+      "blocks": [
+        {
+          "type": "roll",
+          "label": "Le courant de la passe",
+          "dice": "1d6",
+          "table": [
+            {
+              "min": 1,
+              "max": 2,
+              "to": "28",
+              "text": "Le courant vous emporte"
+            },
+            {
+              "min": 3,
+              "max": 6,
+              "to": "27",
+              "text": "Vous atteignez la tortue"
+            }
+          ]
+        }
+      ],
+      "choices": [],
+      "ending": null
+    },
+    "27": {
+      "title": "La tortue",
+      "text": "Vous tirez sur les mailles une à une, jusqu’à ce que la tortue glisse hors du filet. Elle tourne autour de vous, comme pour vous remercier, puis file vers le large d’un coup de nageoire.\n\nSur la plage, un vieux plongeur a tout vu. « Toi, tu as un cœur gros comme le lagon. » Il sort de sa poche un collier de nacre. « Je le donne à qui saura lire le message de ma bouée. »\n\nSur la bouée rouge, il a peint six nombres. « Les nombres premiers sont mes amis. Montre-les-moi. »",
+      "image": null,
+      "place": "Lagon",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "entraide",
+          "add": 1
+        },
+        {
+          "op": "counter",
+          "counter": "courage",
+          "add": 1
+        }
+      ],
+      "blocks": [
+        {
+          "type": "challenge",
+          "kind": "multi",
+          "title": "La bouée du plongeur",
+          "question": "Cochez **tous** les nombres premiers.",
+          "answers": [
+            {
+              "text": "2",
+              "correct": true
+            },
+            {
+              "text": "9",
+              "correct": false
+            },
+            {
+              "text": "11",
+              "correct": true
+            },
+            {
+              "text": "15",
+              "correct": false
+            },
+            {
+              "text": "17",
+              "correct": true
+            },
+            {
+              "text": "21",
+              "correct": false
+            }
+          ],
+          "attempts": 2,
+          "allowGiveUp": true,
+          "revealAnswer": true,
+          "hints": [],
+          "success": "",
+          "failure": "",
+          "successEffects": [
+            {
+              "op": "give",
+              "item": "collier"
+            }
+          ],
+          "failureEffects": [],
+          "explanation": "2, 11 et 17 n’ont que deux diviseurs : 1 et eux-mêmes. En revanche $9 = 3 \\times 3$, $15 = 3 \\times 5$ et $21 = 3 \\times 7$."
+        }
+      ],
+      "choices": [
+        {
+          "text": "Repartir vers la forêt",
+          "to": "5",
+          "if": {
+            "not": {
+              "visited": "12"
+            }
+          },
+          "hideIfUnavailable": true
+        },
+        {
+          "text": "Prendre le raccourci du plongeur jusqu’à la digue",
+          "to": "17",
+          "if": {
+            "visited": "12"
+          },
+          "hideIfUnavailable": true,
+          "effects": [
+            {
+              "op": "counter",
+              "counter": "maree",
+              "add": -1
+            }
+          ]
+        }
+      ],
+      "ending": null
+    },
+    "28": {
+      "title": "Le courant de la passe",
+      "text": "Le courant vous saisit comme une main géante et vous entraîne hors du lagon. Vous luttez, vous buvez la tasse, vous battez des pieds de toutes vos forces… Heureusement, les maîtres-nageurs de la plage ont tout vu. Leur bateau vous repêche : vous grelottez, vous n’avez plus aucune force, mais vous êtes en vie.\n\nVous passerez la soirée au poste de secours, sous une couverture de survie. Et ce soir, le Phare des Nombres restera éteint.",
+      "image": null,
+      "place": "Lagon",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [],
+      "ending": "death"
+    },
+    "29": {
+      "title": "Le tunnel de lave",
+      "text": "Le tunnel est un ancien tube de lave : il y a des siècles, la lave a coulé ici, puis s’est vidée en laissant ce long couloir de roche. Les parois sont lisses comme du verre, et des coulures figées pendent du plafond. Plus loin, le couloir se divise en trois, et l’obscurité devient complète.",
+      "image": "images/tunnel.svg",
+      "place": "Tunnel de lave",
+      "onEnter": [
+        {
+          "op": "counter",
+          "counter": "courage",
+          "add": 1
+        }
+      ],
+      "blocks": [
+        {
+          "type": "test",
+          "stat": "habilete",
+          "label": "Avancer à tâtons, une main sur la paroi",
+          "success": "30",
+          "failure": "31",
+          "cost": 0
+        }
+      ],
+      "choices": [
+        {
+          "text": "Allumer votre lampe frontale et suivre les marques de craie",
+          "to": "30",
+          "if": {
+            "has": "lampe"
+          }
+        },
+        {
+          "text": "Faire demi-tour et descendre au gîte",
+          "to": "14"
+        }
+      ],
+      "ending": null
+    },
+    "30": {
+      "title": "La salle aux cristaux",
+      "text": "Au bout du couloir, la roche s’ouvre sur une petite salle. Des milliers de petits cristaux verts scintillent dans la paroi : de l’olivine, née dans le feu du volcan. Vous en détachez un, pas plus gros qu’un grain de riz. Les anciens disent qu’il porte chance à qui le garde sur soi.",
+      "image": null,
+      "place": "Tunnel de lave",
+      "onEnter": [
+        {
+          "op": "give",
+          "item": "olivine"
+        }
+      ],
+      "blocks": [],
+      "choices": [
+        {
+          "text": "Remonter à la lumière et descendre au gîte",
+          "to": "14"
+        }
+      ],
+      "ending": null
+    },
+    "31": {
+      "title": "Perdu dans le noir",
+      "text": "Vous avancez à tâtons. À gauche, puis à droite, puis encore à gauche… Bientôt, vous ne savez plus du tout d’où vous venez. Vous vous asseyez contre la paroi froide et vous attendez, en appelant de temps en temps.\n\nCe sont les gardes du parc national qui vous retrouvent, au petit matin, guidés par l’écho de votre voix. Vous grelottez et votre ventre gargouille, mais vous n’avez rien de grave. Le phare, lui, n’a pas été rallumé à temps.",
+      "image": null,
+      "place": "Tunnel de lave",
+      "onEnter": [],
+      "blocks": [],
+      "choices": [],
+      "ending": "death"
+    }
+  }
+}

@@ -88,7 +88,7 @@ js/store/   IndexedDB, import/export .lhz, compression des images
 js/ui/      interface Preact + htm (sans compilation) et registres des greffons (registry.js)
 js/plugins/ greffons : un dossier par fonctionnalité (core.js moteur, index.js interface)
 js/lib/     bibliothèques incluses : preact-htm, cytoscape, d3, dagre, fflate, KaTeX, qrcode-generator
-adventures/ aventures publiées avec le site (exemple : La Tour de Brume)
+adventures/ aventures publiées avec le site (La Tour de Brume ; Le Phare des Nombres, démonstration de tous les greffons)
 tests/      tests du moteur et des greffons
 tools/      graphe-vers-aventure.py : convertit un livre-jeu analysé (paragraphes + renvois) en .lhz
 ```

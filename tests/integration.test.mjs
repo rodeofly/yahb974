@@ -8,6 +8,8 @@ import { startCombat, attackRound } from '../js/core/combat.js';
 import { validate, renumber } from '../js/core/validate.js';
 import { makeRng } from '../js/core/dice.js';
 import { evaluateAchievements } from '../js/plugins/succes/core.js';
+import { checkCode } from '../js/plugins/zefor/core.js';
+import { checkAnswerAsync } from '../js/plugins/defis/core.js';
 
 function sample() {
   const a = newAdventure('Tous les greffons');
@@ -42,6 +44,21 @@ test('La Tour de Brume se vérifie sans erreur avec tous les greffons chargés',
   assert.deepEqual(validate(adv).filter(p => p.level === 'error'), []);
   const { state } = createHero(adv, { seed: 3 });
   assert.equal(start(state, adv).state.section, adv.start);
+});
+
+test('Le Phare des Nombres (démonstration) : aucune erreur, tous les greffons, code Zefor et réponse chiffrée', async () => {
+  const adv = normalizeAdventure(JSON.parse(readFileSync(new URL('../adventures/le-phare-des-nombres/adventure.json', import.meta.url))));
+  assert.deepEqual(validate(adv).filter(p => p.level !== 'info'), []);
+  const blocks = Object.values(adv.sections).flatMap(s => s.blocks || []);
+  for (const t of ['test', 'roll', 'combat', 'shop', 'spells', 'challenge', 'zefor', 'map']) assert.ok(blocks.some(b => b.type === t), 'bloc ' + t);
+  assert.deepEqual(new Set(blocks.filter(b => b.type === 'challenge').map(b => b.kind)), new Set(['text', 'number', 'qcm', 'multi', 'order']));
+  assert.ok(adv.rules.equipment.enabled && adv.rules.counters.length && adv.companions.anissa && adv.meta.worldMap.image && adv.achievements.some(a => a.secret));
+  const zb = blocks.find(b => b.type === 'zefor');
+  assert.equal(await checkCode(adv, zb, 'phare-974'), 'static', 'code de démonstration PHARE974');
+  const lock = adv.sections['17'].blocks[0];
+  assert.equal(lock.hashed, true);
+  assert.equal(await checkAnswerAsync(lock, '60', adv), true);
+  assert.equal(await checkAnswerAsync(lock, '30', adv), false);
 });
 
 test('effets et conditions de plusieurs greffons dans un même choix', () => {

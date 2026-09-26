@@ -6,5 +6,13 @@
     "description": "Une courte aventure pour découvrir le moteur : une boutique, des dés, des combats, une énigme, de la magie, une nuit à la belle étoile et deux fins.",
     "cover": "images/couverture.svg",
     "sections": 19
+  },
+  {
+    "id": "le-phare-des-nombres",
+    "title": "Le Phare des Nombres",
+    "author": "Livre-Héros (aventure de démonstration)",
+    "description": "À La Réunion, rallumez le vieux phare avant la nuit : du volcan au lagon, avec Anissa, des énigmes et des formules. Pour les 11-14 ans. Aventure de démonstration de tous les greffons ; pour les testeurs, le défi Zefor du paragraphe 21 accepte le code de démonstration PHARE974.",
+    "cover": "images/couverture.svg",
+    "sections": 31
   }
 ]

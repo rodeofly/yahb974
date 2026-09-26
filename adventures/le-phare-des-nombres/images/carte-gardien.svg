@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <radialGradient id="papier" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#F3E7C8"/><stop offset="1" stop-color="#DCC79B"/></radialGradient>
+    <pattern id="vagues" width="46" height="22" patternUnits="userSpaceOnUse">
+      <path d="M4 12 q6 -5 12 0 t12 0" fill="none" stroke="#6F9AA0" stroke-width="1.4" stroke-linecap="round" opacity=".55"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="600" fill="url(#papier)"/>
+  <!-- mer (sud et est) -->
+  <path d="M0 455 C80 440 150 470 230 462 C320 452 360 480 450 478 C540 476 600 450 660 430 C700 415 715 380 712 340 C710 300 735 270 760 262 L790 252 C775 228 760 200 770 150 C778 110 800 60 830 0 H900 V600 H0 Z" fill="#D5E3D8"/>
+  <path d="M0 455 C80 440 150 470 230 462 C320 452 360 480 450 478 C540 476 600 450 660 430 C700 415 715 380 712 340 C710 300 735 270 760 262 L790 252 C775 228 760 200 770 150 C778 110 800 60 830 0 H900 V600 H0 Z" fill="url(#vagues)"/>
+  <path d="M0 455 C80 440 150 470 230 462 C320 452 360 480 450 478 C540 476 600 450 660 430 C700 415 715 380 712 340 C710 300 735 270 760 262 L790 252 C775 228 760 200 770 150 C778 110 800 60 830 0" fill="none" stroke="#5A4630" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- lagon : eau claire derrière le récif -->
+  <path d="M20 452 C80 442 150 470 230 463 C280 458 310 462 330 468 C300 500 200 512 110 508 C70 506 40 500 20 494 Z" fill="#B7DCD2" opacity=".9"/>
+  <path d="M18 500 C60 512 150 520 230 512 C280 506 315 494 338 476" fill="none" stroke="#5A4630" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round"/>
+  <g fill="none" stroke="#5A4630" stroke-width="1.8" stroke-linecap="round">
+    <ellipse cx="170" cy="486" rx="13" ry="9"/><path d="M158 480 l-8 -5 M182 480 l8 -5 M158 492 l-8 5 M182 492 l8 5 M183 486 h8"/>
+  </g>
+  <!-- volcan -->
+  <g stroke="#5A4630" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M380 205 L455 95 H505 L580 205"/><path d="M455 95 q25 12 50 0"/>
+    <path d="M470 85 c-10 -20 15 -25 5 -45 M490 82 c8 -18 -10 -25 2 -44" opacity=".6"/>
+    <path d="M430 150 l12 10 M520 150 l-12 10 M405 185 l12 8 M555 185 l-12 8" opacity=".6"/>
+  </g>
+  <text x="590" y="150" font-family="Georgia, serif" font-style="italic" font-size="20" fill="#5A4630">Fournaise</text>
+  <!-- forêt -->
+  <g stroke="#3E5A3A" stroke-width="2" fill="#9DB88A">
+    <path d="M120 300 l18 -40 l18 40 z"/><path d="M160 270 l20 -46 l20 46 z"/><path d="M205 300 l18 -42 l18 42 z"/>
+    <path d="M250 272 l20 -44 l20 44 z"/><path d="M130 360 l18 -40 l18 40 z"/><path d="M178 340 l20 -44 l20 44 z"/>
+    <path d="M228 365 l18 -40 l18 40 z"/><path d="M272 335 l18 -40 l18 40 z"/><path d="M110 400 l16 -34 l16 34 z"/>
+    <path d="M200 400 l16 -34 l16 34 z"/><path d="M285 395 l16 -34 l16 34 z"/>
+  </g>
+  <text x="205" y="438" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#5A4630">forêt = raccourci</text>
+  <!-- sentier forêt → volcan -->
+  <path d="M300 300 C340 260 360 240 400 210" fill="none" stroke="#7A5F3E" stroke-width="2.2" stroke-dasharray="2 7" stroke-linecap="round"/>
+  <!-- route et arrêt de la navette -->
+  <path d="M480 452 C470 420 470 390 462 360 C452 320 470 260 480 212" fill="none" stroke="#7A5F3E" stroke-width="3" stroke-dasharray="12 8" stroke-linecap="round"/>
+  <g stroke="#5A4630" stroke-width="2.2">
+    <line x1="430" y1="410" x2="430" y2="350"/>
+    <rect x="398" y="330" width="64" height="26" rx="4" fill="#F7E08E"/>
+  </g>
+  <text x="430" y="348" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="#5A4630">navette</text>
+  <text x="430" y="395" text-anchor="end" dx="-10" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#5A4630">2 pièces</text>
+  <!-- Ti-Port -->
+  <g stroke="#5A4630" stroke-width="2" fill="#E9CFA6">
+    <path d="M500 452 v-16 l12 -10 l12 10 v16 z"/><path d="M528 450 v-14 l10 -9 l10 9 v14 z"/><path d="M470 455 v-13 l10 -8 l10 8 v13 z"/>
+  </g>
+  <text x="515" y="415" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="18" fill="#5A4630">Ti-Port</text>
+  <path d="M556 402 l12 12 m0 -12 l-12 12" stroke="#A33A2C" stroke-width="3" stroke-linecap="round"/>
+  <text x="575" y="414" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#A33A2C">ici</text>
+  <!-- digue et phare -->
+  <path d="M790 252 L826 236" stroke="#5A4630" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 9"/>
+  <ellipse cx="838" cy="236" rx="22" ry="10" fill="#CDBB92" stroke="#5A4630" stroke-width="2"/>
+  <g stroke="#5A4630" stroke-width="2" stroke-linejoin="round">
+    <path d="M830 232 L834 160 H844 L848 232 Z" fill="#FBF6EA"/>
+    <path d="M832 200 h14 M833 180 h12" stroke-width="5" stroke="#B8453A"/>
+    <rect x="831" y="146" width="16" height="14" fill="#F7E08E"/><path d="M828 146 h22 l-11 -10 z" fill="#5A4630"/>
+  </g>
+  <g fill="none" stroke="#A33A2C" stroke-width="2">
+    <ellipse cx="838" cy="190" rx="40" ry="66"/><ellipse cx="838" cy="192" rx="46" ry="74" stroke-dasharray="14 6"/><ellipse cx="836" cy="190" rx="52" ry="82" opacity=".6"/>
+  </g>
+  <text x="775" y="318" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#A33A2C">digue :</text>
+  <text x="775" y="336" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#A33A2C">attention marée !</text>
+  <text x="838" y="298" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="16" fill="#5A4630">PHARE</text>
+  <!-- boussole -->
+  <g transform="translate(70 80)" stroke="#5A4630" stroke-width="2" fill="none">
+    <circle r="26"/><path d="M0 -20 L6 0 L0 20 L-6 0 Z" fill="#5A4630" fill-opacity=".25"/>
+  </g>
+  <text x="70" y="44" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="16" fill="#5A4630">N</text>
+  <rect x="12" y="12" width="876" height="576" fill="none" stroke="#7A6040" stroke-width="3"/>
+  <rect x="20" y="20" width="860" height="560" fill="none" stroke="#7A6040" stroke-width="1"/>
+</svg>

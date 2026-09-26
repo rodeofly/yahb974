@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A2445"/><stop offset=".7" stop-color="#7A4A55"/><stop offset="1" stop-color="#C46A45"/></linearGradient>
+    <radialGradient id="braise"><stop offset="0" stop-color="#FFF0B8"/><stop offset=".35" stop-color="#FFB24D"/><stop offset=".7" stop-color="#E0602E" stop-opacity=".6"/><stop offset="1" stop-color="#E0602E" stop-opacity="0"/></radialGradient>
+    <linearGradient id="pierre" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#57504B"/><stop offset="1" stop-color="#2E2926"/></linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#ciel)"/>
+  <path d="M0 470 C120 440 200 455 300 445 L600 445 C700 450 800 430 900 450 V600 H0Z" fill="#231D1C"/>
+  <path d="M60 300 C200 290 320 320 380 300" fill="none" stroke="#EBD9DC" stroke-width="30" stroke-linecap="round" opacity=".08"/>
+  <path d="M520 250 C640 230 760 260 860 240" fill="none" stroke="#EBD9DC" stroke-width="24" stroke-linecap="round" opacity=".08"/>
+  <!-- le Gardien -->
+  <g fill="url(#pierre)" stroke="#1A1614" stroke-width="3">
+    <ellipse cx="405" cy="452" rx="42" ry="22"/><ellipse cx="500" cy="452" rx="42" ry="22"/>
+    <ellipse cx="410" cy="400" rx="34" ry="46"/><ellipse cx="495" cy="400" rx="34" ry="46"/>
+    <ellipse cx="452" cy="290" rx="98" ry="92"/>
+    <ellipse cx="330" cy="260" rx="42" ry="36"/><ellipse cx="300" cy="325" rx="32" ry="42"/><ellipse cx="292" cy="392" rx="34" ry="28"/>
+    <ellipse cx="575" cy="260" rx="42" ry="36"/><ellipse cx="605" cy="325" rx="32" ry="42"/><ellipse cx="612" cy="392" rx="34" ry="28"/>
+    <ellipse cx="452" cy="160" rx="54" ry="46"/>
+  </g>
+  <g fill="#6B625C" opacity=".45">
+    <ellipse cx="420" cy="245" rx="40" ry="18"/><ellipse cx="438" cy="146" rx="20" ry="10"/><ellipse cx="320" cy="248" rx="16" ry="8"/><ellipse cx="562" cy="248" rx="16" ry="8"/>
+  </g>
+  <circle cx="452" cy="300" r="70" fill="url(#braise)"/>
+  <g fill="none" stroke="#FFB24D" stroke-width="3" stroke-linecap="round" opacity=".9">
+    <path d="M452 250 l-12 22 l14 12 l-10 20"/><path d="M405 320 l18 -8 l10 16"/><path d="M500 330 l-16 -12 l8 -16"/>
+  </g>
+  <g fill="#FFD27A"><path d="M425 158 h18 l-3 7 h-13 z"/><path d="M462 158 h18 l-2 7 h-13 z"/></g>
+</svg>

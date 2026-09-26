@@ -3,7 +3,7 @@
 // - Aventures publiées (adventures/) : réseau d'abord, cache si hors ligne.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache.
 
-const VERSION = 'lh-v3';
+const VERSION = 'lh-v4';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',

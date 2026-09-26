@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <linearGradient id="brume" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E4EDDC"/><stop offset="1" stop-color="#A9C69D"/></linearGradient>
+    <linearGradient id="rayon" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFBE6" stop-opacity=".55"/><stop offset="1" stop-color="#FFFBE6" stop-opacity="0"/></linearGradient>
+    <g id="fanjan">
+      <path d="M0 0 C-3 -60 3 -130 0 -190" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+        <path d="M0 -190 C-40 -215 -90 -205 -120 -170"/><path d="M0 -190 C40 -215 90 -205 120 -170"/>
+        <path d="M0 -190 C-30 -240 -75 -250 -105 -235"/><path d="M0 -190 C30 -240 75 -250 105 -235"/>
+        <path d="M0 -190 C-5 -240 -10 -260 -20 -275"/><path d="M0 -190 C-55 -190 -95 -165 -110 -130"/><path d="M0 -190 C55 -190 95 -165 110 -130"/>
+      </g>
+      <g stroke="currentColor" stroke-width="2.2" opacity=".8">
+        <path d="M-40 -207 l-6 14 M-70 -204 l-6 14 M-95 -190 l-7 12 M40 -207 l6 14 M70 -204 l6 14 M95 -190 l7 12"/>
+        <path d="M-35 -236 l-9 11 M-65 -246 l-6 13 M35 -236 l9 11 M65 -246 l6 13"/>
+      </g>
+    </g>
+  </defs>
+  <rect width="900" height="600" fill="url(#brume)"/>
+  <path d="M250 0 L330 0 L470 600 L330 600 Z M560 0 L610 0 L700 600 L610 600 Z" fill="url(#rayon)"/>
+  <!-- arrière-plan -->
+  <g fill="#9BBB90">
+    <rect x="60" y="120" width="26" height="420"/><rect x="200" y="80" width="30" height="460"/><rect x="690" y="100" width="28" height="440"/><rect x="820" y="140" width="24" height="400"/>
+    <ellipse cx="73" cy="130" rx="90" ry="60"/><ellipse cx="215" cy="90" rx="100" ry="70"/><ellipse cx="704" cy="110" rx="110" ry="70"/><ellipse cx="832" cy="150" rx="80" ry="55"/>
+  </g>
+  <g color="#7FA676" transform="translate(470 470) scale(.7)"><use href="#fanjan"/></g>
+  <!-- plan moyen -->
+  <g color="#4F7B4F">
+    <g transform="translate(150 560)"><use href="#fanjan"/></g>
+    <g transform="translate(760 580) scale(1.1)"><use href="#fanjan"/></g>
+  </g>
+  <!-- sentier -->
+  <path d="M380 600 C420 540 520 520 500 470 C485 435 440 430 460 400 C470 385 490 380 495 370 L515 370 C520 385 505 395 500 410 C490 440 560 450 560 500 C560 540 520 570 540 600 Z" fill="#D9C9A3" opacity=".9"/>
+  <!-- premier plan -->
+  <g fill="#2E5537">
+    <path d="M0 600 V470 C40 440 90 450 120 480 C150 450 200 470 210 510 C240 500 270 530 270 600 Z"/>
+    <path d="M900 600 V440 C860 420 810 440 800 480 C770 470 730 500 730 540 C700 540 680 570 690 600 Z"/>
+    <rect x="0" y="0" width="38" height="600"/><path d="M38 0 C80 40 120 50 150 0 Z"/>
+  </g>
+  <g fill="none" stroke="#2E5537" stroke-width="4" stroke-linecap="round">
+    <path d="M38 300 C80 320 110 360 120 420"/><path d="M38 200 C70 190 100 200 120 230"/>
+  </g>
+  <g fill="#E7F0D9" opacity=".8"><circle cx="560" cy="330" r="2.5"/><circle cx="600" cy="300" r="2"/><circle cx="330" cy="280" r="2"/></g>
+</svg>

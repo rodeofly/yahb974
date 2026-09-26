@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <radialGradient id="fond" cx=".5" cy=".48" r=".6"><stop offset="0" stop-color="#050505"/><stop offset=".5" stop-color="#1B1817"/><stop offset="1" stop-color="#3A3230"/></radialGradient>
+    <radialGradient id="lueur" cx=".5" cy="1" r=".7"><stop offset="0" stop-color="#FFB24D" stop-opacity=".55"/><stop offset="1" stop-color="#FFB24D" stop-opacity="0"/></radialGradient>
+    <g id="cristal">
+      <path d="M0 0 L-8 -26 L0 -40 L8 -26 Z" fill="#7FC36A"/><path d="M0 0 L0 -40 L8 -26 Z" fill="#A9E08C"/>
+      <path d="M-10 2 L-22 -16 L-16 -28 L-8 -14 Z" fill="#5FA255"/><path d="M10 2 L20 -14 L14 -24 L6 -12 Z" fill="#8FD174"/>
+    </g>
+  </defs>
+  <rect width="900" height="600" fill="url(#fond)"/>
+  <g fill="none" stroke="#4A403C" stroke-linecap="round">
+    <ellipse cx="450" cy="290" rx="420" ry="300" stroke-width="18" opacity=".7"/>
+    <ellipse cx="450" cy="285" rx="300" ry="215" stroke-width="12" opacity=".6"/>
+    <ellipse cx="450" cy="280" rx="190" ry="140" stroke-width="8" opacity=".5"/>
+    <ellipse cx="450" cy="276" rx="100" ry="74" stroke-width="5" opacity=".4"/>
+  </g>
+  <g stroke="#5B504A" stroke-width="4" stroke-linecap="round" opacity=".7">
+    <path d="M300 100 v28 M340 88 v20 M560 92 v24 M600 104 v30 M250 130 v18 M650 128 v18"/>
+  </g>
+  <path d="M60 600 C200 470 330 400 450 380 C570 400 700 470 840 600 Z" fill="#241F1D"/>
+  <rect y="360" width="900" height="240" fill="url(#lueur)"/>
+  <g>
+    <g transform="translate(170 420) rotate(28)"><use href="#cristal"/></g>
+    <g transform="translate(210 455) rotate(18) scale(.8)"><use href="#cristal"/></g>
+    <g transform="translate(720 410) rotate(-30)"><use href="#cristal"/></g>
+    <g transform="translate(690 450) rotate(-15) scale(.9)"><use href="#cristal"/></g>
+    <g transform="translate(250 190) rotate(125) scale(.8)"><use href="#cristal"/></g>
+    <g transform="translate(650 180) rotate(-125) scale(.9)"><use href="#cristal"/></g>
+    <g transform="translate(330 300) rotate(80) scale(.6)"><use href="#cristal"/></g>
+    <g transform="translate(575 310) rotate(-80) scale(.6)"><use href="#cristal"/></g>
+  </g>
+  <g fill="#DDF5C8"><circle cx="160" cy="385" r="2.5"/><circle cx="728" cy="372" r="2.5"/><circle cx="262" cy="215" r="2"/><circle cx="640" cy="208" r="2"/></g>
+</svg>
