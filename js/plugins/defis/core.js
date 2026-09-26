@@ -16,6 +16,7 @@
 import { registerBlock, registerEnterHook, registerHeroInit } from '../../core/plugins.js';
 import { applyEffects, check, itemName } from '../../core/rules.js';
 import { makeRng } from '../../core/dice.js';
+import { checkEffects } from '../../core/validate.js';
 
 export const TYPE = 'challenge';
 export const KINDS = ['text', 'number', 'qcm', 'multi', 'order'];
@@ -499,11 +500,10 @@ export function validateChallenge(b, adv, report, where) {
   if (!b.success && !hasChoices) report('error', `${where} : pas de destination en cas de bonne réponse, et le paragraphe n'a aucun choix : le joueur serait bloqué.`);
   if (canFail && !b.failure && !hasChoices) report('error', `${where} : pas de destination en cas d'échec, et le paragraphe n'a aucun choix : le joueur serait bloqué.`);
   if (!canFail && b.failure) report('info', `${where} : essais illimités et abandon impossible : le paragraphe d'échec ${b.failure} ne sera jamais atteint par ce défi.`);
-  const fx = [...(b.successEffects || []), ...(b.failureEffects || []), ...(b.hints || []).flatMap(h => h?.cost || [])];
-  for (const e of fx) {
-    if (e?.item && !adv.items?.[e.item]) report('warning', `${where} : l'objet « ${e.item} » n'est pas dans la liste des objets.`);
-    if (e?.stat && !adv.rules?.stats?.find(s => s.id === e.stat)) report('error', `${where} : caractéristique inconnue « ${e.stat} ».`);
-  }
+  // Effets complets : objets, caractéristiques, effets des greffons (compteurs, compagnons…) et conditions « if ».
+  checkEffects(b.successEffects, adv, report, where);
+  checkEffects(b.failureEffects, adv, report, where);
+  (b.hints || []).forEach(h => checkEffects(h?.cost, adv, report, where));
   (b.hints || []).forEach((h, j) => { if (!String(h?.text || '').trim()) report('warning', `${where} : l'indice ${j + 1} est vide.`); });
 }
 
@@ -535,7 +535,7 @@ export function printChallenge(b, adv, h, md = plainMarkdown) {
   const kind = kindOf(b);
   const loc = locate(adv, b);
   const esc = h?.esc || escHtml;
-  const go = h?.go || (n => `rendez-vous au <b>${n}</b>`);
+  const go = h?.go || (n => `rendez-vous au <b>${esc(n)}</b>`);
   const fx = list => (list || []).map(e => h?.effectText?.(e, adv) || '').filter(Boolean).map(t => lcFirst(t.replace(/\.\s*$/, ''))).join(' ; ');
   const parts = [`<p class="pr-defi-title"><b>Défi${b.title ? ` : ${esc(b.title)}` : ''}</b></p>`];
   if (b.image) parts.push(`<div class="pr-defi-img"><img data-defi-src="${esc(b.image)}" alt=""></div>`);
@@ -551,7 +551,9 @@ export function printChallenge(b, adv, h, md = plainMarkdown) {
   parts.push(`<p class="pr-defi-line">Votre réponse${kind === 'number' && b.unit ? ` (en ${esc(b.unit)})` : ''} : <span class="pr-defi-blank"></span></p>`);
   (b.hints || []).forEach((hint, j) => {
     const cost = fx(hint.cost);
-    parts.push(`<p class="pr-defi-hint"><i>Indice ${j + 1}, imprimé à l'envers${cost ? ` ; si vous le lisez, ${esc(cost)}` : ''} :</i> <span class="pr-flip">${inlineOf(md, hint.text || '')}</span></p>`);
+    // Un indice peut contenir plusieurs paragraphes, une liste ou une formule centrée : tout le
+    // Markdown va dans un <div> retourné, jamais dans un <p>/<span> que le parseur refermerait.
+    parts.push(`<div class="pr-defi-hint"><p><i>Indice ${j + 1}, imprimé à l'envers${cost ? ` ; si vous le lisez, ${esc(cost)}` : ''} :</i></p><div class="pr-flip">${md(hint.text || '')}</div></div>`);
   });
   const okFx = fx(b.successEffects), koFx = fx(b.failureEffects);
   const ok = b.success ? `${okFx ? `${esc(okFx)}, puis ` : ''}${go(b.success)}` : okFx ? `${esc(okFx)}, puis poursuivez votre lecture` : 'poursuivez votre lecture';

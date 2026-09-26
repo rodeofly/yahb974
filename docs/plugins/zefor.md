@@ -67,8 +67,13 @@ pour parcourir l'histoire sans passer par zefor. Ces boutons n'apparaissent jama
 - Après une réussite, **Continuer → N** applique les effets de réussite puis ouvre le paragraphe prévu.
 - Hors ligne, un avertissement le signale et propose de continuer sans le défi (si c'est permis).
 - **Page de retour** (`#/zefor-retour/…`) : « Résultat transmis, retournez à votre aventure ». Si aucune partie de ce navigateur
-  n'attendait ce résultat (application installée sur iPhone/iPad, autre navigateur) et que les codes personnels sont activés,
-  elle affiche un **code de transfert** à taper dans la partie.
+  n'attendait ce résultat (application installée sur iPhone/iPad, autre navigateur), elle affiche un **code de transfert**
+  à taper dans la partie, **seulement** si : le bloc est en mode retour, les codes personnels sont activés, l'aventure
+  déclare une clé publique (Règles › Zefor) et le résultat est signé et vérifié. Sinon, une adresse tapée à la main
+  suffirait à obtenir le code : la page invite plutôt à demander un code de réussite.
+- Chaque bloc n'écoute que le canal de son mode : un bloc en mode code ne se débloque qu'avec un code (jamais par
+  l'adresse de retour ni par un message), un bloc en mode message n'accepte que les messages, un bloc en mode retour
+  que l'onglet de retour. Un résultat arrivé par un autre canal est refusé.
 - L'écran de fin affiche le bilan : « Défis Zefor : 2 réussis sur 3 ».
 
 ## Version imprimable
@@ -145,4 +150,4 @@ Plus loin, un choix conditionné par le mot-clé `robot-allie` ouvre un arc rés
   Les codes personnels et les signatures compliquent beaucoup la triche, sans la rendre impossible sur un site statique
   (voir docs/ZEFOR.md). Pour un jeu en classe, c'est assumé.
 - Sur iPhone ou iPad, une application **installée** sur l'écran d'accueil ne partage pas son stockage avec Safari :
-  le mode retour y passe par le code de transfert (codes personnels activés) ; sinon préférez le mode code.
+  le mode retour y passe par le code de transfert (codes personnels et signature activés) ; sinon préférez le mode code.

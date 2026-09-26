@@ -311,14 +311,15 @@ test('impression : consigne de livre-jeu avec l’adresse et les renvois', async
   const adv = sample({ minScore: 12.5, allowSkip: true, skipTo: '4', skipEffects: [{ op: 'stat', stat: 'chance', add: -1 }] });
   const h = { go: n => `rendez-vous au <b>${n}</b>`, esc: s => String(s).replace(/</g, '&lt;'), effectText: e => `vous perdez 1 point de CHANCE.` };
   const out = ext.blocks.get('zefor').print(adv.sections['1'].blocks[0], adv, h);
-  assert.match(out, /Défi Zefor : La balance\./);
-  assert.match(out, /Ce défi se fait sur zefor974 : <span class="zf-url">https:\/\/zefor\.maths974\.fr\/#parcours=abc<\/span>\. Quand vous l'avez réussi, notez le code obtenu, puis rendez-vous au <b>2<\/b>\./);
+  assert.match(out, /Défi Zefor\u202F: La balance\./);
+  assert.match(out, /Ce défi se fait sur zefor974\u202F:<\/p><p class="zf-url">https:\/<wbr>\/<wbr>zefor\.maths974\.fr\/<wbr>#<wbr>parcours=<wbr>abc<\/p>/);
+  assert.match(out, /Quand vous l'avez réussi, notez le code obtenu, puis rendez-vous au <b>2<\/b>\./);
   assert.match(out, /Équilibrez la balance\./);
   assert.match(out, /au moins 12,5/);
   assert.match(out, /Si vous n'y parvenez pas, rendez-vous au <b>3<\/b>/);
-  assert.match(out, /renoncer au défi : vous perdez 1 point de CHANCE, rendez-vous au <b>4<\/b>/);
+  assert.match(out, /renoncer au défi\u202F: vous perdez 1 point de CHANCE, rendez-vous au <b>4<\/b>/);
   const withFx = ext.blocks.get('zefor').print({ ...adv.sections['1'].blocks[0], successEffects: [{ op: 'give', item: 'x' }] }, adv, { ...h, effectText: () => 'Inscrivez sur votre Feuille d’Aventure : Rame.' });
-  assert.match(withFx, /notez le code obtenu, inscrivez sur votre Feuille d’Aventure : Rame, puis rendez-vous au <b>2<\/b>\./);
+  assert.match(withFx, /notez le code obtenu, inscrivez sur votre Feuille d’Aventure\u202F: Rame, puis rendez-vous au <b>2<\/b>\./);
 });
 
 test('page de retour : référence du bloc et code de transfert (autre navigateur)', async () => {
@@ -332,15 +333,44 @@ test('page de retour : référence du bloc et code de transfert (autre navigateu
   const ok = Z.parseReturn({ nonce, success: '1', score: '80' });
   assert.equal(await Z.transferCode(adv, '1.0', ok), null, 'sans clé de codes personnels : pas de code');
   adv.rules.zefor.codeKey = Z.newCodeKey();
-  const code = await Z.transferCode(adv, '1.0', ok);
-  assert.equal(code, await Z.personalCode(adv.rules.zefor.codeKey, nonce));
-  assert.equal(await Z.checkCode(adv, adv.sections['1'].blocks[0], code, nonce), 'personal', 'la partie accepte le code de transfert');
-  assert.equal(await Z.transferCode(adv, '1.0', { ...ok, score: 10 }), null, 'score insuffisant');
-  assert.equal(await Z.transferCode(adv, '1.0', { ...ok, success: false }), null, 'échec');
-  assert.equal(await Z.transferCode(adv, '2.0', ok), null, 'pas de défi à cet endroit');
+  assert.equal(await Z.transferCode(adv, '1.0', ok), null, 'sans clé publique : une adresse tapée à la main ne donne aucun code');
   const { publicJwk, privateJwk } = await Z.generateKeyPair();
   adv.rules.zefor.publicKeyJwk = publicJwk;
   assert.equal(await Z.transferCode(adv, '1.0', ok), null, 'signature exigée');
-  const sig = await Z.signResult(privateJwk, ok);
-  assert.equal(await Z.transferCode(adv, '1.0', { ...ok, signature: sig }), code);
+  const signed = async x => ({ ...x, signature: await Z.signResult(privateJwk, x) });
+  const code = await Z.transferCode(adv, '1.0', await signed(ok));
+  assert.equal(code, await Z.personalCode(adv.rules.zefor.codeKey, nonce));
+  assert.equal(await Z.checkCode(adv, adv.sections['1'].blocks[0], code, nonce), 'personal', 'la partie accepte le code de transfert');
+  assert.equal(await Z.transferCode(adv, '1.0', await signed({ ...ok, score: 10 })), null, 'score insuffisant');
+  assert.equal(await Z.transferCode(adv, '1.0', await signed({ ...ok, success: false })), null, 'échec');
+  assert.equal(await Z.transferCode(adv, '2.0', await signed(ok)), null, 'pas de défi à cet endroit');
+  adv.sections['1'].blocks[0].mode = 'code';
+  assert.equal(await Z.transferCode(adv, '1.0', await signed(ok)), null, 'bloc en mode code : jamais de code de transfert');
+});
+
+test('un résultat arrivé par un canal qui ne correspond pas au mode du bloc est refusé', async () => {
+  const adv = sample({ mode: 'code' });
+  const block = adv.sections['1'].blocks[0];
+  const res = Z.parseReturn({ nonce: 'N', success: '1' });
+  assert.equal((await Z.checkResult(res, { adv, block, nonce: 'N', channel: 'retour' })).reason, 'mode');
+  assert.equal((await Z.checkResult(res, { adv, block, nonce: 'N', channel: 'message', origin: 'https://zefor.maths974.fr' })).reason, 'mode');
+  block.mode = 'retour';
+  assert.equal((await Z.checkResult(res, { adv, block, nonce: 'N', channel: 'retour' })).ok, true);
+});
+
+test('vérification et renumérotation : effets et conditions des effets du bloc Zefor', async () => {
+  await import('../js/plugins/compagnons/core.js');
+  const { renameSection } = await import('../js/core/validate.js');
+  const bad = [{ op: 'give', item: 'fantome' }, { op: 'stat', stat: 'magie', add: 1 }, { op: 'companion', companion: 'personne', action: 'join' }, { op: 'flag', flag: 'x', if: { visited: '99' } }];
+  const adv = sample({ successEffects: bad, failureEffects: [{ op: 'gold', add: 1, if: { visited: '4' } }], skipEffects: [{ op: 'gold', add: 1, if: { not: { visited: '4' } } }], allowSkip: true, skipTo: '4' });
+  const msgs = validate(adv).map(p => p.message).join('\n');
+  assert.match(msgs, /objet « fantome »/);
+  assert.match(msgs, /caractéristique inconnue « magie »/);
+  assert.match(msgs, /compagnon inconnu « personne »/);
+  assert.match(msgs, /paragraphe 99, qui n'existe pas/);
+  const r = renameSection(adv, '4', '40');
+  const b = r.sections['1'].blocks[0];
+  assert.equal(b.skipTo, '40');
+  assert.deepEqual(b.failureEffects[0].if, { visited: '40' });
+  assert.deepEqual(b.skipEffects[0].if, { not: { visited: '40' } });
 });

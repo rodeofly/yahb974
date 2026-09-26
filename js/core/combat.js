@@ -7,8 +7,12 @@ import { checkDeath, statLabel } from './rules.js';
 import { ext, sumCombat } from './plugins.js';
 
 /** Démarre le combat du bloc `blockIndex` du paragraphe courant. */
+/** Dégâts saisis : 0 est une vraie valeur (adversaire inoffensif) ; vide ou absent = valeur par défaut. */
+const dmgOf = v => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Math.max(0, Number(v)));
+
 export function startCombat(state, adv, blockIndex) {
   const block = adv.sections[state.section].blocks[blockIndex];
+  const ruleDamage = dmgOf(adv.rules.combat.damage) ?? 2;
   const s = structuredClone(state);
   s.combat = {
     block: blockIndex,
@@ -16,12 +20,12 @@ export function startCombat(state, adv, blockIndex) {
     enemies: (block.enemies || []).map((e, i) => ({
       id: i, name: e.name || `Adversaire ${i + 1}`, image: e.image || null,
       skill: Number(e.skill) || 0, health: Number(e.health) || 1, max: Number(e.health) || 1,
-      damage: Number(e.damage || adv.rules.combat.damage || 2), attackMod: Number(e.attackMod || 0),
+      damage: dmgOf(e.damage) ?? ruleDamage, attackMod: Number(e.attackMod || 0),
     })),
     target: 0,
     round: 0,
     playerMod: Number(block.attackMod || 0),
-    playerDamage: Number(block.damage || adv.rules.combat.damage || 2),
+    playerDamage: dmgOf(block.damage) ?? ruleDamage,
     last: null,        // dernier assaut, pour l'affichage et la Chance
     canLuck: false,
     log: [],
@@ -64,17 +68,20 @@ export function attackRound(state, adv) {
     if (pa > ea) {
       if (isTarget) { e.health = Math.max(0, e.health - dealt); outcome = 'hit'; hit = e.id; }
       else outcome = 'parry';
-    } else if (ea > pa) {
+    } else if (ea > pa && taken > 0) {
       s.stats[hpId].cur = Math.max(0, s.stats[hpId].cur - taken); outcome = 'wounded'; wounded = true;
-    } else outcome = 'draw';
+    } else if (ea > pa) outcome = 'harmless'; // adversaire à 0 dégât : il touche sans blesser (pas de Chance à tenter)
+    else outcome = 'draw';
     exchanges.push({ enemy: e.id, name: e.name, player: { dice: pr.dice, total: pa }, foe: { dice: er.dice, total: ea }, outcome, damage: outcome === 'wounded' ? taken : outcome === 'hit' ? dealt : 0 });
-    const txt = { hit: `vous blessez ${e.name} (−${dealt})`, wounded: `${e.name} vous blesse (−${taken} ${statLabel(adv, hpId)})`, draw: 'vous esquivez tous les deux', parry: `vous parez l'attaque de ${e.name}` }[outcome];
+    const txt = { hit: `vous blessez ${e.name} (−${dealt})`, wounded: `${e.name} vous blesse (−${taken} ${statLabel(adv, hpId)})`, draw: 'vous esquivez tous les deux', parry: `vous parez l'attaque de ${e.name}`, harmless: `${e.name} vous touche sans vous blesser` }[outcome];
     lines.push(`Assaut ${c.round} — vous ${pa} contre ${e.name} ${ea} : ${txt}.`);
   }
   c.last = { round: c.round, exchanges, luckUsed: false, mods, extra: [] };
   // Tour des greffons (ex. les compagnons frappent à leur tour) : ils peuvent modifier s, c, et ajouter des lignes.
   for (const h of ext.combat) h.round?.({ state: s, adv, combat: c, rng, lines, roll, target: c.enemies.find(x => x.id === c.target) });
-  c.canLuck = !!(hit !== null || wounded);
+  // Pas de Chance sur un adversaire déjà abattu (par le héros ou par un compagnon) : elle ne pourrait que le ranimer.
+  const hitStanding = hit !== null && c.enemies[hit] && !c.enemies[hit].down && c.enemies[hit].health > c.stopAt;
+  c.canLuck = !!(hitStanding || wounded);
   c.log = [...c.log, ...lines];
   settle(s, adv);
   s.rng = rng.state();
@@ -96,6 +103,7 @@ export function useLuck(state, adv) {
   for (const ex of c.last.exchanges) {
     if (ex.outcome === 'hit') {
       const e = c.enemies[ex.enemy];
+      if (!e || e.down || e.health <= c.stopAt) continue; // adversaire déjà vaincu : la Chance ne le concerne plus
       if (lucky) { e.health = Math.max(0, e.health - 2); lines.push(`Chanceux (${r.total}) : blessure grave, ${e.name} perd 2 points de plus.`); }
       else { e.health = Math.min(e.max, e.health + 1); lines.push(`Malchanceux (${r.total}) : simple égratignure, ${e.name} récupère 1 point.`); }
     }

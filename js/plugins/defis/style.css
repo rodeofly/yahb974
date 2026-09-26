@@ -109,7 +109,11 @@ input[aria-invalid="true"] { border: 2px dashed var(--loss); }
 .pr-defi-line { display: flex; gap: 6px; align-items: flex-end; }
 .pr-defi-blank { flex: 1; border-bottom: 1px dotted #111; min-height: 1.1em; }
 .print-book .pr-defi-hint { font-size: .9em; text-align: left; hyphens: manual; }
-.pr-flip { display: inline-block; transform: rotate(180deg); }
+.pr-flip { display: block; transform: rotate(180deg); }
+.pr-flip > :first-child { margin-top: 0; }
+.pr-flip > :last-child { margin-bottom: 0; }
+.print-book .pr-defi-hint { break-inside: avoid; page-break-inside: avoid; }
+.print-book .pr-defi-hint > p { margin-bottom: .2em; }
 .pr-defi-center { text-align: center !important; }
 .pr-defi-solutions { break-before: page; page-break-before: always; }
 .pr-defi-sol { margin: 0; display: grid; gap: 8px; }

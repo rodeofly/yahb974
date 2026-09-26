@@ -5,7 +5,7 @@
 import { html, useState, useEffect, useMemo } from '../lib/preact-htm.js';
 import { Icon, AssetImg, markdown, inlineMarkdown } from './common.js';
 import { loadAdventure } from '../store/library.js';
-import { statLabel, itemName } from '../core/rules.js';
+import { statLabel, itemName, de } from '../core/rules.js';
 import { renumber } from '../core/validate.js';
 import { ext, findCondition } from '../core/plugins.js';
 import { ui, sorted } from './registry.js';
@@ -13,8 +13,16 @@ import { makeRng, range } from '../core/dice.js';
 
 const UP = (adv, id) => statLabel(adv, id).toUpperCase();
 const plural = (n, one, many) => `${n} ${Math.abs(n) > 1 ? many : one}`;
-const go = n => `rendez-vous au <b>${n}</b>`;
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Tout ce qui vient de l'aventure est échappé : go() est aussi transmis aux greffons (h.go).
+const go = n => `rendez-vous au <b>${esc(n)}</b>`;
+/** Typographie du livre imprimé : espace fine insécable devant ; : ! ? » et après «, dans le texte
+ *  seulement (jamais dans les balises), pour qu'aucune ligne ne commence par l'un de ces signes. */
+const NNBSP = '\u202F';
+const frTypo = h => String(h).split(/(<[^>]*>)/).map((p, i) => (i % 2 ? p
+  : p.replace(/ ([;:!?»])/g, `${NNBSP}$1`).replace(/«[ \u00A0]/g, `«${NNBSP}`).replace(/\u00A0([;:!?»])/g, `${NNBSP}$1`))).join('');
+/** Version échappée de UP(), pour le HTML des blocs. */
+const UPe = (adv, id) => esc(UP(adv, id));
 
 /* ---------- conditions et effets en français de livre ---------- */
 export function condText(c, adv) {
@@ -54,7 +62,7 @@ export function effectText(e, adv) {
       if (e.set === 'initial') t = `votre ${UP(adv, e.stat)} revient à son total de départ.`;
       else if (e.set !== undefined) t = `votre ${UP(adv, e.stat)} passe à ${e.set}.`;
       else if (e.addInitial) t = `${e.addInitial > 0 ? 'ajoutez' : 'retirez'} ${plural(Math.abs(e.addInitial), 'point', 'points')} à votre total de départ de ${UP(adv, e.stat)}.`;
-      else t = `${e.add < 0 ? 'vous perdez' : 'vous gagnez'} ${plural(Math.abs(e.add), 'point', 'points')} d'${UP(adv, e.stat)}.`;
+      else t = `${e.add < 0 ? 'vous perdez' : 'vous gagnez'} ${plural(Math.abs(e.add), 'point', 'points')} ${de(UP(adv, e.stat))}.`;
       break;
     case 'gold': t = `${e.add < 0 ? 'retirez' : 'ajoutez'} ${plural(Math.abs(e.add), 'Pièce d’Or', 'Pièces d’Or')} ${e.add < 0 ? 'de' : 'à'} votre bourse.`; break;
     case 'provisions': t = `${e.add < 0 ? 'rayez' : 'ajoutez'} ${plural(Math.abs(e.add), 'repas', 'repas')} ${e.add < 0 ? 'de' : 'à'} vos Provisions.`; break;
@@ -64,10 +72,10 @@ export function effectText(e, adv) {
     case 'note': t = `notez : ${e.text}`; break;
     case 'newDay': {
       const tm = adv.rules.time || {};
-      t = `un nouveau jour commence : cochez une case Jour.${tm.mealRequired !== false ? ` Si vous n'avez pas mangé hier, vous perdez ${plural(tm.penalty ?? 3, 'point', 'points')} d'${UP(adv, tm.stat || 'endurance')}.` : ''}`;
+      t = `un nouveau jour commence : cochez une case Jour.${tm.mealRequired !== false ? ` Si vous n'avez pas mangé hier, vous perdez ${plural(tm.penalty ?? 3, 'point', 'points')} ${de(UP(adv, tm.stat || 'endurance'))}.` : ''}`;
       break;
     }
-    case 'meal': t = `vous prenez un repas : ${plural(e.heal ?? adv.rules.meal.heal, 'point', 'points')} d'${UP(adv, adv.rules.meal.stat)} (sans dépasser votre total de départ).`; break;
+    case 'meal': t = `vous prenez un repas : ${plural(e.heal ?? adv.rules.meal.heal, 'point', 'points')} ${de(UP(adv, adv.rules.meal.stat))} (sans dépasser votre total de départ).`; break;
     default: t = ext.effects.get(e.op)?.print?.(e, adv) ?? ext.effects.get(e.op)?.describe(e, adv) ?? '';
   }
   t = t.charAt(0).toUpperCase() + t.slice(1);
@@ -78,40 +86,42 @@ function blockHtml(b, adv) {
   const C = adv.rules.combat;
   if (b.type === 'test') {
     const luck = b.stat === C.luck;
-    const cost = b.cost ?? (luck ? 1 : 0);
-    return `<p class="pr-block"><b>${luck ? 'Tentez votre Chance' : `Testez votre ${statLabel(adv, b.stat)}`}.</b> Lancez ${b.dice && b.dice !== '2d6' ? b.dice : 'deux dés'}${b.mod ? ` et ${b.mod > 0 ? 'retirez' : 'ajoutez'} ${Math.abs(b.mod)} au résultat` : ''} : si le total est inférieur ou égal à votre ${UP(adv, b.stat)}, ${luck ? 'vous êtes Chanceux' : 'vous avez réussi'}${cost ? ` (dans tous les cas, retirez ${plural(cost, 'point', 'points')} de ${UP(adv, b.stat)})` : ''}. ${luck ? 'Chanceux' : 'En cas de réussite'}, ${go(b.success)}. ${luck ? 'Malchanceux' : 'Sinon'}, ${go(b.failure)}.</p>`;
+    const cost = Number(b.cost ?? (luck ? 1 : 0)) || 0;
+    const mod = Number(b.mod) || 0;
+    return `<p class="pr-block"><b>${luck ? 'Tentez votre Chance' : `Testez votre ${esc(statLabel(adv, b.stat))}`}.</b> Lancez ${b.dice && b.dice !== '2d6' ? esc(b.dice) : 'deux dés'}${mod ? ` et ${mod > 0 ? 'retirez' : 'ajoutez'} ${Math.abs(mod)} au résultat` : ''} : si le total est inférieur ou égal à votre ${UPe(adv, b.stat)}, ${luck ? 'vous êtes Chanceux' : 'vous avez réussi'}${cost ? ` (dans tous les cas, retirez ${plural(cost, 'point', 'points')} ${esc(de(UP(adv, b.stat)))})` : ''}. ${luck ? 'Chanceux' : 'En cas de réussite'}, ${go(b.success)}. ${luck ? 'Malchanceux' : 'Sinon'}, ${go(b.failure)}.</p>`;
   }
   if (b.type === 'roll') {
-    const rows = (b.table || []).map(t => `<tr><td>${t.min === t.max ? t.min : `${t.min} – ${t.max}`}</td><td>${esc(t.text || '')}</td><td>${go(t.to)}</td></tr>`).join('');
-    return `<div class="pr-block"><p><b>${esc(b.label || '')}</b> Lancez ${b.dice === '1d6' || !b.dice ? 'un dé' : b.dice === '2d6' ? 'deux dés' : b.dice}${b.addStat ? ` et ajoutez votre ${UP(adv, b.addStat)}` : ''} :</p><table class="pr-table"><tbody>${rows}</tbody></table></div>`;
+    const rows = (b.table || []).map(t => `<tr><td>${t.min === t.max ? esc(t.min) : `${esc(t.min)} – ${esc(t.max)}`}</td><td>${esc(t.text || '')}</td><td>${go(t.to)}</td></tr>`).join('');
+    return `<div class="pr-block"><p><b>${esc(b.label || '')}</b> Lancez ${b.dice === '1d6' || !b.dice ? 'un dé' : b.dice === '2d6' ? 'deux dés' : esc(b.dice)}${b.addStat ? ` et ajoutez votre ${UPe(adv, b.addStat)}` : ''} :</p><table class="pr-table"><tbody>${rows}</tbody></table></div>`;
   }
   if (b.type === 'combat') {
-    const rows = (b.enemies || []).map(e => `<tr><td>${esc(e.name).toUpperCase()}</td><td>${UP(adv, C.skill)} : ${e.skill}</td><td>${UP(adv, C.health)} : ${e.health}</td></tr>`).join('');
+    const rows = (b.enemies || []).map(e => `<tr><td>${esc(String(e.name ?? '').toUpperCase())}</td><td>${UPe(adv, C.skill)} : ${esc(e.skill)}</td><td>${UPe(adv, C.health)} : ${esc(e.health)}</td></tr>`).join('');
     const parts = [];
+    const H = esc(de(UP(adv, C.health), '’'));
     if ((b.enemies || []).length > 1) parts.push(b.mode === 'together' ? 'Ils vous attaquent tous en même temps : à chaque Assaut, choisissez celui que vous frappez ; contre les autres, vous ne faites que vous défendre.' : 'Combattez-les l’un après l’autre.');
-    if (b.attackMod) parts.push(`Pendant ce combat, ${b.attackMod > 0 ? 'ajoutez' : 'retirez'} ${Math.abs(b.attackMod)} à votre Force d’Attaque.`);
-    if (b.stopAt) parts.push(`Le combat s’arrête dès que votre adversaire tombe à ${b.stopAt} points d’${UP(adv, C.health)} ou moins.`);
+    if (b.attackMod) parts.push(`Pendant ce combat, ${Number(b.attackMod) > 0 ? 'ajoutez' : 'retirez'} ${Math.abs(Number(b.attackMod)) || 0} à votre Force d’Attaque.`);
+    if (b.stopAt) parts.push(`Le combat s’arrête dès que votre adversaire tombe à ${esc(b.stopAt)} points ${H} ou moins.`);
     parts.push(`Si vous êtes vainqueur, ${go(b.win)}.`);
-    if (b.flee) parts.push(`Vous pouvez prendre la fuite${b.fleeAfter ? ` après ${b.fleeAfter} Assauts` : ''} en perdant ${b.fleeDamage ?? C.fleeDamage} points d’${UP(adv, C.health)} : ${go(b.flee)}.`);
+    if (b.flee) parts.push(`Vous pouvez prendre la fuite${b.fleeAfter ? ` après ${esc(b.fleeAfter)} Assauts` : ''} en perdant ${esc(b.fleeDamage ?? C.fleeDamage)} points ${H} : ${go(b.flee)}.`);
     if (b.lose) parts.push(`Si vous êtes vaincu, ${go(b.lose)}.`);
     return `<div class="pr-block"><table class="pr-table pr-foes"><tbody>${rows}</tbody></table><p>${parts.join(' ')}</p></div>`;
   }
   if (b.type === 'shop') {
-    const rows = (b.offers || []).map(o => `<li>${esc(itemName(adv, o.item))} : ${plural(o.price, 'Pièce d’Or', 'Pièces d’Or')}${o.stock ? ` (${o.stock} au plus)` : ''}</li>`).join('');
+    const rows = (b.offers || []).map(o => `<li>${esc(itemName(adv, o.item))} : ${esc(plural(o.price, 'Pièce d’Or', 'Pièces d’Or'))}${o.stock ? ` (${esc(o.stock)} au plus)` : ''}</li>`).join('');
     return `<div class="pr-block"><p><b>${esc(b.label || 'Marchand')}.</b> Vous pouvez acheter (rayez l'or dépensé et inscrivez vos achats) :</p><ul>${rows}</ul></div>`;
   }
   if (b.type === 'spells') {
     const sp = adv.rules.spells || {};
-    const who = sp.casters?.length ? `Si vous êtes ${sp.casters.map(c => adv.rules.classes.find(x => x.id === c)?.label || c).join(' ou ')}, vous` : 'Vous';
-    const cells = (b.options || []).map(o => `<td><b>${esc(String(o.code).toUpperCase())}</b><br>${o.to}</td>`).join('');
-    return `<div class="pr-block"><p>${who} pouvez utiliser l’une de ces formules${b.costInText ? '' : ` (retirez son coût de votre ${UP(adv, sp.stat || 'endurance')}, voir le Livre des formules)`} : rendez-vous au numéro indiqué sous son code.</p><table class="pr-table pr-spells"><tbody><tr>${cells}</tr></tbody></table></div>`;
+    const who = sp.casters?.length ? `Si vous êtes ${esc(sp.casters.map(c => adv.rules.classes.find(x => x.id === c)?.label || c).join(' ou '))}, vous` : 'Vous';
+    const cells = (b.options || []).map(o => `<td><b>${esc(String(o.code).toUpperCase())}</b><br>${esc(o.to)}</td>`).join('');
+    return `<div class="pr-block"><p>${who} pouvez utiliser l’une de ces formules${b.costInText ? '' : ` (retirez son coût de votre ${UPe(adv, sp.stat || 'endurance')}, voir le Livre des formules)`} : rendez-vous au numéro indiqué sous son code.</p><table class="pr-table pr-spells"><tbody><tr>${cells}</tr></tbody></table></div>`;
   }
   const plug = ext.blocks.get(b.type);
-  if (plug?.print) return plug.print(b, adv, { go, esc, UP, plural, condText, effectText });
+  if (plug?.print) return plug.print(b, adv, { go, esc, UP, plural, condText, effectText, markdown, inlineMarkdown });
   return '';
 }
 
-function sectionHtml(sec, adv) {
+export function sectionHtml(sec, adv) {
   let h = markdown(sec.text);
   const fx = (sec.onEnter || []).map(e => effectText(e, adv)).filter(Boolean);
   if (fx.length) h += `<p class="pr-fx">${fx.map(esc).join(' ')}</p>`;
@@ -127,7 +137,7 @@ function sectionHtml(sec, adv) {
   }
   if (sec.ending === 'death') h += '<p class="pr-end">FIN</p>';
   if (sec.ending === 'victory') h += '<p class="pr-end">VICTOIRE</p>';
-  return h;
+  return frTypo(h);
 }
 
 /* ---------- règles et feuille d'aventure ---------- */
@@ -183,6 +193,18 @@ function Sheet({ adv }) {
   </section>`;
 }
 
+/** Mesure la largeur naturelle (en em) de chaque formule centrée : la feuille de style d'impression
+ *  s'en sert pour la réduire à la largeur de sa colonne (voir maths/style.css). */
+function measureDisplays(root) {
+  for (const d of root.querySelectorAll('.katex-display')) {
+    const inner = d.querySelector('.katex-html') || d;
+    const r = document.createRange();
+    r.selectNodeContents(inner);
+    const w = r.getBoundingClientRect().width, fs = parseFloat(getComputedStyle(d).fontSize) || 16;
+    if (w > 0) d.style.setProperty('--kw', (w / fs).toFixed(3));
+  }
+}
+
 /* ---------- écran ---------- */
 export function Print({ id }) {
   const [data, setData] = useState(null);
@@ -193,6 +215,14 @@ export function Print({ id }) {
   const [cols, setCols] = useState(true);
   const [format, setFormat] = useState('A5');
   useEffect(() => { loadAdventure(id).then(setData).catch(e => setError(e.message)); }, [id]);
+  useEffect(() => {
+    if (!data) return undefined;
+    let alive = true;
+    const run = () => { const el = alive && document.querySelector('.print-book'); if (el) measureDisplays(el); };
+    const t = setTimeout(() => (document.fonts?.ready || Promise.resolve()).then(run), 50);
+    window.addEventListener('beforeprint', run);
+    return () => { alive = false; clearTimeout(t); window.removeEventListener('beforeprint', run); };
+  });
   const adv = useMemo(() => {
     if (!data) return null;
     return shuffle ? renumber(data.adventure, makeRng(seed)).adventure : data.adventure;
@@ -230,7 +260,7 @@ export function Print({ id }) {
       <${Rules} adv=${adv} />
       <${Sheet} adv=${adv} />
       <section class="pr-sections">
-        <p class="pr-start">Commencez votre lecture au paragraphe 1.</p>
+        <p class="pr-start">Commencez votre lecture au paragraphe ${adv.start}.</p>
         ${ids.map(i => { const s = adv.sections[i]; return html`<section class="pr-sec" key=${i}>
           <h3 class="pr-num">${i}</h3>
           ${images && s.image && html`<div class="pr-img"><${AssetImg} adv=${adv} source=${data.source} path=${s.image} alt="" eager /></div>`}

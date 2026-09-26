@@ -17,10 +17,33 @@ function open() {
       // v2 : magasin clé-valeur réservé aux greffons (statistiques, succès…).
       if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    // Un autre onglet garde l'ancienne version de la base ouverte : la mise à jour attend qu'il se ferme.
+    req.onblocked = () => showBlocked(true);
+    req.onsuccess = () => {
+      const db = req.result;
+      showBlocked(false);
+      // Une version plus récente de l'application (autre onglet) veut mettre la base à jour : on la libère.
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      resolve(db);
+    };
+    req.onerror = () => { dbPromise = null; showBlocked(false); reject(req.error); };
   });
   return dbPromise;
+}
+
+/** Bandeau « fermez les autres onglets » (sans dépendre de l'interface : la base peut s'ouvrir avant elle). */
+function showBlocked(on) {
+  if (typeof document === 'undefined') return;
+  let el = document.getElementById('lh-db-blocked');
+  if (!on) { el?.remove(); return; }
+  if (el) return;
+  el = document.createElement('div');
+  el.id = 'lh-db-blocked';
+  el.setAttribute('role', 'alert');
+  el.style.cssText = 'position:fixed;left:16px;right:16px;top:16px;z-index:1000;margin:0 auto;max-width:560px;padding:12px 16px;border-radius:10px;'
+    + 'border:2px solid currentColor;background:var(--paper,#fff);color:var(--ink,#111);font:16px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.25)';
+  el.textContent = 'Mise à jour de Livre-Héros en attente : fermez les autres onglets (ou fenêtres) de Livre-Héros ouverts sur ce site. La page se chargera toute seule ensuite.';
+  document.body.appendChild(el);
 }
 
 async function tx(store, mode, fn) {

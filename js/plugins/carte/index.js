@@ -50,26 +50,31 @@ function MapPlayer({ adv, source, state, index, block, update }) {
   const spots = hotspotsFor(state, adv, block);
   const locked = spots.some(h => !h.available);
   const pick = h => {
-    if (!h.available) { setNote(`${h.label || 'Ce passage'} : ${h.reason}`); return; }
+    if (!h.available) { setNote(html`<span><b>${h.label || 'Ce passage'}</b> — fermé. ${h.reason}</span>`); return; }
     try { const r = chooseHotspot(state, adv, index, h.index); update(r.state, r.messages); } catch (e) { setNote(e.message); }
   };
   const tell = h => (h.available ? `${h.label || 'Passage'} — rendez-vous au ${h.to}` : `${h.label || 'Passage'} — fermé. ${h.reason}`);
   const withImage = !!block.image && !broken;
 
+  // Sur un écran étroit, les zones n'affichent qu'un numéro (repris dans la légende) : les noms ne se chevauchent
+  // plus et ne masquent pas les zones voisines. Les lignes de la légende sont de vrais boutons, cibles sûres au doigt.
   return html`<section class="block carte-block">
     <h3><${Icon} name="map" />${block.label || 'Carte'}</h3>
     ${withImage && html`
-      <p class="subtle" style="margin:0">Touchez ou cliquez une zone encadrée de pointillés pour vous y rendre${locked ? ' ; un cadenas signale un passage fermé' : ''}.</p>
+      <p class="subtle" style="margin:0">Touchez ou cliquez une zone encadrée de pointillés, ou une destination de la légende, pour vous y rendre${locked ? ' ; un cadenas signale un passage fermé' : ''}.</p>
       <div class="carte-frame">
         ${url && html`<img src=${url} alt=${block.alt || ''} draggable="false" onError=${() => setBroken(true)} />`}
-        ${url && spots.map(h => html`<button type="button" key=${h.index} class=${'carte-zone' + (h.available ? '' : ' locked')} style=${pos(rectOf(h))}
+        ${url && spots.map((h, n) => html`<button type="button" key=${h.index} class=${'carte-zone' + (h.available ? '' : ' locked')} style=${pos(rectOf(h))}
             aria-disabled=${h.available ? undefined : 'true'} aria-label=${tell(h)} title=${tell(h)} onClick=${() => pick(h)}>
-          <span class="carte-tag">${!h.available && html`<${Icon} name="lock" />`}<span>${h.label || h.to}</span></span>
+          <span class="carte-tag">${!h.available && html`<${Icon} name="lock" />`}<span class="carte-num" aria-hidden="true">${n + 1}</span><span class="carte-lbl">${h.label || h.to}</span></span>
         </button>`)}
       </div>
-      <ul class="carte-legend" aria-label="Destinations de la carte">${spots.map(h => html`<li class=${h.available ? '' : 'locked'}>
-        ${h.available ? html`<span class="carte-swatch" aria-hidden="true"></span><span>${h.label || 'Passage'}</span><span class="go">→ ${h.to}</span>`
-          : html`<${Icon} name="lock" /><span><b>${h.label || 'Passage'}</b> : ${h.reason}</span>`}
+      <ul class="carte-legend" aria-label="Destinations de la carte">${spots.map((h, n) => html`<li key=${h.index} class=${h.available ? '' : 'locked'}>
+        <button type="button" class="carte-leg-btn" aria-disabled=${h.available ? undefined : 'true'} aria-label=${tell(h)} onClick=${() => pick(h)}>
+          <span class="carte-leg-num" aria-hidden="true">${n + 1}</span>
+          ${h.available ? html`<span class="carte-swatch" aria-hidden="true"></span><span>${h.label || 'Passage'}</span><span class="go">→ ${h.to}</span>`
+            : html`<${Icon} name="lock" /><span><b>${h.label || 'Passage'}</b> — fermé. ${h.reason}</span>`}
+        </button>
       </li>`)}</ul>`}
     ${!withImage && html`<nav class="choices carte-fallback" aria-label="Destinations">
       ${spots.map(h => html`<button class="choice" key=${h.index} disabled=${!h.available} onClick=${() => pick(h)}>

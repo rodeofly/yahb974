@@ -18,6 +18,7 @@
 
 import { registerBlock, registerNormalize, registerHeroInit } from '../../core/plugins.js';
 import { enter } from '../../core/rules.js';
+import { checkEffects } from '../../core/validate.js';
 
 export const TYPE = 'zefor';
 export const MODES = ['code', 'message', 'retour'];
@@ -35,6 +36,7 @@ export const REASONS = {
   exercise: 'ce résultat concerne un autre exercice',
   unsigned: 'le résultat n’est pas signé alors que l’aventure exige une signature',
   signature: 'signature invalide',
+  mode: 'ce défi n’accepte pas les résultats arrivés par ce moyen',
 };
 
 /* ------------------------------------------------------------------ */
@@ -305,9 +307,12 @@ export async function signResult(privateJwk, result) {
  * Renvoie { ok: false, reason } si le résultat doit être ignoré (autre partie, site non autorisé, signature…),
  * sinon { ok: true, success, scoreOk, verified } — success : parcours réussi ET score suffisant.
  * `origin` : event.origin d'un postMessage (omis pour BroadcastChannel et l'adresse de retour, qui sont locaux).
+ * `channel` : moyen par lequel le résultat est arrivé ('message' ou 'retour') ; il doit correspondre au mode du bloc
+ * (un bloc en mode « code » n'accepte que des codes : une adresse de retour tapée à la main ne le débloque pas).
  */
-export async function checkResult(result, { adv, block, nonce, origin } = {}) {
+export async function checkResult(result, { adv, block, nonce, origin, channel } = {}) {
   if (!result || typeof result !== 'object') return { ok: false, reason: 'format' };
+  if (channel !== undefined && channel !== modeOf(block)) return { ok: false, reason: 'mode' };
   if (!nonce || result.nonce !== nonce) return { ok: false, reason: 'nonce' };
   if (origin !== undefined && !allowedOrigins(adv, block).includes(origin)) return { ok: false, reason: 'origin' };
   const want = String(block?.exercise || '').trim();
@@ -340,16 +345,17 @@ export function parseBlockRef(ref) {
 /**
  * Code de transfert : quand la page de retour s'ouvre dans un navigateur où aucune partie n'attend ce résultat
  * (application installée sur iPhone ou iPad, autre navigateur…), elle affiche le code personnel du nonce,
- * que l'élève tape dans sa partie. Seulement si l'aventure a une clé de codes personnels et que le résultat
- * est authentique (signature si exigée) et suffisant (exercice, score minimum). Sinon null.
+ * que l'élève tape dans sa partie. Seulement pour un bloc en mode « retour », si l'aventure a une clé de codes
+ * personnels ET une clé publique de signature, et que le résultat est signé, authentique et suffisant (exercice,
+ * score minimum). Sans signature, n'importe qui pourrait taper l'adresse et obtenir le code : null.
  */
 export async function transferCode(adv, ref, result) {
-  const { codeKey } = rulesOf(adv);
+  const { codeKey, publicKeyJwk } = rulesOf(adv);
   const r = parseBlockRef(ref);
   const block = r && adv?.sections?.[r.section]?.blocks?.[r.index];
-  if (!codeKey || !block || block.type !== TYPE || !result?.nonce) return null;
-  const chk = await checkResult(result, { adv, block, nonce: result.nonce });
-  if (!chk.ok || !chk.success) return null;
+  if (!codeKey || !publicKeyJwk || !block || block.type !== TYPE || modeOf(block) !== 'retour' || !result?.nonce) return null;
+  const chk = await checkResult(result, { adv, block, nonce: result.nonce, channel: 'retour' });
+  if (!chk.ok || !chk.success || !chk.verified) return null;
   try { return await personalCode(codeKey, result.nonce); } catch { return null; }
 }
 
@@ -438,25 +444,37 @@ export function summary(state) {
 /* Enregistrement dans le moteur                                       */
 /* ------------------------------------------------------------------ */
 
-const plain = md => String(md || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/[*_](.+?)[*_]/g, '$1').replace(/\s*\n+\s*/g, ' ').trim();
+/** Repli sans moteur Markdown : texte brut, mais le contenu des formules $…$ est laissé intact. */
+const plain = md => String(md || '').split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/).map((part, i) => (i % 2 ? part
+  : part.replace(/\*\*(.+?)\*\*/g, '$1').replace(/(^|[^\w])[*_](.+?)[*_](?!\w)/g, '$1$2'))).join('').replace(/\s*\n+\s*/g, ' ').trim();
+
+/** Espace fine insécable devant ; : ! ? » et après «, pour qu'aucune ligne imprimée ne commence par ces signes. */
+const NNBSP = '\u202F';
+export const frSpaces = t => String(t).replace(/ ([;:!?»])/g, `${NNBSP}$1`).replace(/« /g, `«${NNBSP}`);
+
+/** Adresse imprimable : coupures possibles après / ? & = # (sinon elle part entière à la ligne). */
+const urlHtml = (url, esc) => esc(url).replace(/(\/|\?|&amp;|=|#)(?=.)/g, '$1<wbr>');
 
 /** Effets en incise de livre : « inscrivez … : Rame du passeur, vous perdez 1 point de CHANCE, ». */
 function fxClause(list, adv, h) {
   const t = (list || []).map(e => String(h.effectText(e, adv) || '').trim().replace(/\.$/, '')).filter(Boolean)
     .map(x => x.charAt(0).toLowerCase() + x.slice(1));
-  return t.length ? `${h.esc(t.join(', '))}, ` : '';
+  return t.length ? `${h.esc(frSpaces(t.join(', ')))}, ` : '';
 }
 
 export function printBlock(b, adv, h) {
-  const parts = [`<b>${b.title ? `Défi Zefor : ${h.esc(b.title)}` : 'Défi Zefor'}.</b>`];
-  if (b.description) parts.push(h.esc(plain(b.description)));
-  parts.push(`Ce défi se fait sur zefor974 : <span class="zf-url">${h.esc(String(b.url || '').trim() || '(adresse à compléter)')}</span>.`);
+  const head = `<p><b>${b.title ? `Défi Zefor${NNBSP}: ${h.esc(b.title)}` : 'Défi Zefor'}.</b></p>`;
+  // La consigne est rendue comme à l'écran (Markdown et formules) quand l'impression fournit le moteur Markdown.
+  const desc = b.description ? (h.markdown ? `<div class="zf-pr-desc">${h.markdown(b.description)}</div>` : `<p>${h.esc(plain(b.description))}</p>`) : '';
+  const url = String(b.url || '').trim();
+  const where = `<p class="zf-pr-where">Ce défi se fait sur zefor974${NNBSP}:</p><p class="zf-url">${url ? urlHtml(url, h.esc) : '(adresse à compléter)'}</p>`;
+  const parts = [];
   parts.push(`Quand vous l'avez réussi, notez le code obtenu, ${fxClause(b.successEffects, adv, h)}puis ${h.go(b.success)}.`);
   const min = minScoreOf(b);
   if (min != null) parts.push(`(Le défi n'est réussi qu'avec un score d'au moins ${String(min).replace('.', ',')}.)`);
   if (b.failure) parts.push(`Si vous n'y parvenez pas, ${fxClause(b.failureEffects, adv, h)}${h.go(b.failure)}.`);
-  if (b.allowSkip) parts.push(`Vous pouvez aussi renoncer au défi : ${fxClause(b.skipEffects, adv, h)}${h.go(b.skipTo || b.success)}.`);
-  return `<div class="pr-block zf-print"><p>${parts.join(' ')}</p></div>`;
+  if (b.allowSkip) parts.push(`Vous pouvez aussi renoncer au défi${NNBSP}: ${fxClause(b.skipEffects, adv, h)}${h.go(b.skipTo || b.success)}.`);
+  return `<div class="pr-block zf-print">${head}${desc}${where}<p>${parts.join(' ')}</p></div>`;
 }
 
 export function validateBlock(b, adv, report, where) {
@@ -480,7 +498,12 @@ export function validateBlock(b, adv, report, where) {
     else if (!z.publicKeyJwk) report('info', `${where} : résultats non signés — un élève astucieux pourrait fabriquer un faux résultat (acceptable pour un jeu).`);
   }
   if (b.allowSkip && b.skipTo === b.success && !(b.skipEffects || []).length) report('info', `${where} : continuer sans le défi ne coûte rien.`);
+  checkEffects(b.successEffects, adv, report, `${where}, effets de réussite`);
+  checkEffects(b.failureEffects, adv, report, `${where}, effets d’échec`);
+  checkEffects(b.skipEffects, adv, report, `${where}, effets sans le défi`);
 }
+
+const remapFx = (list, remapCond) => (remapCond ? list.map(e => (e?.if ? { ...e, if: remapCond(e.if) } : e)) : list);
 
 registerNormalize(adv => { adv.rules.zefor = { ...DEFAULT_RULES, ...(adv.rules.zefor || {}) }; });
 registerHeroInit(state => { state.zefor = { done: {} }; });
@@ -490,8 +513,13 @@ registerBlock(TYPE, {
     b.failure && { to: b.failure, kind: 'zefor', label: 'défi raté', ref: ['blocks', i, 'failure'] },
     b.allowSkip && b.skipTo && { to: b.skipTo, kind: 'zefor', label: 'sans le défi', ref: ['blocks', i, 'skipTo'] },
   ].filter(Boolean),
-  // success et failure sont déjà renumérotés par le moteur (validate.js) ; il ne reste que skipTo.
-  remap: (b, m) => (b.skipTo ? { ...b, skipTo: m(b.skipTo) } : b),
+  // success et failure sont déjà renumérotés par le moteur (validate.js) ; il reste skipTo et les conditions des effets.
+  remap: (b, m, remapCond) => {
+    const x = { ...b };
+    if (x.skipTo) x.skipTo = m(x.skipTo);
+    for (const k of ['successEffects', 'failureEffects', 'skipEffects']) if (Array.isArray(x[k])) x[k] = remapFx(x[k], remapCond);
+    return x;
+  },
   validate: validateBlock,
   print: printBlock,
 });

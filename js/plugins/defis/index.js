@@ -5,7 +5,7 @@ import { html, useState, useEffect, useRef, useMemo } from '../../lib/preact-htm
 import { Icon, Prose, AssetImg, markdown, confirmBox, toast, loadCSS } from '../../ui/common.js';
 import { registerBlockUI, registerSheetPanel, registerEndingPanel, registerPrintSection } from '../../ui/registry.js';
 import { registerBlock, ext } from '../../core/plugins.js';
-import { describeEffect } from '../../core/rules.js';
+import { describeEffect, statLabel, de } from '../../core/rules.js';
 import { Continue } from '../../ui/play.js';
 import { Text, Num, EffectsEditor, ImageSlot } from '../../ui/editor.js';
 import { sfx } from '../../ui/audio.js';
@@ -24,8 +24,39 @@ const Ico = ({ name }) => html`<svg class="ico" viewBox="0 0 24 24" fill="none" 
 
 /** Markdown sur une ligne (propositions, éléments à ordonner) : formules comprises, sans paragraphe englobant. */
 const inline = s => markdown(String(s ?? '')).replace(/^<p>([\s\S]*)<\/p>$/, '$1');
-/** Texte brut pour les libellés accessibles. */
-const plain = s => String(s ?? '').replace(/[*_`$\\]/g, '').replace(/\s+/g, ' ').trim();
+/** Formule LaTeX lue à voix haute en français : \frac{1}{2} → « 1 sur 2 », x^2 → « x au carré », - → « moins ». */
+const TEX_WORDS = {
+  times: 'fois', cdot: 'fois', div: 'divisé par', leq: 'inférieur ou égal à', le: 'inférieur ou égal à', geq: 'supérieur ou égal à',
+  ge: 'supérieur ou égal à', neq: 'différent de', ne: 'différent de', approx: 'environ égal à', pm: 'plus ou moins', pi: 'pi',
+  infty: 'infini', degree: 'degrés', circ: 'degrés', percent: 'pour cent', ldots: 'etc.', cdots: 'etc.', dots: 'etc.',
+  left: '', right: '', displaystyle: '', text: '', mathrm: '', mathbf: '', quad: '', qquad: '',
+};
+export function texToFrench(tex) {
+  let s = String(tex ?? '');
+  for (let i = 0; i < 6; i++) {
+    s = s.replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, ' $1 sur $2 ').replace(/\\[dt]?frac\s*(\w)\s*(\w)/g, ' $1 sur $2 ')
+      .replace(/\\sqrt\s*\{([^{}]*)\}/g, ' racine carrée de $1 ');
+  }
+  s = s.replace(/\^\s*(?:\{\s*2\s*\}|2(?!\d))/g, ' au carré ').replace(/\^\s*(?:\{\s*3\s*\}|3(?!\d))/g, ' au cube ')
+    .replace(/\^\s*\{([^{}]*)\}/g, ' puissance $1 ').replace(/\^\s*(-?\w)/g, ' puissance $1 ')
+    .replace(/_\s*\{([^{}]*)\}/g, ' indice $1 ').replace(/_\s*(\w)/g, ' indice $1 ')
+    .replace(/\\([a-zA-Z]+)/g, (m, w) => ` ${w in TEX_WORDS ? TEX_WORDS[w] : w} `)
+    .replace(/\\[,;:! ]|~/g, ' ').replace(/[{}]/g, ' ')
+    .replace(/\s*=\s*/g, ' égale ').replace(/\s*\+\s*/g, ' plus ').replace(/\s*[-−]\s*/g, ' moins ')
+    .replace(/\s*<\s*/g, ' inférieur à ').replace(/\s*>\s*/g, ' supérieur à ').replace(/\s*\*\s*/g, ' fois ');
+  return s.replace(/\s+/g, ' ').trim();
+}
+/** Texte brut pour les libellés accessibles et les annonces : les formules sont dites en français. */
+const plain = s => String(s ?? '').replace(/\$\$([\s\S]+?)\$\$|\$([^$]+)\$/g, (m, a, b) => ` ${texToFrench(a ?? b)} `)
+  .replace(/[*_`$\\]/g, '').replace(/\s+/g, ' ').trim();
+/** Coût d'un indice, sans signe : « 1 pièce d’or », « 1 point de Chance » (le mot « Coût » dit déjà qu'on paie). */
+function costText(e, adv) {
+  const n = Math.abs(Number(e?.add));
+  if (e?.op === 'gold' && Number.isFinite(n) && !e.if) return `${n} ${n > 1 ? 'pièces' : 'pièce'} d’or`;
+  if (e?.op === 'provisions' && Number.isFinite(n) && !e.if) return `${n} repas`;
+  if (e?.op === 'stat' && e.add !== undefined && e.set === undefined && !e.addInitial && Number.isFinite(n) && !e.if) return `${n} ${n > 1 ? 'points' : 'point'} ${de(statLabel(adv, e.stat), '’')}`;
+  return describeEffect(e, adv);
+}
 const uidOf = p => `${p}-${Math.random().toString(36).slice(2, 8)}`;
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
 
@@ -181,7 +212,7 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
     })}
   </fieldset>`;
   if (kind === 'order') field = html`<div class="stack" style="gap:6px">
-    ${!done && html`<p class="subtle" id=${uid + '-oh'} style="margin:0">Du premier (en haut) au dernier (en bas) : déplacez les éléments avec les boutons Monter et Descendre.</p>`}
+    ${!done && html`<p class="subtle" id=${uid + '-oh'} style="margin:0">Du premier (en haut) au dernier (en bas) : déplacez les éléments avec les boutons fléchés ↑ (monter) et ↓ (descendre).</p>`}
     <ol class="defi-order" ref=${listRef} aria-label="Éléments à remettre dans l’ordre">
       ${order.map((k, pos) => html`<li key=${k} data-pos=${pos}>
         <span class="defi-pos" aria-hidden="true">${pos + 1}</span>
@@ -215,7 +246,7 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
         <div><b>Indice ${k + 1}</b><div class="defi-hint-text" dangerouslySetInnerHTML=${{ __html: markdown(hints[k]?.text || '') }}></div></div></div>`)}
       ${hint && html`<div class="row">
         <button type="button" class="btn small" disabled=${!!hintWhy} onClick=${askHint}><${Ico} name="bulb" />${bs.hints.length ? 'Un autre indice' : 'Demander un indice'} (${hint.index + 1} sur ${hints.length})</button>
-        <span class="subtle">${(hint.cost || []).length ? `Coût : ${hint.cost.map(e => describeEffect(e, adv)).join(', ')}` : 'Gratuit'}</span>
+        <span class="subtle">${(hint.cost || []).length ? `Coût : ${hint.cost.map(e => costText(e, adv)).join(', ')}` : 'Gratuit'}</span>
         ${hintWhy && html`<span class="subtle row" style="gap:4px"><${Icon} name="lock" />${hintWhy}</span>`}
       </div>`}
     </div>`}
@@ -451,7 +482,7 @@ function ChallengeEditor({ adv, block: b, set, onChange, tgt }) {
 /* ------------------------------------------------------------------ */
 
 registerBlockUI(D.TYPE, {
-  label: 'Défi', icon: 'edit', order: 20,
+  label: 'Défi', icon: 'question', order: 20,
   create: () => ({ kind: 'text', title: '', question: '', answers: [''], attempts: 3, hints: [], success: '', failure: '', allowGiveUp: false, successEffects: [], failureEffects: [], explanation: '', hashed: false }),
   Player: ChallengePlayer,
   Editor: ChallengeEditor,

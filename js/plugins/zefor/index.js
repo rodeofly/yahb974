@@ -102,7 +102,7 @@ function ZeforPlayer({ adv, state, index, block, update }) {
     if (handled.current.has(tag)) return;
     handled.current.add(tag);
     let chk;
-    try { chk = await Z.checkResult(result, { adv, block: b, nonce: cur.nonce, origin }); }
+    try { chk = await Z.checkResult(result, { adv, block: b, nonce: cur.nonce, origin, channel: via }); }
     catch (e) { handled.current.delete(tag); setNotice(e.message); return; }
     if (!chk.ok) { setNotice(`Résultat refusé : ${Z.REASONS[chk.reason] || chk.reason}${chk.reason === 'origin' ? ` (${origin})` : ''}.`); return; }
     const latest = stateRef.current;
@@ -136,6 +136,8 @@ function ZeforPlayer({ adv, state, index, block, update }) {
       addEventListener('message', onMsg);
       offs.push(() => removeEventListener('message', onMsg));
     }
+    // L'onglet de retour et le magasin local ne servent qu'au mode « retour » : en mode « code », seul un code débloque.
+    if (mode !== 'retour') return () => offs.forEach(f => f());
     if (typeof BroadcastChannel === 'function') {
       const ch = new BroadcastChannel(Z.CHANNEL);
       ch.onmessage = e => { const r = Z.parseMessage(e.data); if (r) receive(r, 'retour'); };
@@ -504,7 +506,7 @@ const zeforBlocks = adv => Object.entries(adv.sections).flatMap(([id, s]) => (s.
 
 registerBlockUI(Z.TYPE, {
   label: 'Défi Zefor',
-  icon: 'lock',
+  icon: 'zefor',
   order: 40,
   create: () => ({ title: '', description: '', url: '', mode: 'code', codeHashes: [], success: '', failure: '' }),
   Player: ZeforPlayer,

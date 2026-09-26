@@ -1022,6 +1022,24 @@ export function mergeAdventures(base, other, options = {}) {
   const book = A.rules.spells.book || (A.rules.spells.book = []);
   for (const sp of B2.rules.spells?.book || []) if (!book.some(x => String(x.code).toUpperCase() === String(sp.code).toUpperCase())) { book.push(structuredClone(sp)); report.spells.push(String(sp.code).toUpperCase()); }
   for (const [k, v] of Object.entries(B2.rules)) if (A.rules[k] === undefined) A.rules[k] = structuredClone(v);
+  // Règles Zefor : normalizeAdventure les crée toujours, vides. On reprend celles de l'autre aventure quand celles-ci
+  // sont vides (clé des codes personnels, clé publique de signature, origine), et on prévient quand elles diffèrent.
+  const zA = A.rules.zefor, zB = B.rules?.zefor;
+  if (zB && typeof zB === 'object') {
+    if (!zA || typeof zA !== 'object') A.rules.zefor = structuredClone(zB);
+    else {
+      const same = (x, y) => JSON.stringify(x ?? null) === JSON.stringify(y ?? null);
+      const labels = { codeKey: 'la clé des codes personnels', publicKeyJwk: 'la clé publique de signature', origin: 'l’origine de Zefor' };
+      const taken = [], kept = [];
+      for (const k of Object.keys(labels)) {
+        const empty = v => v == null || v === '';
+        if (empty(zB[k]) || same(zA[k], zB[k])) continue;
+        if (empty(zA[k])) { zA[k] = structuredClone(zB[k]); taken.push(labels[k]); } else kept.push(labels[k]);
+      }
+      if (taken.length) lines.push({ kind: 'info', text: `Règles Zefor reprises de l’autre aventure : ${listFr(taken)}.` });
+      if (kept.length) warn(`Les deux aventures n’ont pas les mêmes règles Zefor (${listFr(kept)}) : celles de cette aventure sont gardées, les défis Zefor de l’autre aventure peuvent ne plus accepter leurs codes ou leurs résultats. Vérifiez l’onglet Règles.`);
+    }
+  }
   if (B.meta.author && !A.meta.author?.includes(B.meta.author)) {
     const names = String(A.meta.author || '').split(/\s*(?:,|\bet\b)\s*/).filter(Boolean);
     A.meta.author = listFr([...names, B.meta.author]);
@@ -1059,6 +1077,7 @@ export function mergeAdventures(base, other, options = {}) {
   if (report.spells.length) lines.push({ kind: 'info', text: `Formule${report.spells.length > 1 ? 's' : ''} ajoutée${report.spells.length > 1 ? 's' : ''} au livre : ${listFr(report.spells)}.` });
   if (report.assets.length) lines.push({ kind: 'rename', text: `${plural(report.assets.length, 'fichier (image ou son) renommé', 'fichiers (images ou sons) renommés')} pour ne pas écraser ceux de cette aventure.` });
   if (B.rules.spells?.enabled && !A.rules.spells?.enabled) warn('L’autre aventure utilise des formules magiques, désactivées ici : activez-les dans l’onglet Règles si besoin.');
+  if (B.rules.equipment?.enabled && !A.rules.equipment?.enabled) warn('L’autre aventure utilise l’équipement (objets portés), désactivé ici : activez-le dans l’onglet Règles si besoin.');
   if (B.rules.time?.enabled && !A.rules.time?.enabled) warn('L’autre aventure compte les jours, pas celle-ci : activez les journées dans l’onglet Règles si besoin.');
   if (broken.size) warn(`Renvois déjà cassés dans l’autre aventure (à corriger) : ${[...broken].slice(0, 8).join(', ')}${broken.size > 8 ? '…' : ''}.`);
   lines.push({ kind: 'info', text: `Les règles de « ${A.meta.title} » (combat, or, repas…) sont conservées.` });

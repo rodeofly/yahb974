@@ -26,7 +26,10 @@ export async function listLibrary() {
 export async function loadAdventure(id) {
   const local = await db.getAdventure(id);
   if (local) return { adventure: normalizeAdventure(local), source: 'local' };
-  const res = await fetch(`${BUNDLED}${encodeURIComponent(id)}/adventure.json`);
+  let res;
+  try { res = await fetch(`${BUNDLED}${encodeURIComponent(id)}/adventure.json`); }
+  catch { throw new Error(`Aventure indisponible hors ligne : ${id}. Reconnectez-vous une fois pour l’ouvrir.`); }
+  if (res.status === 503) throw new Error(`Aventure indisponible hors ligne : ${id}. Reconnectez-vous une fois pour l’ouvrir.`);
   if (!res.ok) throw new Error(`Aventure introuvable : ${id}`);
   return { adventure: normalizeAdventure(await res.json()), source: 'bundled' };
 }
@@ -108,21 +111,48 @@ function imagePaths(adv) {
   return [...paths].filter(p => !/^(https?:|data:|blob:)/.test(p));
 }
 
-/** Construit le fichier .lhz d'une aventure (locale ou publiée). */
+/**
+ * Construit le fichier .lhz d'une aventure (locale ou publiée).
+ * Les fichiers qui n'ont pas pu être lus (hors ligne…) sont listés dans `blob.missing`.
+ */
 export async function exportAdventure(adv, source) {
   const files = { 'adventure.json': strToU8(JSON.stringify(adv, null, 2)) };
+  const missing = [];
   for (const p of imagePaths(adv)) {
     let blob = source === 'local' ? await db.getAsset(adv.id, p) : null;
     if (!blob) { try { const r = await fetch(`${BUNDLED}${encodeURIComponent(adv.id)}/${p}`); if (r.ok) blob = await r.blob(); } catch { /* image absente */ } }
     if (blob) files[p] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
+    else missing.push(p);
   }
-  return new Blob([zipSync(files)], { type: 'application/zip' });
+  const out = new Blob([zipSync(files)], { type: 'application/zip' });
+  out.missing = missing;
+  return out;
 }
 
 const MIME = { mp3: 'audio/mpeg', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', wav: 'audio/wav', m4a: 'audio/mp4', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml' };
 
-/** Importe un .lhz (ou un adventure.json seul). Renvoie l'aventure enregistrée localement. */
-export async function importAdventure(file, { asCopy = false } = {}) {
+/** Identifiant sûr (lettres, chiffres, tirets) : sinon on le recalcule à partir du titre. */
+const SAFE_ID = /^[a-z0-9][a-z0-9_-]{0,99}$/i;
+const freeId = (base, taken) => { let id; do id = `${slug(base)}-${Math.random().toString(36).slice(2, 6)}`; while (taken.has(id)); return id; };
+
+/** Aventure déjà présente sous cet identifiant : { title, source } (locale, ou publiée sur le site), sinon null. */
+export async function existingAdventure(id) {
+  const local = await db.getAdventure(id).catch(() => null);
+  if (local) return { title: local.meta?.title || id, source: 'local' };
+  try {
+    const idx = await fetch(BUNDLED + 'index.json').then(r => (r.ok ? r.json() : []));
+    const e = idx.find(x => x.id === id);
+    if (e) return { title: e.title || id, source: 'bundled' };
+  } catch { /* hors ligne */ }
+  return null;
+}
+
+/**
+ * Importe un .lhz (ou un adventure.json seul). Renvoie l'aventure enregistrée localement.
+ * `onConflict(existing, adv)` : appelé si l'identifiant est déjà pris (aventure locale ou publiée) ; il renvoie
+ * 'replace' (remplacer), 'copy' (garder les deux : nouvel identifiant) ou 'cancel'. Sans lui, l'import remplace.
+ */
+export async function importAdventure(file, { asCopy = false, onConflict = null } = {}) {
   const buf = new Uint8Array(await file.arrayBuffer());
   let adv, files = {};
   if (buf[0] === 0x50 && buf[1] === 0x4b) {
@@ -134,7 +164,20 @@ export async function importAdventure(file, { asCopy = false } = {}) {
     adv = JSON.parse(new TextDecoder().decode(buf));
   }
   adv = normalizeAdventure(adv);
+  if (adv.id && !SAFE_ID.test(String(adv.id))) adv.id = slug(adv.id);
   if (asCopy || !adv.id) adv.id = slug(adv.meta.title) + '-' + Math.random().toString(36).slice(2, 6);
+  else if (onConflict) {
+    const existing = await existingAdventure(adv.id);
+    if (existing) {
+      const choice = await onConflict(existing, adv);
+      if (choice === 'cancel') return null;
+      if (choice !== 'replace') {
+        const taken = new Set((await db.listAdventures()).map(r => r.adventure?.id));
+        taken.add(adv.id);
+        adv.id = freeId(adv.meta.title || adv.id, taken);
+      }
+    }
+  }
   for (const [name, data] of Object.entries(files)) {
     if (name.endsWith('/') || name.endsWith('adventure.json')) continue;
     const ext = name.split('.').pop().toLowerCase();
@@ -146,6 +189,10 @@ export async function importAdventure(file, { asCopy = false } = {}) {
 /** Copie une aventure publiée (ou locale) pour la modifier. */
 export async function duplicateAdventure(adv, source, title) {
   const blob = await exportAdventure(adv, source);
+  // Une copie sans ses images les perdrait pour toujours (elles ne seraient ni ici ni en ligne sous le nouvel identifiant).
+  if (source !== 'local' && blob.missing.length) {
+    throw new Error(`${blob.missing.length} image(s) ou son(s) n’ont pas pu être lus (hors ligne ?) : réessayez une fois connecté.`);
+  }
   const copy = await importAdventure(new File([blob], 'copie.lhz'), { asCopy: true });
   copy.meta.title = title || `${adv.meta.title} (copie)`;
   return db.putAdventure(copy);

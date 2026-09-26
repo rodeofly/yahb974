@@ -48,8 +48,9 @@
 :root[data-a11y-font="atkinson"] { --a11y-family: "Atkinson Hyperlegible", "Alegreya Sans", "Segoe UI", system-ui, sans-serif; }
 :root[data-a11y-font="opendyslexic"] { --a11y-family: "OpenDyslexic", "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif; }
 
-/* Portée « texte de l'aventure » : paragraphes (et leurs intertitres) et choix. */
-:root[data-a11y-font] :is(.prose, .choice) { --serif: var(--a11y-family); --display: var(--a11y-family); font-family: var(--a11y-family); }
+/* Portée « texte de l'aventure » : paragraphes (et leurs intertitres), choix, et textes d'aventure des greffons
+   (réponses et indices des défis…). Un greffon peut aussi poser la classe commune .lh-lecture sur ses textes. */
+:root[data-a11y-font] :is(.prose, .choice, .lh-lecture, .defi-otext, .defi-opt, .defi-order li, .defi-hint-text, .defi-reveal, .defi-explain, .maths-choices li) { --serif: var(--a11y-family); --display: var(--a11y-family); font-family: var(--a11y-family); }
 /* Portée « toute l'interface » : les jetons de police eux-mêmes (les chiffres gardent la police à chasse fixe). */
 :root[data-a11y-font][data-a11y-scope="all"] { --serif: var(--a11y-family); --display: var(--a11y-family); --sans: var(--a11y-family); }
 
@@ -59,6 +60,7 @@
 :root[data-a11y-leading="airy"] .prose li { margin-bottom: .4em; }
 :root[data-a11y-leading="airy"] .choice { line-height: 1.7; padding-block: 14px; }
 :root[data-a11y-leading="airy"] .choices { gap: 12px; }
+:root[data-a11y-leading="airy"] :is(.lh-lecture, .defi-otext, .defi-opt, .defi-order li, .defi-hint-text, .defi-reveal, .defi-explain, .maths-choices li) { line-height: 1.9; }
 :root[data-a11y-leading="airy"][data-a11y-scope="all"] body { line-height: 1.75; }
 :root[data-a11y-leading="airy"][data-a11y-scope="all"] :is(.subtle, .muted, .msg, .block, .sheet, .modal, .inv li) { line-height: 1.75; }
 
@@ -66,7 +68,7 @@
 /* OpenDyslexic est déjà très large : on l'espace moins que les autres polices. */
 :root { --a11y-track: .12em; --a11y-track-ui: .05em; }
 :root[data-a11y-font="opendyslexic"] { --a11y-track: .05em; --a11y-track-ui: .02em; }
-:root[data-a11y-spacing="wide"] :is(.prose, .choice) { letter-spacing: var(--a11y-track); word-spacing: .16em; }
+:root[data-a11y-spacing="wide"] :is(.prose, .choice, .lh-lecture, .defi-otext, .defi-opt, .defi-order li, .defi-hint-text, .defi-reveal, .defi-explain, .maths-choices li) { letter-spacing: var(--a11y-track); word-spacing: .16em; }
 :root[data-a11y-spacing="wide"][data-a11y-scope="all"] body { letter-spacing: var(--a11y-track-ui); word-spacing: .1em; }
 
 /* ---------- version imprimable : mise en page du livre, sauf si l'utilisateur la demande aussi ---------- */

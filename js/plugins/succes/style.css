@@ -28,7 +28,7 @@
 .sc-item { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); }
 .sc-txt { display: grid; gap: 2px; min-width: 0; }
 .sc-txt b { font-size: 16px; }
-.sc-desc { font-size: 14px; color: var(--muted); text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.sc-desc { font-size: 14px; color: var(--muted); text-align: var(--align, justify); hyphens: auto; -webkit-hyphens: auto; }
 .sc-ico { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; }
 .sc-ico .ico { width: 17px; height: 17px; }
 .sc-state { font-size: 13px; color: var(--muted); text-align: right; max-width: 16ch; }
@@ -85,6 +85,7 @@
 }
 
 /* ---------- version imprimable ---------- */
+.sc-print { break-before: page; page-break-before: always; }
 .sc-print h2 { margin-bottom: 8px; }
 .sc-pr-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 7px; }
 .sc-pr-list li { display: grid; grid-template-columns: 16px 1fr; gap: 8px; align-items: start; break-inside: avoid; }

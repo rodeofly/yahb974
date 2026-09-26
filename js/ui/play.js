@@ -1,7 +1,7 @@
 // Écran de jeu : création du héros, lecture, blocs interactifs, feuille d'aventure, fins.
 
 import { html, useState, useEffect, useRef, useMemo } from '../lib/preact-htm.js';
-import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox, InlineText } from './common.js';
+import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox, InlineText, loadGraphLibs } from './common.js';
 import { loadAdventure, assetUrl } from '../store/library.js';
 import { sfx, ambience, speak, stopSpeaking, ttsAvailable } from './audio.js';
 import { prefs } from './common.js';
@@ -175,7 +175,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     <${Sheet} adv=${adv} source=${source} state=${state} update=${update} open=${sheetOpen} onClose=${() => setSheetOpen(false)}
       onBack=${adv.rules.allowBack !== false && state.history.length && !state.ended ? goBack : null}
       onMap=${() => setMap(true)} onSave=${test ? null : onSaveAs} />
-    <button class="btn primary sheet-toggle" style="position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:25" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen}>
+    <button class="btn primary sheet-toggle" style="position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:25" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen} aria-controls="feuille-aventure">
       <${Icon} name="sheet" />Feuille · ${state.stats[adv.rules.combat.health]?.cur ?? ''}
     </button>
     ${lightbox && html`<div class="overlay lightbox" onClick=${() => setLightbox(null)}><img src=${lightbox} alt="" /></div>`}
@@ -294,7 +294,7 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
       ${last.exchanges.map(x => html`<div class="vs">
         <span>Vous</span><${Dice} result=${{ dice: x.player.dice, total: x.player.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.player.total}</b>
         <span>contre ${x.name}</span><${Dice} result=${{ dice: x.foe.dice, total: x.foe.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.foe.total}</b>
-        <span class=${x.outcome === 'wounded' ? 'msg loss' : x.outcome === 'hit' ? 'msg gain' : 'msg'} style="padding:2px 8px">${{ hit: `Touché ! −${x.damage}`, wounded: `Blessé −${x.damage}`, draw: 'Égalité', parry: 'Paré' }[x.outcome]}</span>
+        <span class=${x.outcome === 'wounded' ? 'msg loss' : x.outcome === 'hit' ? 'msg gain' : 'msg'} style="padding:2px 8px">${{ hit: `Touché ! −${x.damage}`, wounded: `Blessé −${x.damage}`, draw: 'Égalité', parry: 'Paré', harmless: 'Touché, sans blessure' }[x.outcome]}</span>
       </div>`)}
       ${last.luck && html`<div class=${'outcome ' + (last.luck.lucky ? 'ok' : 'ko')}>Chance : ${last.luck.total} — ${last.luck.lucky ? 'Chanceux' : 'Malchanceux'}</div>`}
       ${(last.extra || []).map(x => html`<div class="subtle">${x}</div>`)}
@@ -343,7 +343,7 @@ function SpellBook({ adv, state, onClose }) {
     <input type="search" value=${q} onInput=${e => setQ(e.target.value)} placeholder="Chercher un code ou un mot…" aria-label="Chercher une formule" />
     <div class="stack" style="gap:8px">${list.map(x => html`<div class="rollrow" style="grid-template-columns:70px 1fr auto;align-items:start">
       <b class="mono" style="font-size:20px;letter-spacing:.1em">${x.code}</b>
-      <div><b>${x.name !== x.code ? x.name : ''}</b><div class="subtle" style="text-align:justify">${x.description}</div>
+      <div><b>${x.name !== x.code ? x.name : ''}</b><div class="subtle" style="text-align:var(--align, justify)">${x.description}</div>
         ${x.requires && html`<div class="subtle">Nécessite : ${R.itemName(adv, x.requires)} ${state?.inventory?.[x.requires] ? '(vous l’avez)' : '(vous ne l’avez pas)'}</div>`}</div>
       <span class="pill">${x.cost} ${R.statLabel(adv, adv.rules.spells.stat)}</span>
     </div>`)}</div>
@@ -370,6 +370,20 @@ function ShopBlock({ adv, source, state, index, block, update }) {
 /* Feuille d'aventure                                                  */
 /* ------------------------------------------------------------------ */
 
+/** Vrai tant que la requête média correspond (mis à jour quand la fenêtre change de taille). */
+function useMedia(q) {
+  const get = () => typeof matchMedia === 'function' && matchMedia(q).matches;
+  const [on, setOn] = useState(get);
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return undefined;
+    const m = matchMedia(q), f = () => setOn(m.matches);
+    m.addEventListener?.('change', f);
+    f();
+    return () => m.removeEventListener?.('change', f);
+  }, [q]);
+  return on;
+}
+
 function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSave }) {
   const [free, setFree] = useState(null);
   const [book, setBook] = useState(false);
@@ -379,7 +393,11 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
   const freeRoll = () => { try { const r = R.freeRoll(state, expr); update(r.state, []); setFree({ ...r.result, stamp: Date.now() }); } catch (e) { toast(e.message); } };
   const luck = () => { const r = R.testLuck(state, adv); setTimeout(() => sfx.luck(r.result.success), 650); update(r.state, [{ kind: r.result.success ? 'gain' : 'loss', text: `Test de Chance : ${r.result.roll.total} — ${r.result.success ? 'Chanceux' : 'Malchanceux'}` }]); setFree({ ...r.result.roll, stamp: Date.now() }); };
   const inv = Object.entries(state.inventory).filter(([, q]) => q > 0);
-  return html`<aside class=${'sheet' + (open ? ' open' : '')} aria-label="Feuille d'aventure">
+  // Sur téléphone, la feuille fermée est hors de l'écran : inerte (ni Tab, ni lecteur d'écran) tant qu'elle est fermée.
+  const narrow = useMedia('(max-width: 900px)');
+  const asideRef = useRef();
+  useEffect(() => { if (open && narrow) asideRef.current?.querySelector('.sheet-toggle')?.focus(); }, [open, narrow]);
+  return html`<aside id="feuille-aventure" ref=${asideRef} class=${'sheet' + (open ? ' open' : '')} aria-label="Feuille d'aventure" inert=${narrow && !open}>
     <h2><span>${state.hero.name}</span>${state.hero.classId && html`<span class="badge">${adv.rules.classes.find(c => c.id === state.hero.classId)?.label}</span>`}</h2>
     <button class="btn small sheet-toggle" onClick=${onClose}>Fermer la feuille</button>
     <div class="stats">${adv.rules.stats.map(s => { const v = state.stats[s.id]; return html`<div class=${'stat' + (changed[s.id] ? ' flash' : '')} key=${s.id + v.cur}>
@@ -399,8 +417,8 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
       ${inv.length ? html`<ul class="inv">${inv.map(([id, q]) => { const it = adv.items[id] || { name: id }; return html`<li title=${it.description || ''}>
         <span>${it.name}${q > 1 ? ` ×${q}` : ''}</span>
         <span class="row" style="gap:4px">
-          ${it.use?.length && !state.ended ? html`<button class="btn small" onClick=${() => { const r = R.useItem(state, adv, id); update(r.state, r.messages); }}>Utiliser</button>` : null}
-          ${!state.ended && ui.itemActions.filter(a => a.show(it, state, adv, id)).map(a => html`<button class="btn small" onClick=${() => { const r = a.run(state, adv, id); update(r.state, r.messages || []); }}>${a.label(it, state, adv, id)}</button>`)}
+          ${it.use?.length && !state.ended ? html`<button class="btn small" aria-label=${`Utiliser : ${it.name}`} onClick=${() => { const r = R.useItem(state, adv, id); update(r.state, r.messages); }}>Utiliser</button>` : null}
+          ${!state.ended && ui.itemActions.filter(a => a.show(it, state, adv, id)).map(a => { const label = a.label(it, state, adv, id); return html`<button class="btn small" aria-label=${a.ariaLabel?.(it, state, adv, id) || `${label} : ${it.name}`} onClick=${() => { const r = a.run(state, adv, id); update(r.state, r.messages || []); }}>${label}</button>`; })}
         </span>
       </li>`; })}</ul>` : html`<span class="subtle">Vide.</span>`}
     </div>
@@ -414,7 +432,7 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
     </div>
     <div class="row">
       ${onBack && html`<button class="btn small" onClick=${onBack}><${Icon} name="back" />Revenir</button>`}
-      <button class="btn small" onClick=${onMap}><${Icon} name="map" />Carte</button>
+      <button class="btn small" onClick=${onMap}><${Icon} name="route" />Paragraphes visités</button>
       ${adv.rules.spells?.enabled && html`<button class="btn small" onClick=${() => setBook(true)}><${Icon} name="book" />Formules</button>`}
       ${onSave && html`<button class="btn small" onClick=${onSave}><${Icon} name="save" />Sauvegarder</button>`}
       <a class="btn small" href="#/">Quitter</a>
@@ -426,8 +444,10 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
 /* ---------- carte des paragraphes visités ---------- */
 function MapModal({ adv, state, onClose }) {
   const ref = useRef();
+  const [libs, setLibs] = useState(() => !!window.cytoscape);
+  useEffect(() => { if (!libs) loadGraphLibs({ withLayouts: false }).then(() => setLibs(true)).catch(() => {}); }, []);
   useEffect(() => {
-    if (!window.cytoscape) return;
+    if (!libs || !window.cytoscape || !ref.current) return undefined;
     const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     const seen = new Set(Object.keys(state.visited));
     const els = [];
@@ -442,7 +462,7 @@ function MapModal({ adv, state, onClose }) {
         { selector: 'edge', style: { width: 1.5, 'line-color': css('--line'), 'target-arrow-color': css('--line'), 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
       ] });
     return () => cy.destroy();
-  }, []);
+  }, [libs]);
   const n = Object.keys(state.visited).length;
   return html`<${Modal} title="Carte de votre voyage" onClose=${onClose} wide>
     <p class="subtle" style="margin:0">${n} paragraphe${n > 1 ? 's' : ''} visité${n > 1 ? 's' : ''} sur ${Object.keys(adv.sections).length}. Double bordure : vous êtes ici. Carré : mort. Losange : victoire.</p>

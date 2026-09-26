@@ -76,7 +76,7 @@ function EquipPanel({ adv, state, update }) {
         const bonus = id ? bonusText(adv.items[id]) : '';
         return html`<li class=${'eq-slot' + (id ? '' : ' empty')} key=${s.id}>
           <span class="eq-label">${s.label}</span>
-          ${id ? html`<span class="eq-item">${itemName(adv, id)}</span>` : html`<span class="eq-item" aria-label="aucun objet">—</span>`}
+          ${id ? html`<span class="eq-item">${itemName(adv, id)}</span>` : html`<span class="eq-item"><span aria-hidden="true">—</span><span class="sr-only">aucun objet</span></span>`}
           ${id && !state.ended ? html`<button class="btn small" aria-label=${`Ranger ${itemName(adv, id)} dans le sac`} onClick=${() => run(unequip(state, adv, s.id))}>Ranger</button>` : html`<span></span>`}
           ${bonus && html`<span class="eq-bonus">${bonus}</span>`}
         </li>`;

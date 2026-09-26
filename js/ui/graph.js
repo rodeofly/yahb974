@@ -10,6 +10,12 @@ import { html, useEffect, useRef, useState, useMemo } from '../lib/preact-htm.js
 import { analyze } from '../core/analysis.js';
 import { makeRng } from '../core/dice.js';
 import { targetsOf as targetsOfRaw } from '../core/rules.js'; // renvois bruts, y compris cassés
+import { loadGraphLibs } from './common.js';
+
+/** Au-delà de ce nombre de paragraphes, le graphe passe en mode économe (rendu, calcul par tranches). */
+const BIG = 150;
+/** Positions calculées, gardées entre deux ouvertures de l'onglet tant que la structure ne change pas. */
+const layoutCache = new Map();
 
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const snippet = (t, n = 38) => { const s = (t || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n).replace(/\s\S*$/, '') + '…' : s; };
@@ -25,9 +31,9 @@ function kind(sec) {
   return 'normal';
 }
 
-function styles() {
+function styles(big = false) {
   const c = css;
-  return [
+  const list = [
     { selector: 'node', style: { width: 24, height: 24, shape: 'ellipse', 'background-color': c('--normal'), label: 'data(id)', color: '#fff', 'font-family': 'JetBrains Mono, monospace', 'font-size': 8, 'font-weight': 700, 'text-valign': 'center', 'text-halign': 'center', 'border-width': 1, 'border-color': c('--surface'), 'overlay-opacity': 0 } },
     { selector: 'node.combat', style: { shape: 'hexagon', width: 30, height: 27, 'background-color': c('--combat') } },
     { selector: 'node.dice', style: { shape: 'triangle', width: 28, height: 26, 'background-color': c('--spell'), 'text-margin-y': 3 } },
@@ -57,6 +63,9 @@ function styles() {
     { selector: 'node.grp', style: { shape: 'round-rectangle', 'background-color': c('--accent'), 'background-opacity': 0.07, 'border-width': 1.5, 'border-color': c('--line'), label: 'data(label)', 'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -8, 'font-family': 'Alegreya SC, Georgia, serif', 'font-size': 30, 'font-weight': 700, color: c('--ink'), padding: 28, events: 'no', 'text-background-opacity': 0 } },
     { selector: 'node.sel', style: { 'underlay-color': c('--ink'), 'underlay-opacity': 0.22, 'underlay-padding': 10, 'underlay-shape': 'ellipse', 'border-width': 4, 'border-style': 'solid', 'border-color': c('--accent'), 'z-index': 10 } },
   ];
+  // Grand graphe : les étiquettes ne sont dessinées qu'à un zoom où elles sont lisibles.
+  if (big) list.push({ selector: 'node', style: { 'min-zoomed-font-size': 7 } }, { selector: 'edge', style: { 'min-zoomed-font-size': 7 } });
+  return list;
 }
 
 const SHAPES = {
@@ -88,6 +97,8 @@ function groupCenters(counts) {
 
 export function GraphTab({ adv, change, open, current }) {
   const ref = useRef();
+  const [libs, setLibs] = useState(() => !!(window.cytoscape && window.d3 && window.cytoscapeDagre));
+  useEffect(() => { if (!libs) loadGraphLibs().then(() => setLibs(true)).catch(() => {}); }, []);
   const cyRef = useRef(null);
   const simRef = useRef(null);
   const [view, setView] = useState('main');
@@ -115,7 +126,7 @@ export function GraphTab({ adv, change, open, current }) {
 
   /* ---------- construction ---------- */
   useEffect(() => {
-    if (!window.cytoscape || !ref.current) return;
+    if (!libs || !window.cytoscape || !ref.current) return;
     if (window.cytoscapeDagre && !window.__lhDagre) { window.cytoscape.use(window.cytoscapeDagre); window.__lhDagre = true; }
     const keep = new Set(view === 'main' && hasSpells ? [...A.main] : A.ids);
     const landmarks = new Set([String(adv.start), ...A.dominators, ...A.victories]);
@@ -148,11 +159,22 @@ export function GraphTab({ adv, change, open, current }) {
     });
     missing.forEach(id => els.push({ data: { id, cap: id }, classes: 'p missing' }));
 
-    const cy = window.cytoscape({ container: ref.current, elements: els, style: styles(), minZoom: 0.03, maxZoom: 3, boxSelectionEnabled: false });
+    const big = keep.size > BIG;
+    // Grand livre : rendu économe pendant le zoom et le déplacement de la vue.
+    const cy = window.cytoscape({ container: ref.current, elements: els, style: styles(big), minZoom: 0.03, maxZoom: 3, boxSelectionEnabled: false,
+      ...(big ? { textureOnViewport: true, hideEdgesOnViewport: true, pixelRatio: 1 } : {}) });
     cyRef.current = cy;
     cy.nodes('.grp').ungrabify();
-    if (layout === 'frise' && window.cytoscapeDagre) cy.layout({ name: 'dagre', rankDir: 'LR', nodeSep: 14, rankSep: 80, edgeSep: 4, ranker: 'network-simplex', animate: false }).run();
-    else startSpring(cy);
+    const cacheKey = `${adv.id}|${structureKey}|${view}|${layout}|${group}`;
+    const cached = layoutCache.get(cacheKey);
+    if (layout === 'frise' && window.cytoscapeDagre) {
+      if (cached) cy.batch(() => cy.nodes('.p').forEach(n => { const p = cached[n.id()]; if (p) n.position(p); }));
+      else {
+        cy.layout({ name: 'dagre', rankDir: 'LR', nodeSep: 14, rankSep: 80, edgeSep: 4, ranker: 'network-simplex', animate: false }).run();
+        const pos = {}; cy.nodes('.p').forEach(n => { pos[n.id()] = { ...n.position() }; });
+        layoutCache.set(cacheKey, pos);
+      }
+    } else startSpring(cy, { big, cached, save: pos => layoutCache.set(cacheKey, pos) });
     cy.on('tap', 'node.p', e => { if (!e.target.hasClass('missing')) open(e.target.id()); });
     cy.on('grab', 'node.p', e => { const d = simNode(e.target.id()); if (!d) return; const p = e.target.position(); d.fx = p.x; d.fy = p.y; simRef.current.alphaTarget(0.25).restart(); });
     cy.on('drag', 'node.p', e => { const d = simNode(e.target.id()); if (!d) return; const p = e.target.position(); d.fx = p.x; d.fy = p.y; });
@@ -169,13 +191,13 @@ export function GraphTab({ adv, change, open, current }) {
     const n = cy.getElementById(String(current));
     if (layout === 'frise' && n.length) { cy.zoom(0.9); cy.center(n); } else cy.fit(undefined, 30);
     return () => { simRef.current?.stop(); simRef.current = null; cy.destroy(); cyRef.current = null; };
-  }, [structureKey, view, layout, group]);
+  }, [structureKey, view, layout, group, libs]);
 
   const pinRef = useRef(pin);
   pinRef.current = pin;
   const simNode = id => simRef.current?.nodes().find(d => d.id === id);
 
-  function startSpring(cy) {
+  function startSpring(cy, { big = false, cached = null, save = () => {} } = {}) {
     if (!window.d3) return;
     const paras = cy.nodes('.p');
     const counts = groupLabels ? groupLabels.map((_, i) => paras.filter(n => groupOf(n.id()) === i).length) : null;
@@ -186,6 +208,7 @@ export function GraphTab({ adv, change, open, current }) {
       const g = groupLabels ? groupOf(id) : 0;
       const tx = centers ? centers[g].x : (A.depth.get(id) ?? 20) * 34, ty = centers ? centers[g].y : 0;
       const d = { id, n, tx, ty, x: tx + (rng() - 0.5) * 60, y: ty + (rng() - 0.5) * (centers ? 120 : 400) };
+      if (cached?.[id]) { d.x = cached[id].x; d.y = cached[id].y; }
       if (sec?.pos) { d.x = d.fx = sec.pos.x; d.y = d.fy = sec.pos.y; }
       return d;
     });
@@ -199,11 +222,25 @@ export function GraphTab({ adv, change, open, current }) {
       .force('y', window.d3.forceY(d => d.ty).strength(centers ? 0.28 : 0.025))
       .alphaDecay(0.028)
       .stop();
-    sim.tick(260);
     const paint = () => cy.batch(() => sim.nodes().forEach(d => { if (!d.n.grabbed()) d.n.position({ x: d.x, y: d.y }); }));
-    paint();
-    sim.on('tick', paint);
+    const remember = () => { const pos = {}; sim.nodes().forEach(d => { pos[d.id] = { x: d.x, y: d.y }; }); save(pos); };
+    // Pendant un glisser, un grand graphe n'est repeint qu'une image sur deux.
+    let tickNo = 0;
+    const onTick = () => { if (!big || (++tickNo & 1)) paint(); };
     simRef.current = sim;
+    if (cached) { sim.alpha(0); paint(); sim.on('tick', onTick); return; }
+    if (!big) { sim.tick(260); paint(); remember(); sim.on('tick', onTick); return; }
+    // Grand graphe : 260 pas calculés par tranches, affichés au fur et à mesure (l'onglet ne se fige pas).
+    paint();
+    let done = 0;
+    const step = () => {
+      if (simRef.current !== sim) return;
+      const n = Math.min(26, 260 - done);
+      sim.tick(n); done += n; paint();
+      if (done < 260) requestAnimationFrame(step);
+      else { remember(); sim.on('tick', onTick); cy.fit(undefined, 30); }
+    };
+    requestAnimationFrame(step);
   }
 
   /* ---------- surcouches : sélection, chemin, passages obligés, recherche ---------- */

@@ -7,9 +7,19 @@ import { putAdventure, deleteAdventure, listSaves } from '../store/db.js';
 import { newAdventure, slug } from '../core/rules.js';
 import { ui, sorted } from './registry.js';
 
+/** Identifiant déjà pris à l'import : remplacer (après confirmation) ou garder les deux. */
+export async function askReplace(existing, adv) {
+  const where = existing.source === 'local' ? 'dans votre bibliothèque' : 'parmi les aventures publiées (votre fichier la masquerait)';
+  const ok = await confirmBox(`Une aventure « ${existing.title} » porte déjà le même identifiant ${where}. Remplacer « ${existing.title} » par « ${adv.meta.title} » ? Ses parties sauvegardées seraient rattachées au nouveau contenu.`, 'Remplacer', 'Garder les deux');
+  return ok ? 'replace' : 'copy';
+}
+
 function Cover({ entry }) {
   const [adv, setAdv] = useState(null);
-  useEffect(() => { if (entry.cover) loadAdventure(entry.id).then(r => setAdv(r)).catch(() => {}); }, [entry.id, entry.cover]);
+  // Aventure publiée : index.json donne déjà la couverture, inutile de télécharger toute l'aventure.
+  const bundled = entry.source === 'bundled';
+  useEffect(() => { if (entry.cover && !bundled) loadAdventure(entry.id).then(r => setAdv(r)).catch(() => {}); }, [entry.id, entry.cover, bundled]);
+  if (bundled && entry.cover) return html`<div class="cover"><${AssetImg} adv=${{ id: entry.id }} source="bundled" path=${entry.cover} alt="" /></div>`;
   return html`<div class="cover">${adv?.adventure.meta.cover
     ? html`<${AssetImg} adv=${adv.adventure} source=${adv.source} path=${adv.adventure.meta.cover} alt="" />`
     : html`<span class="ph" aria-hidden="true">${(entry.title || '?').slice(0, 1)}</span>`}</div>`;
@@ -37,19 +47,28 @@ export function Library() {
     const f = e.target.files[0];
     e.target.value = '';
     if (!f) return;
-    try { const adv = await importAdventure(f); toast(`« ${adv.meta.title} » importée.`); refresh(); }
+    try {
+      const adv = await importAdventure(f, { onConflict: askReplace });
+      toast(`« ${adv.meta.title} » importée.`); refresh();
+    }
     catch (err) { toast(`Import impossible : ${err.message}`); }
   };
   const doExport = async entry => {
-    const { adventure, source } = await loadAdventure(entry.id);
-    download(await exportAdventure(adventure, source), `${slug(adventure.meta.title)}.lhz`);
+    try {
+      const { adventure, source } = await loadAdventure(entry.id);
+      const blob = await exportAdventure(adventure, source);
+      download(blob, `${slug(adventure.meta.title)}.lhz`);
+      if (blob.missing?.length) toast(`Attention : ${blob.missing.length} fichier(s) n’ont pas pu être ajoutés (hors ligne ?) : ${blob.missing.slice(0, 3).join(', ')}${blob.missing.length > 3 ? '…' : ''}`);
+    } catch (err) { toast(`Export impossible : ${err.message}`); }
   };
   const edit = async entry => {
     if (entry.source === 'local') { location.hash = `#/ecrire/${encodeURIComponent(entry.id)}`; return; }
-    const { adventure, source } = await loadAdventure(entry.id);
-    const copy = await duplicateAdventure(adventure, source, adventure.meta.title);
-    toast('Une copie modifiable a été créée.');
-    location.hash = `#/ecrire/${encodeURIComponent(copy.id)}`;
+    try {
+      const { adventure, source } = await loadAdventure(entry.id);
+      const copy = await duplicateAdventure(adventure, source, adventure.meta.title);
+      toast('Une copie modifiable a été créée.');
+      location.hash = `#/ecrire/${encodeURIComponent(copy.id)}`;
+    } catch (err) { toast(`Copie impossible : ${err.message}`); }
   };
   const remove = async entry => {
     if (!(await confirmBox(`Supprimer « ${entry.title} », ses images et ses parties sauvegardées de ce navigateur ?`, 'Supprimer'))) return;

@@ -1,9 +1,10 @@
 // Service worker : l'application fonctionne hors ligne après la première visite.
-// - Fichiers de l'application : servis depuis le cache, mis à jour en arrière-plan.
-// - Aventures publiées (adventures/) : réseau d'abord, cache si hors ligne.
-// Changer VERSION à chaque mise en ligne force le rafraîchissement du cache.
-
-const VERSION = 'lh-v4';
+// - Fichiers de l'application : servis depuis le cache, mis à jour en arrière-plan (requête conditionnelle).
+// - Aventures publiées (adventures/) : préchargées à l'installation (adventure.json et fichiers cités) ;
+//   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
+// Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
+// réseau en contournant le cache HTTP du navigateur).
+const VERSION = 'lh-v5';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
@@ -28,20 +29,54 @@ const SHELL = [
   'adventures/index.json',
 ];
 // Feuilles de style dont les polices (url(….woff2)) sont mises en cache à l'installation.
-const FONT_SHEETS = ['css/fonts.css', 'js/lib/katex/katex.min.css', 'js/plugins/accessibilite/style.css'];
+// Les polices d'accessibilité (OpenDyslexic, Atkinson) ne sont mises en cache qu'au premier choix de l'une d'elles.
+const FONT_SHEETS = ['css/fonts.css', 'js/lib/katex/katex.min.css'];
+const NETWORK_WAIT = 2500;
+const fresh = u => new Request(u, { cache: 'reload' });
+
+/** Chemins de fichiers cités par une aventure (images/…, sons/…), où qu'ils soient dans le JSON (greffons compris). */
+function assetsOf(adv) {
+  const out = new Set();
+  const walk = v => {
+    if (typeof v === 'string') { if (/^(images|sons)\/[^\s?#]+$/.test(v)) out.add(v); }
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+  };
+  walk(adv);
+  return [...out];
+}
+
+/** Précharge les aventures publiées : chacune pour elle-même, un fichier manquant n'empêche pas l'installation. */
+async function precacheAdventures(cache) {
+  let list = [];
+  try { list = await (await fetch(fresh('adventures/index.json'))).json(); } catch { return; }
+  await Promise.all((Array.isArray(list) ? list : []).map(async entry => {
+    const dir = `adventures/${encodeURIComponent(entry.id)}/`;
+    try {
+      const res = await fetch(fresh(dir + 'adventure.json'));
+      if (!res.ok) return;
+      await cache.put(dir + 'adventure.json', res.clone());
+      const files = Array.isArray(entry.files) ? entry.files : assetsOf(await res.json());
+      if (entry.cover && !files.includes(entry.cover)) files.push(entry.cover);
+      await Promise.all(files.map(f => cache.add(fresh(dir + f)).catch(() => {})));
+    } catch { /* aventure indisponible : elle restera en ligne seulement */ }
+  }));
+}
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const cache = await caches.open(VERSION);
-    await cache.addAll(SHELL);
+    // cache: 'reload' : jamais l'ancienne version gardée par le cache HTTP (max-age de GitHub Pages).
+    await cache.addAll(SHELL.map(fresh));
     // Les polices sont listées dans ces feuilles : on les met en cache aussi (chemins relatifs à chaque feuille).
     const fonts = new Set();
     for (const sheet of FONT_SHEETS) {
       const base = new URL(sheet, self.registration.scope);
-      const css = await (await fetch(base)).text();
+      const css = await (await fetch(fresh(base))).text();
       for (const m of css.matchAll(/url\(\s*['"]?([^'")]+\.woff2)['"]?\s*\)/g)) fonts.add(new URL(m[1], base).href);
     }
-    await cache.addAll([...fonts]);
+    await cache.addAll([...fonts].map(fresh));
+    await precacheAdventures(cache);
     self.skipWaiting();
   })());
 });
@@ -56,25 +91,31 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.includes('/adventures/')) { e.respondWith(networkFirst(e.request)); return; }
+  if (url.pathname.includes('/adventures/')) { e.respondWith(networkFirst(e.request, e)); return; }
   e.respondWith(staleWhileRevalidate(e.request, e));
 });
 
-async function networkFirst(req) {
+/** Réseau d'abord ; si une copie est en cache et que le réseau tarde, on la sert et le réseau met le cache à jour. */
+async function networkFirst(req, event) {
   const cache = await caches.open(VERSION);
-  try {
-    const res = await fetch(req);
-    if (res.ok) cache.put(req, res.clone());
-    return res;
-  } catch {
-    return (await cache.match(req)) || new Response('Hors ligne', { status: 503 });
+  const net = fetch(req, { cache: 'no-cache' }).then(res => { if (res.ok) cache.put(req, res.clone()); return res; });
+  event.waitUntil(net.catch(() => null));
+  const hit = await cache.match(req);
+  if (!hit) {
+    try { return await net; } catch { return new Response('Hors ligne', { status: 503, statusText: 'Hors ligne' }); }
   }
+  const late = new Promise(res => setTimeout(() => res(null), NETWORK_WAIT));
+  try {
+    const res = await Promise.race([net.then(r => r.clone()), late]);
+    return res && res.ok ? res : hit;
+  } catch { return hit; }
 }
 
 async function staleWhileRevalidate(req, event) {
   const cache = await caches.open(VERSION);
   const hit = await cache.match(req, { ignoreSearch: true });
-  const update = fetch(req).then(res => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
+  // Requête conditionnelle (If-None-Match) : 304 quand rien n'a changé, jamais une copie périmée du cache HTTP.
+  const update = fetch(req, { cache: 'no-cache' }).then(res => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
   if (hit) { event.waitUntil(update); return hit; }
   return (await update) || (await cache.match('index.html')) || new Response('Hors ligne', { status: 503 });
 }

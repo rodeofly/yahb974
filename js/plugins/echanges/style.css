@@ -21,7 +21,7 @@
 .xch-item-text b { font-size: 15px; }
 
 .xch-dialog { gap: 14px; }
-.xch-note { margin: 0; max-width: 70ch; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.xch-note { margin: 0; max-width: 70ch; text-align: var(--align, justify); hyphens: auto; -webkit-hyphens: auto; }
 .xch-title { font-size: 22px; }
 .xch-sub { font-size: 17px; margin-top: 2px; }
 .xch-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

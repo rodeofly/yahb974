@@ -65,7 +65,7 @@ function announce(adv, ids, test, delay = 0) {
   if (!ids.length) return;
   const say = () => {
     const titles = ids.map(id => titleOf(adv, id));
-    if (titles.length <= 2) titles.forEach(t => toast(test ? `Succès obtenu (partie de test, non enregistré) : ${t}` : `Succès débloqué : ${t}`));
+    if (titles.length === 1 || (!test && titles.length === 2)) titles.forEach(t => toast(test ? `Succès obtenu (partie de test, non enregistré) : ${t}` : `Succès débloqué : ${t}`));
     else toast(`${titles.length} succès ${test ? 'obtenus (partie de test, non enregistrés)' : 'débloqués'} : ${titles.join(', ')}`);
     sfx.coin();
   };

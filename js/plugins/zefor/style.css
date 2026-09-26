@@ -52,7 +52,7 @@ input.zf-code-input { font-family: var(--mono); font-size: 20px; letter-spacing:
 /* Éditeur et règles */
 .zf-mono, textarea.zf-mono, input.zf-mono { font-family: var(--mono); font-size: 13.5px; }
 .zf-wrap { display: block; word-break: break-all; white-space: pre-wrap; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
-.zf-help { margin: 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.zf-help { margin: 0; text-align: var(--align, justify); hyphens: auto; -webkit-hyphens: auto; }
 .zf-codes { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0; display: grid; gap: 10px; min-width: 0; }
 .zf-codes legend { font-weight: 700; padding: 0 4px; display: inline-flex; gap: 6px; align-items: center; }
 .zf-hashes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -67,7 +67,7 @@ input.zf-code-input { font-family: var(--mono); font-size: 20px; letter-spacing:
 .zf-return { max-width: 720px; }
 .zf-return-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 24px clamp(16px, 4vw, 36px); display: grid; gap: 16px; }
 .zf-return-card .eyebrow { display: inline-flex; gap: 6px; align-items: center; }
-.zf-return-card p { margin: 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.zf-return-card p { margin: 0; text-align: var(--align, justify); hyphens: auto; -webkit-hyphens: auto; }
 
 .zf-transfer { display: grid; gap: 8px; justify-items: start; padding: 12px 14px; border: 3px double var(--ink); border-radius: 10px; background: var(--surface); }
 .zf-transfer-code { font-size: 32px; letter-spacing: .18em; }
@@ -82,6 +82,11 @@ input.zf-code-input { font-family: var(--mono); font-size: 20px; letter-spacing:
 
 /* Version imprimable */
 .zf-url { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
+.zf-print p { margin: 0 0 .35em; }
+.print-book .zf-print p.zf-pr-where { margin-bottom: 0; text-align: left; }
+.print-book .zf-print p.zf-url { display: block; text-align: left; hyphens: none; -webkit-hyphens: none; }
+.zf-pr-line { break-inside: avoid; page-break-inside: avoid; }
+.zf-pr-codes > b { break-after: avoid; page-break-after: avoid; }
 .zf-pr-codes { gap: 6px; }
 .zf-pr-line { display: flex; gap: 8px; align-items: flex-end; font-size: .92em; }
 .zf-pr-blank { flex: 1; border-bottom: 1px solid #111; min-height: 1.4em; }

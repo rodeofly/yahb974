@@ -69,6 +69,14 @@ export function normalizeAdventure(adv) {
 export const statLabel = (adv, id) => adv.rules.stats.find(s => s.id === id)?.label || id;
 export const itemName = (adv, id) => adv.items[id]?.name || id;
 
+/** « de Chance », « d'Endurance », « d'Habileté » : élision devant une voyelle ou un h muet courant. */
+export function de(label, apos = "'") {
+  const l = String(label ?? '');
+  return /^([aeiouyàâäéèêëîïôöùûüœ]|h(onneur|éro(?!s)|umani|abilet|armoni|istoir|ospital|umilit|orreur|ygi|abitu|erb))/iu.test(l) ? `d${apos}${l}` : `de ${l}`;
+}
+/** Nombre signé avec le vrai signe moins (U+2212) : « +2 », « −1 ». */
+export const signed = n => (Number(n) > 0 ? `+${n}` : Number(n) < 0 ? `\u2212${Math.abs(Number(n))}` : String(n));
+
 /* ------------------------------------------------------------------ */
 /* Création du héros                                                    */
 /* ------------------------------------------------------------------ */
@@ -286,10 +294,10 @@ export function describeEffect(e, adv) {
     case 'stat':
       if (e.set === 'initial') return `${statLabel(adv, e.stat)} revient à son total initial`;
       if (e.set !== undefined) return `${statLabel(adv, e.stat)} = ${e.set}`;
-      if (e.addInitial) return `total initial de ${statLabel(adv, e.stat)} ${e.addInitial > 0 ? '+' : ''}${e.addInitial}`;
-      return `${e.add > 0 ? '+' : ''}${e.add} ${statLabel(adv, e.stat)}`;
-    case 'gold': return `${e.add > 0 ? '+' : ''}${e.add} pièces d’or`;
-    case 'provisions': return `${e.add > 0 ? '+' : ''}${e.add} repas`;
+      if (e.addInitial) return `total initial ${de(statLabel(adv, e.stat), '’')} ${signed(e.addInitial)}`;
+      return `${signed(e.add)} ${statLabel(adv, e.stat)}`;
+    case 'gold': return `${signed(e.add)} ${Math.abs(Number(e.add)) > 1 ? 'pièces' : 'pièce'} d’or`;
+    case 'provisions': return `${signed(e.add)} repas`;
     case 'give': return `reçoit ${itemName(adv, e.item)}${e.qty > 1 ? ` ×${e.qty}` : ''}`;
     case 'take': return `perd ${itemName(adv, e.item)}`;
     case 'flag': return `marque « ${e.flag} »${e.value === false ? ' = non' : ''}`;
@@ -469,8 +477,10 @@ export function castSpell(state, adv, blockIndex, rawCode) {
   const stat = adv.rules.spells.stat || 'endurance';
   const cost = opt?.cost ?? (block.costInText ? 0 : spell ? Number(spell.cost || 0) : Number(adv.rules.spells.unknownCost || 0));
   const costEffect = cost ? [{ op: 'stat', stat, add: -cost }] : [];
-  if (!opt) {
+  const missing = opt && spell?.requires && !state.inventory?.[spell.requires] ? spell.requires : null;
+  if (!opt || missing) {
     const r = applyEffects(state, adv, costEffect);
+    if (missing) return { state: r.state, messages: [{ kind: 'info', text: `Vous prononcez « ${code} »… mais il vous faut : ${itemName(adv, missing)}.` }, ...r.messages] };
     const tried = [...((state.blocks[blockIndex] || {}).tried || []), code];
     return { state: { ...r.state, blocks: { ...r.state.blocks, [blockIndex]: { tried } } }, messages: [{ kind: 'info', text: `Vous prononcez « ${code} »… rien ne se passe.` }, ...r.messages] };
   }

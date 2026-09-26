@@ -143,7 +143,9 @@ La page `#/zefor-retour` de Livre-Héros vérifie la signature (si l'aventure en
 l'onglet de la partie (`BroadcastChannel('livre-heros-zefor')`) **et** le range dans le stockage local, au cas où
 l'élève joue dans ce même onglet (téléphone) : la partie le lit à la reprise. Elle affiche « Résultat transmis,
 retournez à votre aventure ». Si aucune partie de ce navigateur n'attendait le résultat (application installée sur
-iPhone/iPad, autre navigateur) et que les codes personnels sont activés, elle affiche un **code de transfert** à taper.
+iPhone/iPad, autre navigateur), que le bloc est en mode retour, que les codes personnels sont activés **et** que le
+résultat est signé (clé publique déclarée dans l'aventure), elle affiche un **code de transfert** à taper. Sans
+signature, pas de code de transfert : sinon n'importe qui obtiendrait le code en tapant l'adresse à la main.
 
 Pour vérifier le côté zefor à la main :
 `https://rodeofly.github.io/yahb974/#/zefor-retour?nonce=TEST&success=1&score=90` doit afficher « Résultat transmis ».

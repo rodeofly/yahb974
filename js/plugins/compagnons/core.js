@@ -161,8 +161,8 @@ const countText = (b, verb) => {
 };
 
 export function describeCompanionCond(c, adv) {
-  if (isObj(c.not)) return 'companion' in c.not ? `ne pas être accompagné de ${companionName(adv, c.not.companion)}` : `pas : ${describeCompanionCond(c.not, adv)}`;
-  if ('companion' in c) return `être accompagné de ${companionName(adv, c.companion)}`;
+  if (isObj(c.not)) return 'companion' in c.not ? `ne pas être accompagné ${de(companionName(adv, c.not.companion))}` : `pas : ${describeCompanionCond(c.not, adv)}`;
+  if ('companion' in c) return `être accompagné ${de(companionName(adv, c.companion))}`;
   return countText(bounds(c), 'avoir');
 }
 
@@ -255,6 +255,13 @@ export function companionUsages(adv, id) {
     if (isObj(c.not)) walkCond(sid, c.not, where);
     if (c.companion === id) out.push({ section: sid, kind: 'condition', where });
   };
+  const walkBlock = (sid, node, where) => {
+    if (Array.isArray(node)) { node.forEach(x => walkBlock(sid, x, where)); return; }
+    if (!isObj(node)) return;
+    if (node.op === 'companion') { if (node.companion === id) out.push({ section: sid, kind: node.action || 'join', where }); }
+    else if (node.companion === id && !('op' in node)) out.push({ section: sid, kind: 'condition', where });
+    for (const v of Object.values(node)) if (isObj(v) || Array.isArray(v)) walkBlock(sid, v, where);
+  };
   const walkFx = (sid, list, where) => (list || []).forEach(e => {
     if (!isObj(e)) return;
     walkCond(sid, e.if, where);
@@ -263,6 +270,8 @@ export function companionUsages(adv, id) {
   for (const [sid, sec] of Object.entries(adv.sections || {})) {
     walkFx(sid, sec.onEnter, 'à l’arrivée');
     (sec.choices || []).forEach((ch, i) => { walkCond(sid, ch.if, `choix ${i + 1}`); walkFx(sid, ch.effects, `choix ${i + 1}`); });
+    // Blocs (défi, Zefor, carte, boutique…) : parcours générique de leurs effets et conditions, où qu'ils soient.
+    (sec.blocks || []).forEach((b, i) => walkBlock(sid, b, `bloc ${i + 1}${b?.type ? ` (${b.type})` : ''}`));
   }
   for (const [iid, it] of Object.entries(adv.items || {})) walkFx(null, it.use, `objet ${it.name || iid}`);
   return out;

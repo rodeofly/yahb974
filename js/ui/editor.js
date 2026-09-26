@@ -14,6 +14,11 @@ import { ui, sorted } from './registry.js';
 const sortIds = ids => ids.sort((a, b) => (Number(a) || 1e9) - (Number(b) || 1e9) || a.localeCompare(b));
 const nextId = adv => String(Math.max(0, ...Object.keys(adv.sections).map(Number).filter(n => !isNaN(n))) + 1);
 const kindOf = sec => sec.ending || (sec.blocks || []).map(b => b.type).find(t => t === 'combat') || (sec.blocks || [])[0]?.type || 'normal';
+/** Libellé français et icône d'un type de paragraphe dans la liste latérale (les greffons fournissent les leurs). */
+const KIND_LABELS = { normal: 'Paragraphe', death: 'Mort', victory: 'Victoire', combat: 'Combat', test: 'Test', roll: 'Table de dés', shop: 'Boutique', spells: 'Formules' };
+const KIND_ICONS = { death: 'skull', victory: 'crown', combat: 'sword', test: 'dice', roll: 'dice', shop: 'coin', spells: 'star' };
+const kindLabel = k => KIND_LABELS[k] || ui.blocks.get(k)?.label || k;
+const kindIcon = k => KIND_ICONS[k] || ui.blocks.get(k)?.listIcon || ui.blocks.get(k)?.icon || null;
 
 export function Editor({ id, sectionId }) {
   const [adv, setAdv] = useState(null);
@@ -43,20 +48,38 @@ export function Editor({ id, sectionId }) {
   });
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const problems = useMemo(() => (adv ? validate(adv) : []), [adv]);
+  // Vérification et libellés d'onglets : recalculés 300 ms après la dernière frappe, pas à chaque touche.
+  const [calm, setCalm] = useState(null);
+  useEffect(() => { if (!adv) return undefined; if (!calm) { setCalm(adv); return undefined; } const t = setTimeout(() => setCalm(adv), 300); return () => clearTimeout(t); }, [adv]);
+  const settled = calm && calm.id === adv?.id ? calm : adv;
+  const problems = useMemo(() => (settled ? validate(tab === 'check' ? adv : settled) : []), [tab === 'check' ? adv : settled]);
+  // Liste latérale : reconstruite seulement si les numéros, titres ou types changent (pas le texte en cours de frappe).
+  const listSig = adv ? Object.keys(adv.sections).map(i => { const x = adv.sections[i]; return `${i}\u0001${x.title || (x.text || '').slice(0, 60)}\u0001${kindOf(x)}`; }).join('\u0002') + `|${adv.start}` : '';
+  const sideList = useMemo(() => {
+    if (!adv) return null;
+    const cur = sectionId && adv.sections[sectionId] ? sectionId : adv.start;
+    const q = filter.trim().toLowerCase();
+    const ids = sortIds(Object.keys(adv.sections));
+    const shown = q ? ids.filter(i => i.includes(q) || (adv.sections[i].title + ' ' + adv.sections[i].text).toLowerCase().includes(q)) : ids;
+    return html`<nav class="ed-list" aria-label="Paragraphes">${shown.map(i => { const s = adv.sections[i]; const k = kindOf(s); return html`
+          <button class="ed-item" aria-current=${i === cur && tab === 'section'} onClick=${() => { location.hash = `#/ecrire/${encodeURIComponent(id)}/${encodeURIComponent(i)}`; setTab('section'); }} key=${i}>
+            <span class="n">${i}</span>
+            <span class="t">${s.title || s.text.slice(0, 60) || '(vide)'}</span>
+            <span class="k" title=${(i === adv.start ? 'Départ · ' : '') + kindLabel(k)}>${i === adv.start ? html`<${Icon} name="flag" title="Départ" />` : ''}${kindIcon(k) ? html`<${Icon} name=${kindIcon(k)} title=${kindLabel(k)} />` : ''}</span>
+          </button>`; })}</nav>`;
+  }, [listSig, filter, sectionId, tab === 'section']);
   if (error) return html`<main class="page"><h1>Impossible d'ouvrir l'aventure</h1><p>${error}</p></main>`;
   if (!adv) return html`<main class="page"><p class="muted">Chargement…</p></main>`;
 
-  const ids = sortIds(Object.keys(adv.sections));
-  const q = filter.trim().toLowerCase();
-  const shown = q ? ids.filter(i => i.includes(q) || (adv.sections[i].title + ' ' + adv.sections[i].text).toLowerCase().includes(q)) : ids;
+  const ids = Object.keys(adv.sections);
   const errs = problems.filter(p => p.level === 'error').length;
   const addSection = (text = '') => { const nid = nextId(adv); change(a => { a.sections[nid] = R.newSection(text); return a; }); open(nid); return nid; };
 
   const plugTabs = sorted(ui.editorTabs);
-  const tabs = [['section', `Paragraphe ${current}`], ['graph', 'Graphe'], ['items', 'Objets'], ['rules', 'Règles'], ...plugTabs.map(t => [t.id, t.label(adv)]), ['info', 'Infos'], ['check', `Vérifier${errs ? ` (${errs})` : ''}`]];
+  const tabs = [['section', `Paragraphe ${current}`], ['graph', 'Graphe'], ['items', 'Objets'], ['rules', 'Règles'], ...plugTabs.map(t => [t.id, t.label(settled)]), ['info', 'Infos'], ['check', `Vérifier${errs ? ` (${errs})` : ''}`]];
+
   return html`
-    <div class="topbar" style="top:61px;z-index:15;border-top:0">
+    <div class="topbar ed-bar">
       <span class="crumb">${adv.meta.title}</span>
       <span class="saved" aria-live="polite">${saved}</span>
       <span class="spacer"></span>
@@ -73,12 +96,7 @@ export function Editor({ id, sectionId }) {
           <button class="btn small primary" onClick=${() => addSection()}><${Icon} name="plus" />Nouveau paragraphe</button>
         </div>
         <div class="subtle" style="padding:6px 12px">${ids.length} paragraphes</div>
-        <nav class="ed-list" aria-label="Paragraphes">${shown.map(i => { const s = adv.sections[i]; const k = kindOf(s); return html`
-          <button class="ed-item" aria-current=${i === current && tab === 'section'} onClick=${() => open(i)} key=${i}>
-            <span class="n">${i}</span>
-            <span class="t">${s.title || s.text.slice(0, 60) || '(vide)'}</span>
-            <span class="k" title=${k}>${i === adv.start ? html`<${Icon} name="flag" title="Départ" />` : ''}${k === 'death' ? html`<${Icon} name="skull" title="Mort" />` : k === 'victory' ? html`<${Icon} name="crown" title="Victoire" />` : k === 'combat' ? html`<${Icon} name="sword" title="Combat" />` : k === 'test' || k === 'roll' ? html`<${Icon} name="dice" title="Dés" />` : k === 'shop' ? html`<${Icon} name="coin" title="Boutique" />` : ''}</span>
-          </button>`; })}</nav>
+        ${sideList}
       </aside>
       <section class="ed-main">
         <div class="tabs" role="tablist">${tabs.map(([k, l]) => html`<button role="tab" aria-selected=${tab === k} onClick=${() => setTab(k)}>${l}</button>`)}</div>
@@ -326,7 +344,7 @@ function SectionForm({ adv, sid, change, open, addSection, problems }) {
       <${Select} label="Fin de l'aventure" value=${sec.ending || ''} onChange=${v => set({ ending: v || null })} options=${[['', 'Non, l’aventure continue'], ['death', 'Mort du héros'], ['victory', 'Victoire']]} />
     </section>
 
-    <section class="panel"><header><h3>Jets de dés, combats, boutique</h3>
+    <section class="panel"><header><h3>Blocs interactifs</h3>
       <div class="row"><button class="btn small" onClick=${() => addBlock('test')}><${Icon} name="clover" />Test</button>
         <button class="btn small" onClick=${() => addBlock('roll')}><${Icon} name="dice" />Table de dés</button>
         <button class="btn small" onClick=${() => addBlock('combat')}><${Icon} name="sword" />Combat</button>
@@ -528,7 +546,7 @@ function RulesTab({ adv, change }) {
           <div class="grid2">${r.stats.map(s => html`<${Text} label=${`Tirage ${s.label}`} value=${c.rolls?.[s.id] || ''} placeholder=${s.roll} onChange=${v => upd({ rolls: { ...c.rolls, [s.id]: v || undefined } })} />`)}
             <${Text} label="Or de départ" value=${c.gold || ''} placeholder=${r.gold} onChange=${v => upd({ gold: v || undefined })} /></div>
           <${Select} label="Objet de départ en plus" value="" onChange=${v => v && upd({ items: [...(c.items || []), v] })} options=${[['', 'Ajouter…'], ...items]} />
-          ${c.items?.length > 0 && html`<div class="row">${c.items.map((it, k) => html`<button class="badge" onClick=${() => upd({ items: c.items.filter((_, m) => m !== k) })}>${R.itemName(adv, it)} ✕</button>`)}</div>`}
+          ${c.items?.length > 0 && html`<div class="row">${c.items.map((it, k) => html`<button class="badge" aria-label=${`Retirer ${R.itemName(adv, it)}`} onClick=${() => upd({ items: c.items.filter((_, m) => m !== k) })}>${R.itemName(adv, it)} <span aria-hidden="true">✕</span></button>`)}</div>`}
           ${r.classes.length > 1 && html`<div><button class="btn small danger" onClick=${() => set({ classes: r.classes.filter((_, j) => j !== i) })}>Supprimer la classe</button></div>`}
         </div>`;
       })}

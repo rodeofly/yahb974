@@ -48,6 +48,10 @@ img { max-width: 100%; }
 .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .brand { font-family: var(--display); font-weight: 700; font-size: 22px; text-decoration: none; color: var(--ink); letter-spacing: .01em; }
 .topbar .spacer { flex: 1; }
+/* Barre de l'éditeur : collée sous la barre principale (hauteur réelle mesurée par app.js) ; sur un petit écran,
+   elle défile avec la page pour laisser la place au texte. */
+.ed-bar { top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h, 61px)); z-index: 15; border-top: 0; }
+@media (max-width: 800px) { .ed-bar { position: static; } }
 .topbar .crumb { font-family: var(--display); font-size: 18px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
 /* ---------- boutons ---------- */
@@ -62,8 +66,13 @@ img { max-width: 100%; }
 .ico { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
 .ending .mark .ico { width: 72px; height: 72px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Case à cocher et son texte : toujours côte à côte (le texte passe à la ligne à droite de la case). */
+label.row:has(> input[type=checkbox]), label.row:has(> input[type=radio]) { flex-wrap: nowrap; align-items: flex-start; }
+label.row:has(> input[type=checkbox]) > input, label.row:has(> input[type=radio]) > input { flex: none; margin-top: .2em; }
 .stack { display: grid; gap: 12px; }
 .muted { color: var(--muted); }
+/* Texte réservé aux lecteurs d'écran. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
 /* ---------- formulaires ---------- */
@@ -93,6 +102,9 @@ h3 { font-size: 18px; }
 .card .body { padding: 14px 16px 8px; display: grid; gap: 6px; align-content: start; }
 .card .foot { padding: 10px 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; }
 .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--muted); width: fit-content; }
+/* Pastille cliquable (ex. objet de départ à retirer) : couleurs de l'application, jamais le gris natif des boutons. */
+button.badge { background: var(--paper); color: var(--ink); cursor: pointer; font-family: inherit; }
+button.badge:hover { border-color: var(--accent); }
 
 /* ---------- lecture ---------- */
 .play { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; max-width: 1180px; margin: 0 auto; padding: 20px 16px 80px; align-items: start; }
@@ -195,7 +207,9 @@ h3 { font-size: 18px; }
 .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; width: min(720px, 100%); max-height: 88vh; overflow: auto; padding: 18px; display: grid; gap: 14px; }
 .modal.wide { width: min(1100px, 100%); }
 .modal header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.toasts { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 60; display: grid; gap: 6px; width: min(460px, calc(100% - 32px)); }
+.toasts { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 60; display: grid; gap: 6px; width: min(460px, calc(100% - 32px)); pointer-events: none; }
+/* Messages d'état, jamais cliquables : sur téléphone, en haut de l'écran pour ne pas cacher « Feuille » ni les boutons du bas. */
+@media (max-width: 900px) { .toasts { bottom: auto; top: calc(12px + env(safe-area-inset-top, 0px)); } }
 .toast { background: var(--ink); color: var(--surface); border-radius: 8px; padding: 10px 14px; font-weight: 500; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
 .lightbox img { max-height: 84vh; width: auto; margin: 0 auto; display: block; }
 
@@ -302,6 +316,12 @@ h3 { font-size: 18px; }
 .print-root.A5 .pr-tall { min-height: 26mm; }
 .print-root.A5 .pr-foe { min-height: 12mm; }
 .print-root.A5 .pr-sheet h2 { margin-bottom: 6px; }
+/* Pagination : ni case coupée entre deux pages, ni intertitre seul en bas de page. */
+.pr-box, .pr-foe, .eq-pr-slot { break-inside: avoid; page-break-inside: avoid; }
+.print-book h2, .print-book h3, .pr-defi-title { break-after: avoid; page-break-after: avoid; }
+/* En colonnes, un tableau ou un bloc ne doit jamais dépasser sa colonne (Chrome réduirait tout le livre). */
+.pr-sections .pr-block { max-width: 100%; overflow-wrap: anywhere; }
+.pr-sections .pr-table { table-layout: fixed; overflow-wrap: anywhere; }
 @media print {
   body { background: #fff; }
   .no-print, .topbar, .toasts { display: none !important; }

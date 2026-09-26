@@ -253,3 +253,20 @@ test('textes imprimés et liste des compagnons', () => {
   const list = companionsOf(fx(state, adv, join('brak')).state, adv);
   assert.deepEqual(list.map(c => [c.name, c.skill, c.health, c.max, c.damage]), [['Brak', 7, 3, 3, 2]]);
 });
+
+test('usages : effets et conditions des blocs (défi, Zefor, carte, boutique)', async () => {
+  await import('../js/plugins/zefor/core.js');
+  await import('../js/plugins/defis/core.js');
+  const { adv } = sample();
+  const join = { op: 'companion', companion: 'kaya', action: 'join' };
+  adv.sections['3'] = { text: 'Blocs', choices: [], onEnter: [], blocks: [
+    { type: 'zefor', url: 'https://zefor.maths974.fr/#p', mode: 'code', codeHashes: ['0'.repeat(64)], success: '2', successEffects: [join] },
+    { type: 'challenge', kind: 'text', question: 'Q ?', answers: ['a'], success: '2', failureEffects: [{ op: 'gold', add: 1, if: { companion: 'kaya' } }] },
+    { type: 'shop', offers: [{ item: 'x', price: 1, effects: [join] }] },
+  ] };
+  const uses = companionUsages(adv, 'kaya').filter(u => u.section === '3');
+  assert.deepEqual(uses.map(u => u.kind), ['join', 'condition', 'join']);
+  delete adv.companions.kaya;
+  const errs = validate(adv).filter(p => p.section === '3' && /compagnon inconnu « kaya »/.test(p.message));
+  assert.ok(errs.length >= 2, 'les références dans le bloc Zefor et le défi sont signalées');
+});

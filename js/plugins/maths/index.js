@@ -15,21 +15,10 @@ registerMarkdown({
   before(src) {
     const { src: out, parts } = extractMath(src);
     if (!parts.length) return { src: out };
-    return { src: out, after: html => { if (parts.some(p => 'tex' in p)) warmFonts(); return restoreMath(html, parts, renderTex); } };
+    return { src: out, after: html => restoreMath(html, parts, renderTex) };
   },
 });
 
 registerEditorTab({ id: 'maths', order: 60, label: mathsTabLabel, Tab: MathsTab });
 
-/* Hors ligne : le navigateur ne télécharge une police KaTeX qu'à sa première utilisation. Dès qu'une formule
-   s'affiche, on demande toutes les polices (≈ 300 Ko) pour que le service worker les garde en cache. */
-const FONTS = ['AMS-Regular', 'Caligraphic-Bold', 'Caligraphic-Regular', 'Fraktur-Bold', 'Fraktur-Regular', 'Main-Bold',
-  'Main-BoldItalic', 'Main-Italic', 'Main-Regular', 'Math-BoldItalic', 'Math-Italic', 'SansSerif-Bold', 'SansSerif-Italic',
-  'SansSerif-Regular', 'Script-Regular', 'Size1-Regular', 'Size2-Regular', 'Size3-Regular', 'Size4-Regular', 'Typewriter-Regular'];
-let warmed = false;
-function warmFonts() {
-  if (warmed || typeof navigator === 'undefined' || !navigator.serviceWorker?.controller) return;
-  warmed = true;
-  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1500));
-  idle(() => FONTS.forEach(f => fetch(new URL(`../../lib/katex/fonts/KaTeX_${f}.woff2`, import.meta.url)).catch(() => {})));
-}
+/* Hors ligne : les polices KaTeX sont préchargées par le service worker (FONT_SHEETS de sw.js). */

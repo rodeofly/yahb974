@@ -355,3 +355,22 @@ test('fusion : options (préfixe, départ de numérotation, pas de partage, marq
   assert.equal(tw.report.sections.count, 5);
   assert.equal(validate(tw.adventure).filter(p => p.level === 'error').length, 0);
 });
+
+test('fusion : les règles Zefor et l’équipement de l’autre aventure ne se perdent pas en silence', async () => {
+  await import('../js/plugins/equipement/core.js');
+  await import('../js/plugins/zefor/core.js');
+  const base = sample();
+  const other = normalizeAdventure({ ...newAdventure('Autre'), id: 'autre', sections: { '1': { text: 'x', ending: 'victory' } } });
+  other.rules.zefor = { ...other.rules.zefor, codeKey: 'CLE-B', origin: 'https://zefor.maths974.fr', publicKeyJwk: { kty: 'EC', crv: 'P-256', x: 'a', y: 'b' } };
+  other.rules.equipment = { ...(other.rules.equipment || {}), enabled: true };
+  const r = mergeAdventures(base, other);
+  assert.equal(r.adventure.rules.zefor.codeKey, 'CLE-B');
+  assert.equal(r.adventure.rules.zefor.origin, 'https://zefor.maths974.fr');
+  assert.deepEqual(r.adventure.rules.zefor.publicKeyJwk, other.rules.zefor.publicKeyJwk);
+  assert.ok(r.report.warnings.some(w => /équipement/.test(w)));
+  const withKey = sample();
+  withKey.rules.zefor = { ...withKey.rules.zefor, codeKey: 'CLE-A' };
+  const r2 = mergeAdventures(withKey, other);
+  assert.equal(r2.adventure.rules.zefor.codeKey, 'CLE-A');
+  assert.ok(r2.report.warnings.some(w => /règles Zefor/.test(w) && /clé des codes personnels/.test(w)));
+});

@@ -18,7 +18,13 @@
 /* Commande inconnue dans une formule par ailleurs correcte : soulignée en vagues. */
 .katex [style*="--loss"] { text-decoration: underline wavy; text-underline-offset: 3px; }
 .print-book .katex-error, .print-book .katex [style*="--loss"] { color: #111 !important; }
-@media print { .katex-display { overflow: visible; } }
+/* À l'impression, une formule centrée plus large que sa colonne est réduite pour tenir (sur papier, rien ne défile).
+   --kw = largeur naturelle de la formule en em, mesurée par print.js ; les paragraphes sont des conteneurs de taille. */
+@media print {
+  .print-book .pr-sec, .print-book .pr-page { container-type: inline-size; }
+  .katex-display { overflow: visible; }
+  .print-book .katex-display[style*="--kw"] { font-size: min(1em, calc((100cqi - 16px) / var(--kw))); }
+}
 
 /* ---------- onglet « Maths » de l'éditeur ---------- */
 .maths-aide h3 { display: flex; gap: 8px; align-items: center; }

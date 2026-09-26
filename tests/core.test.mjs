@@ -191,3 +191,58 @@ test('journées : pénalité si on n’a pas mangé, pas si on a mangé', () => 
   assert.equal(ok.state.ate, false);
 });
 import { enter as R_enter } from '../js/core/rules.js';
+
+/* ---------- corrections : Chance après une mise à terre, dégâts nuls, objet requis ---------- */
+function twoFoes(enemies) {
+  const a = sample();
+  a.sections['8'] = { text: 'Deux loups', choices: [], onEnter: [], blocks: [{ type: 'combat', mode: 'together', enemies, win: '2' }] };
+  return normalizeAdventure(a);
+}
+
+test('combat à plusieurs : tenter sa Chance ne ranime jamais un adversaire abattu', () => {
+  const adv = twoFoes([{ name: 'Premier loup', skill: 0, health: 1 }, { name: 'Second loup', skill: 0, health: 30 }]);
+  let { state } = createHero(adv, { seed: 13 });
+  ({ state } = start(state, adv, '8'));
+  state.stats[adv.rules.combat.skill].cur = 40; // le héros gagne tous les échanges
+  state = startCombat(state, adv, 0);
+  state = attackRound(state, adv);
+  const first = state.combat.enemies[0];
+  assert.equal(first.down, true);
+  assert.equal(first.health, 0);
+  assert.equal(state.combat.canLuck, false, 'aucune Chance proposée : le seul effet serait de ranimer le loup');
+  // Même si la Chance était proposée (ancienne sauvegarde), le loup abattu reste à terre.
+  for (let seed = 1; seed < 40; seed++) {
+    const forced = { ...state, rng: seed, combat: { ...state.combat, canLuck: true } };
+    const after = useLuck(forced, adv);
+    assert.equal(after.combat.enemies[0].health, 0);
+    assert.equal(after.combat.enemies[0].down, true);
+  }
+});
+
+test('combat : un adversaire à 0 dégât ne blesse pas le héros', () => {
+  const adv = twoFoes([{ name: 'Mouton', skill: 40, health: 50, damage: 0 }]);
+  let { state } = createHero(adv, { seed: 3 });
+  ({ state } = start(state, adv, '8'));
+  const hp = state.stats[adv.rules.combat.health].cur;
+  state = startCombat(state, adv, 0);
+  assert.equal(state.combat.enemies[0].damage, 0);
+  state = attackRound(state, adv);
+  assert.equal(state.stats[adv.rules.combat.health].cur, hp);
+  const dflt = startCombat(state, twoFoes([{ name: 'Loup', skill: 1, health: 3 }]), 0);
+  assert.equal(dflt.combat.enemies[0].damage, 2, 'sans valeur : dégâts de la règle');
+});
+
+test('formules : l’objet requis est exigé', () => {
+  const adv = magic();
+  adv.items.baguette = { name: 'Baguette' };
+  adv.rules.spells.book[0].requires = 'baguette';
+  let { state } = createHero(adv, { seed: 2, classId: 'sorcier' });
+  ({ state } = start(state, adv, '6'));
+  const end = state.stats.endurance.cur;
+  const r = castSpell(state, adv, 0, 'ZAP');
+  assert.equal(r.state.section, '6', 'sans la baguette, la formule échoue');
+  assert.equal(r.state.stats.endurance.cur, end - 4, 'le coût est payé');
+  assert.match(r.messages[0].text, /il vous faut : Baguette/);
+  state = { ...state, inventory: { ...state.inventory, baguette: 1 } };
+  assert.equal(castSpell(state, adv, 0, 'ZAP').state.section, '2');
+});

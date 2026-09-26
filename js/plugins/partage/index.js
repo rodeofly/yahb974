@@ -271,11 +271,12 @@ function CardShare({ entry }) {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
   const open = async () => {
+    if (busy) return;
     setBusy(true);
     try { setData(await loadAdventure(entry.id)); } catch (e) { toast(`Partage impossible : ${e.message}`); }
     setBusy(false);
   };
-  return html`<button class="btn small" onClick=${open} disabled=${busy} aria-label=${`Partager « ${entry.title} »`} title="Partager : lien, QR code ou fichier"><${Ico} name="share" />Partager</button>
+  return html`<button class="btn small" onClick=${open} aria-busy=${busy ? 'true' : undefined} aria-label=${`Partager « ${entry.title} »`} title="Partager : lien, QR code ou fichier"><${Ico} name="share" />Partager</button>
     ${data && html`<${ShareModal} adv=${data.adventure} source=${data.source} onClose=${() => setData(null)} />`}`;
 }
 registerCardAction({ id: 'partage', order: 10, Action: CardShare });

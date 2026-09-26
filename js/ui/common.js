@@ -1,6 +1,6 @@
 // Composants partagés : icônes, dés, notifications, fenêtres, texte mis en forme, images.
 
-import { html, useState, useEffect, useRef } from '../lib/preact-htm.js';
+import { html, render, useState, useEffect, useRef, useMemo, useLayoutEffect } from '../lib/preact-htm.js';
 import { assetUrl } from '../store/library.js';
 import { sfx } from './audio.js';
 import { ui } from './registry.js';
@@ -42,6 +42,9 @@ const P = {
   print: '<path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="2"/><path d="M7 14h10v7H7z"/>',
   star: '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>',
   music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  route: '<circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="8" r="2.2"/><circle cx="8" cy="18" r="2.2"/><path d="M7.1 6.4l9.7 1.2M17.4 9.6l-7.8 6.9"/>',
+  question: '<circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>',
+  zefor: '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8.5 8.5h7l-7 7h7"/>',
   heart: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
 };
 export const Icon = ({ name, title }) => html`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden=${title ? undefined : 'true'} role=${title ? 'img' : undefined} dangerouslySetInnerHTML=${{ __html: (title ? `<title>${title}</title>` : '') + P[name] }}></svg>`;
@@ -71,29 +74,77 @@ export const toast = text => pushToast(text);
 export function Toasts() {
   const [items, setItems] = useState([]);
   useEffect(() => { pushToast = text => { const id = Math.random(); setItems(x => [...x, { id, text }]); setTimeout(() => setItems(x => x.filter(i => i.id !== id)), 3200); }; }, []);
-  return html`<div class="toasts" role="status" aria-live="polite">${items.map(i => html`<div class="toast" key=${i.id}>${i.text}</div>`)}</div>`;
+  // Dans <body>, hors de #app : les messages restent annoncés quand une fenêtre rend l'application inerte.
+  return html`<${Portal} className="toasts-portal"><div class="toasts" role="status" aria-live="polite">${items.map(i => html`<div class="toast" key=${i.id}>${i.text}</div>`)}</div><//>`;
+}
+
+/** Affiche ses enfants directement dans <body> (hors des barres collantes, de la Feuille et de #app). */
+export function Portal({ children, className = 'portal' }) {
+  const host = useMemo(() => { const d = document.createElement('div'); d.className = className; document.body.append(d); return d; }, []);
+  // Rendu synchrone : une frappe rapide n'est jamais écrasée par un rendu en retard.
+  useLayoutEffect(() => { render(children, host); });
+  useEffect(() => () => { render(null, host); host.remove(); }, []);
+  return null;
 }
 
 /* ---------- fenêtre modale ---------- */
-export function Modal({ title, onClose, children, wide }) {
+// Chaque fenêtre est rendue dans un portail sur <body> (hors des barres collantes et de la Feuille d'Aventure),
+// le reste de l'application devient inerte, Tab et Maj+Tab restent dans la fenêtre, et le focus revient
+// à l'élément qui l'a ouverte quand elle se ferme. Seule la fenêtre du dessus réagit au clavier.
+const modalStack = [];
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+function setAppInert() {
+  const app = document.getElementById('app');
+  if (!app) return;
+  if (modalStack.length) { app.setAttribute('inert', ''); app.setAttribute('aria-hidden', 'true'); }
+  else { app.removeAttribute('inert'); app.removeAttribute('aria-hidden'); }
+}
+
+function ModalBox({ title, onClose, children, wide }) {
   const ref = useRef();
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const k = e => e.key === 'Escape' && onClose();
+    const opener = document.activeElement;
+    const me = {};
+    modalStack.push(me);
+    setAppInert();
+    const k = e => {
+      if (modalStack[modalStack.length - 1] !== me) return;
+      if (e.key === 'Escape') { e.stopPropagation(); closeRef.current(); return; }
+      if (e.key !== 'Tab' || !ref.current) return;
+      const items = [...ref.current.querySelectorAll(FOCUSABLE)].filter(visible);
+      if (!items.length) { e.preventDefault(); return; }
+      const first = items[0], last = items[items.length - 1];
+      const inside = ref.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', k);
     ref.current?.querySelector('button, input, select, textarea')?.focus();
-    return () => document.removeEventListener('keydown', k);
+    return () => {
+      document.removeEventListener('keydown', k);
+      const i = modalStack.indexOf(me);
+      if (i >= 0) modalStack.splice(i, 1);
+      setAppInert();
+      // Retour du focus à l'élément d'origine (s'il existe encore), après que le portail a disparu.
+      setTimeout(() => { if (opener && opener.isConnected && typeof opener.focus === 'function' && !document.querySelector('.overlay .modal')?.contains(document.activeElement)) opener.focus(); }, 0);
+    };
   }, []);
-  return html`<div class="overlay" onClick=${e => e.target === e.currentTarget && onClose()}>
+  return html`<div class="overlay" onClick=${e => e.target === e.currentTarget && closeRef.current()}>
     <div class=${'modal' + (wide ? ' wide' : '')} role="dialog" aria-modal="true" aria-label=${title} ref=${ref}>
-      <header><h2>${title}</h2><button class="btn ghost small" onClick=${onClose} aria-label="Fermer"><${Icon} name="x" /></button></header>
+      <header><h2>${title}</h2><button class="btn ghost small" onClick=${() => closeRef.current()} aria-label="Fermer"><${Icon} name="x" /></button></header>
       ${children}
     </div>
   </div>`;
 }
 
+export const Modal = props => html`<${Portal} className="modal-portal"><${ModalBox} ...${props} /><//>`;
+
 /** Remplace confirm() : renvoie une promesse. */
 let askImpl = null;
-export const confirmBox = (text, ok = 'Confirmer') => new Promise(res => askImpl ? askImpl({ text, ok, res }) : res(window.confirm(text)));
+export const confirmBox = (text, ok = 'Confirmer', cancel = 'Annuler') => new Promise(res => askImpl ? askImpl({ text, ok, cancel, res }) : res(window.confirm(text)));
 export function Confirm() {
   const [q, setQ] = useState(null);
   useEffect(() => { askImpl = setQ; return () => { askImpl = null; }; }, []);
@@ -101,7 +152,7 @@ export function Confirm() {
   const done = v => { q.res(v); setQ(null); };
   return html`<${Modal} title="Confirmation" onClose=${() => done(false)}>
     <p>${q.text}</p>
-    <div class="row"><button class="btn primary" onClick=${() => done(true)}>${q.ok}</button><button class="btn" onClick=${() => done(false)}>Annuler</button></div>
+    <div class="row"><button class="btn primary" onClick=${() => done(true)}>${q.ok}</button><button class="btn" onClick=${() => done(false)}>${q.cancel || 'Annuler'}</button></div>
   <//>`;
 }
 
@@ -144,6 +195,32 @@ export function AssetImg({ adv, source, path, alt = '', onClick, bump, eager }) 
   useEffect(() => { let on = true; setUrl(null); assetUrl(adv, source, path).then(u => on && setUrl(u)); return () => { on = false; }; }, [adv?.id, path, bump]);
   if (!path || !url) return null;
   return html`<img src=${url} alt=${alt} loading=${eager ? 'eager' : 'lazy'} onClick=${onClick} />`;
+}
+
+/* ---------- bibliothèques chargées à la demande ---------- */
+const scripts = new Map();
+/** Charge un script classique une seule fois (promesse partagée). */
+export function loadScript(href) {
+  const url = String(href);
+  if (!scripts.has(url)) {
+    scripts.set(url, new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = url; s.async = false;
+      s.onload = () => res();
+      s.onerror = () => { scripts.delete(url); rej(new Error(`Impossible de charger ${url}`)); };
+      document.head.append(s);
+    }));
+  }
+  return scripts.get(url);
+}
+/** Graphe (cytoscape, d3, dagre) : chargé seulement quand un graphe s'affiche, pas au démarrage. */
+export async function loadGraphLibs({ withLayouts = true } = {}) {
+  const lib = f => new URL(`../lib/${f}`, import.meta.url);
+  if (!window.cytoscape) await loadScript(lib('cytoscape.min.js'));
+  if (withLayouts) {
+    await Promise.all([window.d3 ? null : loadScript(lib('d3.min.js')), window.dagre ? null : loadScript(lib('dagre.min.js'))]);
+    if (!window.cytoscapeDagre) await loadScript(lib('cytoscape-dagre.min.js'));
+  }
 }
 
 /* ---------- feuille de style d'un greffon ---------- */

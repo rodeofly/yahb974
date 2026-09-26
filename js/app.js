@@ -1,20 +1,26 @@
 // Point d'entrée : navigation par l'ancre de l'URL (#/, #/jouer/<id>, #/ecrire/<id>/<paragraphe>).
 
-import { html, render, useState, useEffect } from './lib/preact-htm.js';
-import { Toasts, Confirm, applyPrefs, prefs, Icon, Modal } from './ui/common.js';
+import { html, render, useState, useEffect, useRef, Component } from './lib/preact-htm.js';
+import { Toasts, Confirm, applyPrefs, prefs, Icon, Modal, toast } from './ui/common.js';
 import './plugins/index.js';
 import { Library } from './ui/library.js';
 import { ui, sorted } from './ui/registry.js';
 import { Play } from './ui/play.js';
 import { Editor } from './ui/editor.js';
+import { importAdventure } from './store/library.js';
+import { askReplace } from './ui/library.js';
 import { persist } from './store/db.js';
 import { Print } from './ui/print.js';
 import { speak, ttsAvailable, frenchVoices, stopAmbience, stopSpeaking } from './ui/audio.js';
 
 function parseRoute() {
   const [path, query = ''] = location.hash.replace(/^#/, '').split('?');
-  const parts = path.split('/').filter(Boolean).map(decodeURIComponent);
-  return { name: parts[0] || 'home', id: parts[1], sub: parts[2], query: Object.fromEntries(new URLSearchParams(query)) };
+  // Un lien coupé ou mal recopié (« %E0%A4% ») ne doit pas bloquer l'application : segment gardé tel quel.
+  const dec = x => { try { return decodeURIComponent(x); } catch { return x; } };
+  const parts = path.split('/').filter(Boolean).map(dec);
+  let q = {};
+  try { q = Object.fromEntries(new URLSearchParams(query)); } catch { /* requête illisible */ }
+  return { name: parts[0] || 'home', id: parts[1], sub: parts[2], query: q };
 }
 
 export const navigate = hash => { location.hash = hash; };
@@ -67,8 +73,33 @@ function Settings({ onClose }) {
   <//>`;
 }
 
+/** Une erreur dans un écran (ou un greffon) n'efface pas toute l'application : message et retour à l'accueil. */
+class ScreenBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  componentDidCatch(error) { this.setState({ error }); }
+  render({ children }, { error }) {
+    if (!error) return children;
+    return html`<main class="page" role="alert"><h1>Cet écran n’a pas pu s’afficher</h1>
+      <p>${String(error?.message || error)}</p>
+      <div class="row"><a class="btn primary" href="#/">Retour à la bibliothèque</a>
+        <button class="btn" onClick=${() => location.reload()}>Recharger la page</button></div></main>`;
+  }
+}
+
 function App() {
   const [route, setRoute] = useState(parseRoute());
+  const barRef = useRef();
+  // Hauteur réelle de la barre du haut : les barres collantes en dessous s'y calent (variable CSS --topbar-h).
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return undefined;
+    const set = () => document.documentElement.style.setProperty('--topbar-h', `${el.getBoundingClientRect().height}px`);
+    set();
+    if (typeof ResizeObserver !== 'function') return undefined;
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [settings, setSettings] = useState(false);
   useEffect(() => {
     const on = () => { const r = parseRoute(); setRoute(r); window.scrollTo(0, 0); if (r.name !== 'jouer') { stopAmbience(); stopSpeaking(); } };
@@ -82,12 +113,12 @@ function App() {
   else if (route.name === 'ecrire' && route.id) screen = html`<${Editor} key=${route.id} id=${route.id} sectionId=${route.sub} />`;
   else screen = html`<${Library} />`;
   return html`
-    <header class="topbar no-print">
+    <header class="topbar no-print" ref=${barRef}>
       <a class="brand" href="#/">Livre-Héros</a>
       <span class="spacer"></span>
       <button class="btn ghost small" onClick=${() => setSettings(true)} aria-label="Réglages"><${Icon} name="gear" /></button>
     </header>
-    ${screen}
+    <${ScreenBoundary} key=${`${route.name}|${route.id || ''}`}>${screen}<//>
     ${settings && html`<${Settings} onClose=${() => setSettings(false)} />`}
     <${Toasts} /><${Confirm} />`;
 }
@@ -97,6 +128,20 @@ persist();
 const root = document.getElementById('app');
 root.textContent = '';
 render(html`<${App} />`, root);
+
+// Application installée : un fichier .lhz ouvert avec Livre-Héros (manifeste « file_handlers ») est importé.
+if ('launchQueue' in window) {
+  window.launchQueue.setConsumer(async params => {
+    for (const handle of params.files || []) {
+      try {
+        const adv = await importAdventure(await handle.getFile(), { onConflict: askReplace });
+        if (!adv) continue;
+        toast(`« ${adv.meta.title} » importée.`);
+        location.hash = `#/ecrire/${encodeURIComponent(adv.id)}`;
+      } catch (e) { toast(`Import impossible : ${e.message}`); }
+    }
+  });
+}
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => { /* l'application marche aussi sans */ });
