@@ -8,7 +8,7 @@ import './compteurs/index.js';
 
 import './compagnons/index.js';
 
-// [defis]
+import './defis/index.js';
 
 // [zefor]
 

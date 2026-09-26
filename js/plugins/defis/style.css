@@ -1,0 +1,120 @@
+/* Greffon « défis » : énigmes et exercices.
+   Couleurs : uniquement les jetons de css/app.css (clair et sombre).
+   Daltonisme : chaque état se lit par une icône, un texte, une bordure pleine / pointillée ou un remplissage. */
+
+.defi-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; margin: -1px; padding: 0; border: 0; }
+
+/* ---------- lecture ---------- */
+.defi { gap: 14px; }
+.defi .defi-kind { margin: -8px 0 0; }
+.defi-fig { margin: 0; }
+.defi-fig img { cursor: default; }
+.defi .prose { margin: 0; max-width: none; }
+.defi .prose p:last-child { margin-bottom: 0; }
+.defi-form { display: grid; gap: 12px; }
+.defi-input { font-size: 18px; }
+.defi-input:disabled { background: var(--surface); color: var(--ink); opacity: 1; border-style: dotted; }
+.defi-numrow { flex-wrap: nowrap; }
+.defi-numrow .btn { min-width: 40px; min-height: 40px; font-size: 18px; }
+.defi-num { font-family: var(--mono); font-size: 20px; max-width: 14ch; }
+.defi-unit { font-weight: 700; font-size: 18px; }
+
+.defi-opts { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
+.defi-opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer;
+  font-family: var(--serif); font-size: calc(var(--read-size) - 1px); line-height: 1.4; }
+.defi-opt:hover { border-color: var(--accent); }
+.defi-opt:has(input:checked) { border: 2px solid var(--ink); padding: 9px 11px; font-weight: 700; }
+.defi-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.defi-opt input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.defi-opts:disabled .defi-opt { cursor: default; }
+.defi-opt.bad { border-style: dashed; }
+.defi-opt.good { box-shadow: inset 5px 0 0 var(--ink); }
+.defi-letter { font-family: var(--mono); font-weight: 700; font-size: 14px; min-width: 26px; text-align: center; border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; background: var(--surface); }
+.defi-otext { min-width: 0; overflow-wrap: anywhere; }
+.defi-mark { display: inline-flex; gap: 4px; align-items: center; font-family: var(--sans); font-size: 14px; font-weight: 700; white-space: nowrap; }
+.defi-mark.good { color: var(--gain); }
+.defi-mark.bad { color: var(--loss); }
+
+.defi-order { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.defi-order li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-family: var(--serif); font-size: calc(var(--read-size) - 1px); }
+.defi-pos { font-family: var(--mono); font-weight: 700; font-size: 16px; width: 30px; height: 30px; display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 50%; }
+.defi-moves { display: inline-flex; gap: 4px; font-family: var(--sans); }
+
+.defi-feedback { display: flex; gap: 10px; align-items: center; font-weight: 700; font-size: 17px; padding: 10px 12px; border-radius: 8px; border: 2px solid var(--line); background: var(--paper); }
+.defi-feedback:empty { display: none; }
+.defi-feedback .ico { width: 28px; height: 28px; stroke-width: 3; flex: none; }
+.defi-feedback.ok { border-style: solid; border-color: var(--gain); color: var(--gain); }
+.defi-feedback.ko { border-style: dashed; border-color: var(--loss); color: var(--loss); }
+.defi-feedback.info { border-style: dotted; color: var(--ink); font-weight: 500; }
+
+.defi-tries { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+.defi-pips { display: inline-flex; gap: 3px; }
+.defi-pips i { width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 2px; }
+.defi-pips i.used { background: var(--ink); }
+
+.defi-hints { display: grid; gap: 8px; }
+.defi-hint { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border: 1px dashed var(--ink); border-radius: 8px; background: var(--paper); }
+.defi-hint > .ico { width: 22px; height: 22px; margin-top: 2px; }
+.defi-hint-text { font-family: var(--serif); text-align: var(--align, justify); hyphens: auto; -webkit-hyphens: auto; }
+.defi-hint-text p { margin: 2px 0 0; }
+.defi-giveup { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.defi-explain, .defi-reveal { display: grid; gap: 4px; padding: 8px 12px; border-left: 4px solid var(--ink); background: var(--paper); border-radius: 0 8px 8px 0; }
+.defi-reveal ol { margin: 0; padding-left: 1.4em; font-family: var(--serif); }
+p.defi-reveal { display: flex; gap: 6px; align-items: center; border-left-width: 2px; }
+.defi-end { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 0; }
+.defi-end .ico { width: 20px; height: 20px; }
+
+@media (max-width: 560px) {
+  .defi-lbl { display: none; }
+  .defi-opt { grid-template-columns: auto auto minmax(0, 1fr); }
+  .defi-opt .defi-mark { grid-column: 3; }
+  .defi-order li { grid-template-columns: 30px minmax(0, 1fr) auto; padding: 6px 8px; }
+}
+
+/* ---------- éditeur ---------- */
+.defi-ed { display: grid; gap: 12px; }
+.defi-ed-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 12px; margin: 0; min-width: 0; display: grid; gap: 10px; background: var(--surface); }
+.defi-ed-box > legend { font-weight: 700; padding: 0 6px; font-family: var(--display); font-size: 16px; }
+.defi-ed-line { grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) auto; align-items: center; }
+.defi-ed-line > label.field { align-self: end; }
+.defi-ed-opt { grid-template-columns: auto minmax(160px, 2fr) auto auto; }
+.defi-ed-num { grid-template-columns: minmax(130px, 1.3fr) minmax(110px, 1fr) minmax(110px, 1fr) auto; }
+.defi-ed-opt .defi-pos { width: 28px; height: 28px; }
+.defi-norm { overflow-wrap: anywhere; }
+.defi-ed-hint { background: var(--paper); }
+.defi-preview { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; background: var(--paper); display: grid; gap: 4px; }
+.defi-preview .prose { max-width: none; margin: 0; font-size: 17px; }
+.defi-preview .prose p:last-child { margin-bottom: 0; }
+.defi-warn { display: inline-flex; gap: 4px; align-items: center; color: var(--loss); font-size: 13px; font-weight: 700; }
+input[aria-invalid="true"] { border: 2px dashed var(--loss); }
+.defi-crypt { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+.defi-locked { display: grid; gap: 8px; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper); }
+.defi-hashes { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.defi-hashes li { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.defi-addhash { align-items: end; }
+.defi-addhash .field { flex: 1 1 240px; }
+
+@media (max-width: 700px) {
+  .defi-ed-line, .defi-ed-opt, .defi-ed-num { grid-template-columns: 1fr; }
+  .defi-ed-opt > .defi-letter, .defi-ed-opt > .defi-pos { justify-self: start; }
+}
+
+/* ---------- version imprimable (page blanche : mêmes teintes que print.js) ---------- */
+.pr-defi .pr-defi-title { margin: 0 0 .3em; }
+.pr-defi-img img { display: block; max-width: 100%; max-height: 70mm; margin: 4px auto; object-fit: contain; }
+.pr-defi-opts { margin: .3em 0; padding-left: 1.8em; }
+.pr-defi-opts li { margin: .15em 0; }
+.pr-defi-line { display: flex; gap: 6px; align-items: flex-end; }
+.pr-defi-blank { flex: 1; border-bottom: 1px dotted #111; min-height: 1.1em; }
+.print-book .pr-defi-hint { font-size: .9em; text-align: left; hyphens: manual; }
+.pr-flip { display: inline-block; transform: rotate(180deg); }
+.pr-defi-center { text-align: center !important; }
+.pr-defi-solutions { break-before: page; page-break-before: always; }
+.pr-defi-sol { margin: 0; display: grid; gap: 8px; }
+.pr-defi-sol-item { display: grid; grid-template-columns: 3.2em 1fr; gap: 8px; break-inside: avoid; }
+.pr-defi-sol dt { font-family: var(--mono); font-weight: 700; text-align: right; }
+.pr-defi-sol dd { margin: 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.pr-defi-explain p { margin: .2em 0 0; }
+.print-book > .pr-page:has(> .defi-none) { display: none; }

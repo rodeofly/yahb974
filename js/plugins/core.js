@@ -7,7 +7,7 @@ import './compteurs/core.js';
 
 import './compagnons/core.js';
 
-// [defis]
+import './defis/core.js';
 
 // [zefor]
 
