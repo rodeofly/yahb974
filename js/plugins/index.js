@@ -20,6 +20,6 @@ import './succes/index.js';
 
 import './echanges/index.js';
 
-// [partage]
+import './partage/index.js';
 
 // [accessibilite]
