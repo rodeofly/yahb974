@@ -12,7 +12,7 @@ import './defis/index.js';
 
 import './zefor/index.js';
 
-// [maths]
+import './maths/index.js';
 
 // [carte]
 

@@ -127,6 +127,16 @@ function baseMarkdown(src) {
 }
 const inline = s => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/_(.+?)_/g, '<em>$1</em>');
 export const Prose = ({ text }) => html`<div class="prose" dangerouslySetInnerHTML=${{ __html: markdown(text) }}></div>`;
+/** Texte d'une ligne (choix…) : échappé, puis enrichi par les greffons du Markdown (formules…), sans autre mise en forme. */
+export function inlineMarkdown(src = '') {
+  const afters = [];
+  src = String(src ?? '');
+  for (const m of ui.markdown) { const r = m.before(src); src = r.src; if (r.after) afters.push(r.after); }
+  let out = esc(src);
+  for (const a of afters.reverse()) out = a(out);
+  return out;
+}
+export const InlineText = ({ text }) => html`<span dangerouslySetInnerHTML=${{ __html: inlineMarkdown(text) }}></span>`;
 
 /* ---------- image d'une aventure ---------- */
 export function AssetImg({ adv, source, path, alt = '', onClick, bump, eager }) {

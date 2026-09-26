@@ -4,6 +4,7 @@
 
 import { html, useState, useEffect, useMemo } from '../lib/preact-htm.js';
 import { Icon, AssetImg, markdown } from './common.js';
+import { inlineMarkdown } from './common.js';
 import { loadAdventure } from '../store/library.js';
 import { statLabel, itemName } from '../core/rules.js';
 import { renumber } from '../core/validate.js';
@@ -117,12 +118,12 @@ function sectionHtml(sec, adv) {
   if (fx.length) h += `<p class="pr-fx">${fx.map(esc).join(' ')}</p>`;
   h += (sec.blocks || []).map(b => blockHtml(b, adv)).join('');
   const ch = sec.choices || [];
-  if (ch.length === 1 && !ch[0].if && !(ch[0].effects || []).length && !(sec.blocks || []).length) h += `<p class="pr-go">${esc(ch[0].text || '')}${ch[0].text ? ' : ' : ''}${go(ch[0].to).replace(/^r/, ch[0].text ? 'r' : 'R')}.</p>`;
+  if (ch.length === 1 && !ch[0].if && !(ch[0].effects || []).length && !(sec.blocks || []).length) h += `<p class="pr-go">${inlineMarkdown(ch[0].text || '')}${ch[0].text ? ' : ' : ''}${go(ch[0].to).replace(/^r/, ch[0].text ? 'r' : 'R')}.</p>`;
   else if (ch.length) {
     h += '<ul class="pr-choices">' + ch.map(c => {
       const cond = c.if ? `<i>Si ${esc(condText(c.if, adv))}</i> — ` : '';
       const fxs = (c.effects || []).map(e => effectText(e, adv)).filter(Boolean);
-      return `<li>${cond}${esc(c.text || 'Continuer')} : ${go(c.to)}.${fxs.length ? ` <span class="pr-small">(${esc(fxs.join(' '))})</span>` : ''}</li>`;
+      return `<li>${cond}${inlineMarkdown(c.text || 'Continuer')} : ${go(c.to)}.${fxs.length ? ` <span class="pr-small">(${esc(fxs.join(' '))})</span>` : ''}</li>`;
     }).join('') + '</ul>';
   }
   if (sec.ending === 'death') h += '<p class="pr-end">FIN</p>';
