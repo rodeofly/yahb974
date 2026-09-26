@@ -154,6 +154,7 @@ export function describeCondition(cond, adv) {
     if (c.has) return `ne pas avoir : ${itemName(adv, c.has)}`;
     if (c.flag) return `ne pas être « ${c.flag} »`;
     if (c.visited) return `ne pas être passé par le ${c.visited}`;
+    const plugNot = findCondition(cond); if (plugNot) return plugNot.describe(cond, adv); // greffon qui sait dire sa négation
     return `pas : ${describeCondition(c, adv)}`;
   }
   const plug = findCondition(cond);

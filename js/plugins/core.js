@@ -5,7 +5,7 @@
 
 // [compteurs]
 
-// [compagnons]
+import './compagnons/core.js';
 
 // [defis]
 

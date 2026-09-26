@@ -6,7 +6,7 @@
 
 // [compteurs]
 
-// [compagnons]
+import './compagnons/index.js';
 
 // [defis]
 
