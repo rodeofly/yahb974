@@ -3,6 +3,7 @@
 import { html, useState, useEffect, useRef } from '../lib/preact-htm.js';
 import { assetUrl } from '../store/library.js';
 import { sfx } from './audio.js';
+import { ui } from './registry.js';
 
 export { html };
 
@@ -107,6 +108,14 @@ export function Confirm() {
 /* ---------- texte : Markdown léger ---------- */
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 export function markdown(src = '') {
+  // Les greffons (mathématiques…) peuvent mettre de côté des morceaux avant l'échappement, puis les réinsérer.
+  const afters = [];
+  for (const m of ui.markdown) { const r = m.before(src); src = r.src; if (r.after) afters.push(r.after); }
+  let out = baseMarkdown(src);
+  for (const a of afters.reverse()) out = a(out);
+  return out;
+}
+function baseMarkdown(src) {
   return esc(src).split(/\n{2,}/).map(block => {
     const b = block.trim();
     if (!b) return '';
@@ -125,6 +134,16 @@ export function AssetImg({ adv, source, path, alt = '', onClick, bump, eager }) 
   useEffect(() => { let on = true; setUrl(null); assetUrl(adv, source, path).then(u => on && setUrl(u)); return () => { on = false; }; }, [adv?.id, path, bump]);
   if (!path || !url) return null;
   return html`<img src=${url} alt=${alt} loading=${eager ? 'eager' : 'lazy'} onClick=${onClick} />`;
+}
+
+/* ---------- feuille de style d'un greffon ---------- */
+/** Charge une feuille de style une seule fois (ex. loadCSS(new URL('./style.css', import.meta.url))). */
+export function loadCSS(href) {
+  const url = String(href);
+  if (document.querySelector(`link[data-lh="${url}"]`)) return;
+  const l = document.createElement('link');
+  l.rel = 'stylesheet'; l.href = url; l.dataset.lh = url;
+  document.head.append(l);
 }
 
 /* ---------- réglages de l'utilisateur (confort, par appareil) ---------- */

@@ -2,7 +2,7 @@
 // Magasins : adventures (JSON), assets (Blob des images), saves (parties).
 
 const DB_NAME = 'livre-heros';
-const VERSION = 1;
+const VERSION = 2;
 let dbPromise = null;
 
 function open() {
@@ -14,6 +14,8 @@ function open() {
       if (!db.objectStoreNames.contains('adventures')) db.createObjectStore('adventures', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets');
       if (!db.objectStoreNames.contains('saves')) db.createObjectStore('saves');
+      // v2 : magasin clé-valeur réservé aux greffons (statistiques, succès…).
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -76,6 +78,17 @@ export async function listSaves(advId) {
     };
     r.onerror = () => reject(r.error);
   });
+}
+
+/* Magasin clé-valeur des greffons : préfixez vos clés par le nom du greffon (ex. « stats|<aventure> »). */
+export const kvGet = key => tx('kv', 'readonly', s => req(s.get(key)));
+export const kvPut = (key, value) => tx('kv', 'readwrite', s => s.put(value, key));
+export const kvDelete = key => tx('kv', 'readwrite', s => s.delete(key));
+export async function kvList(prefix) {
+  const keys = await tx('kv', 'readonly', s => req(s.getAllKeys()));
+  const out = {};
+  for (const k of keys.filter(k => String(k).startsWith(prefix))) out[k] = await kvGet(k);
+  return out;
 }
 
 /** Demande au navigateur de ne pas effacer les données (utile sur mobile). */

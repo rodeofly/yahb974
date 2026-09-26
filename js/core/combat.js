@@ -4,6 +4,7 @@
 
 import { makeRng, roll } from './dice.js';
 import { checkDeath, statLabel } from './rules.js';
+import { ext, sumCombat } from './plugins.js';
 
 /** Démarre le combat du bloc `blockIndex` du paragraphe courant. */
 export function startCombat(state, adv, blockIndex) {
@@ -51,22 +52,28 @@ export function attackRound(state, adv) {
   // Le joueur contre sa cible, puis (combat simultané) contre chaque autre adversaire qui ne fait que se défendre.
   const opponents = c.mode === 'together' ? living : [living[0]];
   const exchanges = [];
+  // Modificateurs apportés par les greffons (équipement, compagnons…), recalculés à chaque assaut.
+  const mods = { attack: sumCombat('attackMod', s, adv, c), damage: sumCombat('damageMod', s, adv, c), armor: sumCombat('armor', s, adv, c) };
+  const dealt = Math.max(1, c.playerDamage + mods.damage);
   for (const e of opponents) {
     const pr = roll('2d6', rng), er = roll('2d6', rng);
-    const pa = pr.total + me + c.playerMod, ea = er.total + e.skill + e.attackMod;
+    const pa = pr.total + me + c.playerMod + mods.attack, ea = er.total + e.skill + e.attackMod;
+    const taken = e.damage > 0 ? Math.max(1, e.damage - mods.armor) : 0;
     const isTarget = e.id === c.target;
     let outcome;
     if (pa > ea) {
-      if (isTarget) { e.health = Math.max(0, e.health - c.playerDamage); outcome = 'hit'; hit = e.id; }
+      if (isTarget) { e.health = Math.max(0, e.health - dealt); outcome = 'hit'; hit = e.id; }
       else outcome = 'parry';
     } else if (ea > pa) {
-      s.stats[hpId].cur = Math.max(0, s.stats[hpId].cur - e.damage); outcome = 'wounded'; wounded = true;
+      s.stats[hpId].cur = Math.max(0, s.stats[hpId].cur - taken); outcome = 'wounded'; wounded = true;
     } else outcome = 'draw';
-    exchanges.push({ enemy: e.id, name: e.name, player: { dice: pr.dice, total: pa }, foe: { dice: er.dice, total: ea }, outcome, damage: outcome === 'wounded' ? e.damage : outcome === 'hit' ? c.playerDamage : 0 });
-    const txt = { hit: `vous blessez ${e.name} (−${c.playerDamage})`, wounded: `${e.name} vous blesse (−${e.damage} ${statLabel(adv, hpId)})`, draw: 'vous esquivez tous les deux', parry: `vous parez l'attaque de ${e.name}` }[outcome];
+    exchanges.push({ enemy: e.id, name: e.name, player: { dice: pr.dice, total: pa }, foe: { dice: er.dice, total: ea }, outcome, damage: outcome === 'wounded' ? taken : outcome === 'hit' ? dealt : 0 });
+    const txt = { hit: `vous blessez ${e.name} (−${dealt})`, wounded: `${e.name} vous blesse (−${taken} ${statLabel(adv, hpId)})`, draw: 'vous esquivez tous les deux', parry: `vous parez l'attaque de ${e.name}` }[outcome];
     lines.push(`Assaut ${c.round} — vous ${pa} contre ${e.name} ${ea} : ${txt}.`);
   }
-  c.last = { round: c.round, exchanges, luckUsed: false };
+  c.last = { round: c.round, exchanges, luckUsed: false, mods, extra: [] };
+  // Tour des greffons (ex. les compagnons frappent à leur tour) : ils peuvent modifier s, c, et ajouter des lignes.
+  for (const h of ext.combat) h.round?.({ state: s, adv, combat: c, rng, lines, roll, target: c.enemies.find(x => x.id === c.target) });
   c.canLuck = !!(hit !== null || wounded);
   c.log = [...c.log, ...lines];
   settle(s, adv);

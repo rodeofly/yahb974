@@ -9,6 +9,7 @@ import { validate, renumber, renameSection, reachable } from '../core/validate.j
 import { estimateWinRate } from '../core/combat.js';
 import { isDice, range } from '../core/dice.js';
 import { GraphTab } from './graph.js';
+import { ui, sorted } from './registry.js';
 
 const sortIds = ids => ids.sort((a, b) => (Number(a) || 1e9) - (Number(b) || 1e9) || a.localeCompare(b));
 const nextId = adv => String(Math.max(0, ...Object.keys(adv.sections).map(Number).filter(n => !isNaN(n))) + 1);
@@ -52,7 +53,8 @@ export function Editor({ id, sectionId }) {
   const errs = problems.filter(p => p.level === 'error').length;
   const addSection = (text = '') => { const nid = nextId(adv); change(a => { a.sections[nid] = R.newSection(text); return a; }); open(nid); return nid; };
 
-  const tabs = [['section', `Paragraphe ${current}`], ['graph', 'Graphe'], ['items', 'Objets'], ['rules', 'Règles'], ['info', 'Infos'], ['check', `Vérifier${errs ? ` (${errs})` : ''}`]];
+  const plugTabs = sorted(ui.editorTabs);
+  const tabs = [['section', `Paragraphe ${current}`], ['graph', 'Graphe'], ['items', 'Objets'], ['rules', 'Règles'], ...plugTabs.map(t => [t.id, t.label(adv)]), ['info', 'Infos'], ['check', `Vérifier${errs ? ` (${errs})` : ''}`]];
   return html`
     <div class="topbar" style="top:61px;z-index:15;border-top:0">
       <span class="crumb">${adv.meta.title}</span>
@@ -62,6 +64,7 @@ export function Editor({ id, sectionId }) {
       <a class="btn small" href=${`#/jouer/${encodeURIComponent(id)}`}>Jouer</a>
       <a class="btn small" href=${`#/imprimer/${encodeURIComponent(id)}`}><${Icon} name="print" />Imprimer</a>
       <button class="btn small" onClick=${async () => download(await exportAdventure(adv, 'local'), `${R.slug(adv.meta.title)}.lhz`)}><${Icon} name="download" />Exporter</button>
+      ${sorted(ui.editorActions).map(a => html`<${a.Action} adv=${adv} change=${change} />`)}
     </div>
     <div class="editor">
       <aside class="ed-side">
@@ -86,6 +89,7 @@ export function Editor({ id, sectionId }) {
           ${tab === 'rules' && html`<${RulesTab} adv=${adv} change=${change} />`}
           ${tab === 'info' && html`<${InfoTab} adv=${adv} change=${change} open=${open} />`}
           ${tab === 'check' && html`<${CheckTab} adv=${adv} problems=${problems} open=${open} />`}
+          ${plugTabs.filter(t => t.id === tab).map(t => html`<${t.Tab} adv=${adv} change=${change} open=${open} current=${current} />`)}
         </div>
       </section>
     </div>`;
@@ -138,17 +142,18 @@ const COND_TYPES = [['caster', 'sait lancer des formules'], ['notcaster', 'ne sa
 function condToRows(cond) {
   if (!cond) return { mode: 'all', rows: [] };
   const list = cond.all ? cond.all : cond.any ? cond.any : [cond];
+  const plugRow = c => { for (const d of ui.conditions) { const r = d.match(c); if (r) return { ...r, t: d.t }; } return null; };
   return {
     mode: cond.any ? 'any' : 'all',
-    rows: list.map(c => c.caster !== undefined ? { t: c.caster ? 'caster' : 'notcaster' } : c.ate !== undefined ? { t: c.ate ? 'ate' : 'notate' } : c.day !== undefined ? { t: 'daygte', n: c.gte ?? c.day } : c.has ? { t: 'has', v: c.has } : c.not?.has ? { t: 'nothas', v: c.not.has } : c.flag ? { t: 'flag', v: c.flag } : c.not?.flag ? { t: 'notflag', v: c.not.flag }
+    rows: list.map(c => plugRow(c) || (c.caster !== undefined ? { t: c.caster ? 'caster' : 'notcaster' } : c.ate !== undefined ? { t: c.ate ? 'ate' : 'notate' } : c.day !== undefined ? { t: 'daygte', n: c.gte ?? c.day } : c.has ? { t: 'has', v: c.has } : c.not?.has ? { t: 'nothas', v: c.not.has } : c.flag ? { t: 'flag', v: c.flag } : c.not?.flag ? { t: 'notflag', v: c.not.flag }
       : c.visited ? { t: 'visited', v: c.visited } : c.not?.visited ? { t: 'notvisited', v: c.not.visited } : c.class ? { t: 'class', v: c.class }
-      : c.gold !== undefined ? { t: 'gold', n: c.gte } : c.stat ? { t: c.lte !== undefined ? 'statlte' : 'stat', v: c.stat, n: c.lte ?? c.gte } : { t: 'has', v: '' }),
+      : c.gold !== undefined ? { t: 'gold', n: c.gte } : c.stat ? { t: c.lte !== undefined ? 'statlte' : 'stat', v: c.stat, n: c.lte ?? c.gte } : { t: 'has', v: '' })),
   };
 }
 function rowsToCond({ mode, rows }) {
-  const list = rows.map(r => ({ has: { has: r.v }, nothas: { not: { has: r.v } }, flag: { flag: r.v }, notflag: { not: { flag: r.v } }, visited: { visited: r.v }, notvisited: { not: { visited: r.v } }, class: { class: r.v },
+  const list = rows.map(r => ui.conditions.find(d => d.t === r.t)?.toCond(r) || ({ has: { has: r.v }, nothas: { not: { has: r.v } }, flag: { flag: r.v }, notflag: { not: { flag: r.v } }, visited: { visited: r.v }, notvisited: { not: { visited: r.v } }, class: { class: r.v },
     caster: { caster: true }, notcaster: { caster: false }, ate: { ate: true }, notate: { ate: false }, daygte: { day: true, gte: r.n ?? 1 },
-    gold: { gold: true, gte: r.n ?? 0 }, stat: { stat: r.v, gte: r.n ?? 0 }, statlte: { stat: r.v, lte: r.n ?? 0 } }[r.t]));
+    gold: { gold: true, gte: r.n ?? 0 }, stat: { stat: r.v, gte: r.n ?? 0 }, statlte: { stat: r.v, lte: r.n ?? 0 } }[r.t])).filter(Boolean);
   if (!list.length) return undefined;
   if (list.length === 1) return list[0];
   return mode === 'any' ? { any: list } : { all: list };
@@ -159,20 +164,22 @@ function ConditionEditor({ value, onChange, adv }) {
   const set = next => onChange(rowsToCond(next));
   const items = Object.entries(adv.items).map(([k, v]) => [k, v.name]);
   const stats = adv.rules.stats.map(s => [s.id, s.label]);
+  const types = [...COND_TYPES, ...sorted(ui.conditions).map(d => [d.t, d.label])];
   return html`<div class="stack" style="gap:6px">
     <div class="row"><span class="subtle">Condition${st.rows.length > 1 ? html` : <select value=${st.mode} onChange=${e => set({ ...st, mode: e.target.value })} aria-label="Mode"><option value="all">toutes</option><option value="any">au moins une</option></select>` : ''}</span>
       <button type="button" class="btn small" onClick=${() => set({ ...st, rows: [...st.rows, { t: 'has', v: items[0]?.[0] || '' }] })}><${Icon} name="plus" />Condition</button></div>
     ${st.rows.map((r, i) => {
       const upd = patch => set({ ...st, rows: st.rows.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
-      const valueField = ['has', 'nothas'].includes(r.t) ? html`<${Select} label="Objet" value=${r.v} onChange=${v => upd({ v })} options=${[['', '—'], ...items]} />`
+      const plug = ui.conditions.find(d => d.t === r.t);
+      const valueField = plug ? html`<${plug.Fields} row=${r} upd=${upd} adv=${adv} />` : ['has', 'nothas'].includes(r.t) ? html`<${Select} label="Objet" value=${r.v} onChange=${v => upd({ v })} options=${[['', '—'], ...items]} />`
         : ['stat', 'statlte'].includes(r.t) ? html`<${Select} label="Caractéristique" value=${r.v} onChange=${v => upd({ v })} options=${stats} />`
         : r.t === 'class' ? html`<${Select} label="Classe" value=${r.v} onChange=${v => upd({ v })} options=${(adv.rules.classes || []).map(c => [c.id, c.label])} />`
         : ['gold', 'caster', 'notcaster', 'ate', 'notate', 'daygte'].includes(r.t) ? null
         : html`<${Text} label=${r.t.includes('visited') ? 'Paragraphe' : 'Marque'} value=${r.v} onChange=${v => upd({ v })} />`;
       return html`<div class="rowline">
-        <${Select} label="Le héros…" value=${r.t} onChange=${t => upd({ t, v: ['has', 'nothas'].includes(t) ? items[0]?.[0] || '' : ['stat', 'statlte'].includes(t) ? stats[0][0] : t === 'class' ? adv.rules.classes?.[0]?.id : '' })} options=${COND_TYPES} />
+        <${Select} label="Le héros…" value=${r.t} onChange=${t => { const p = ui.conditions.find(d => d.t === t); set({ ...st, rows: st.rows.map((x, j) => (j === i ? (p ? { ...p.blank(adv), t } : { t, v: ['has', 'nothas'].includes(t) ? items[0]?.[0] || '' : ['stat', 'statlte'].includes(t) ? stats[0][0] : t === 'class' ? adv.rules.classes?.[0]?.id : '' }) : x)) }); }} options=${types} />
         ${valueField}
-        ${['stat', 'statlte', 'gold', 'daygte'].includes(r.t) && html`<${Num} label="Valeur" value=${r.n} onChange=${n => upd({ n })} />`}
+        ${!plug && ['stat', 'statlte', 'gold', 'daygte'].includes(r.t) && html`<${Num} label="Valeur" value=${r.n} onChange=${n => upd({ n })} />`}
         <button type="button" class="btn small danger rm" aria-label="Retirer la condition" onClick=${() => set({ ...st, rows: st.rows.filter((_, j) => j !== i) })}><${Icon} name="x" /></button>
       </div>`;
     })}
@@ -185,12 +192,14 @@ function EffectsEditor({ value = [], onChange, adv, title = 'Effets' }) {
   const items = Object.entries(adv.items).map(([k, v]) => [k, v.name]);
   const stats = adv.rules.stats.map(s => [s.id, s.label]);
   const upd = (i, patch) => onChange(value.map((e, j) => (j === i ? { ...e, ...patch } : e)));
-  const blank = op => ({ stat: { op, stat: stats[1]?.[0] || stats[0][0], add: -2 }, gold: { op, add: 5 }, provisions: { op, add: 1 }, give: { op, item: items[0]?.[0] || '' }, take: { op, item: items[0]?.[0] || '' }, flag: { op, flag: '' }, note: { op, text: '' }, newDay: { op }, meal: { op } }[op]);
+  const types = [...EFFECT_TYPES, ...sorted([...ui.effects].map(([op, d]) => ({ op, ...d }))).map(d => [d.op, d.label])];
+  const blank = op => ui.effects.get(op)?.blank(adv) || ({ stat: { op, stat: stats[1]?.[0] || stats[0][0], add: -2 }, gold: { op, add: 5 }, provisions: { op, add: 1 }, give: { op, item: items[0]?.[0] || '' }, take: { op, item: items[0]?.[0] || '' }, flag: { op, flag: '' }, note: { op, text: '' }, newDay: { op }, meal: { op } }[op]);
   return html`<div class="stack" style="gap:6px">
     <div class="row"><span class="subtle">${title}</span>
       <button type="button" class="btn small" onClick=${() => onChange([...value, blank('stat')])}><${Icon} name="plus" />Effet</button></div>
     ${value.map((e, i) => html`<div class="rowline">
-      <${Select} label="Type" value=${e.op} onChange=${op => onChange(value.map((x, j) => (j === i ? blank(op) : x)))} options=${EFFECT_TYPES} />
+      <${Select} label="Type" value=${e.op} onChange=${op => onChange(value.map((x, j) => (j === i ? blank(op) : x)))} options=${types} />
+      ${ui.effects.get(e.op) && html`<${ui.effects.get(e.op).Fields} e=${e} upd=${patch => upd(i, patch)} adv=${adv} />`}
       ${e.op === 'stat' && html`
         <${Select} label="Caractéristique" value=${e.stat} onChange=${v => upd(i, { stat: v })} options=${stats} />
         <${Select} label="Action" value=${e.set === 'initial' ? 'initial' : e.addInitial !== undefined ? 'init' : 'add'} onChange=${v => upd(i, v === 'initial' ? { set: 'initial', add: undefined, addInitial: undefined } : v === 'init' ? { addInitial: 1, add: undefined, set: undefined } : { add: -2, set: undefined, addInitial: undefined })}
@@ -322,7 +331,8 @@ function SectionForm({ adv, sid, change, open, addSection, problems }) {
         <button class="btn small" onClick=${() => addBlock('roll')}><${Icon} name="dice" />Table de dés</button>
         <button class="btn small" onClick=${() => addBlock('combat')}><${Icon} name="sword" />Combat</button>
         <button class="btn small" onClick=${() => addBlock('shop')}><${Icon} name="coin" />Boutique</button>
-        <button class="btn small" onClick=${() => addBlock('spells')}><${Icon} name="star" />Formules</button></div></header>
+        <button class="btn small" onClick=${() => addBlock('spells')}><${Icon} name="star" />Formules</button>
+        ${sorted([...ui.blocks].map(([type, d]) => ({ type, ...d }))).map(d => html`<button class="btn small" onClick=${() => setIn('blocks', b => [...b, { type: d.type, ...d.create(adv) }])}><${Icon} name=${d.icon || 'plus'} />${d.label}</button>`)}</div></header>
       ${(sec.blocks || []).map((b, i) => html`<${BlockEditor} key=${i} adv=${adv} block=${b} tgt=${tgt} sid=${sid}
         onChange=${nb => setIn('blocks', l => l.map((x, j) => (j === i ? nb : x)))} onRemove=${() => setIn('blocks', l => l.filter((_, j) => j !== i))} />`)}
       ${!sec.blocks?.length && html`<span class="subtle">Aucun. Un test de Chance, un combat ou une table de dés s'ajoute ici.</span>`}
@@ -355,7 +365,9 @@ function BlockEditor({ adv, block, onChange, onRemove, tgt }) {
   const stats = adv.rules.stats.map(s => [s.id, s.label]);
   const [rate, setRate] = useState(null);
   let body = null;
-  const title = { test: 'Test', roll: 'Table de dés', combat: 'Combat', shop: 'Boutique', spells: 'Formules magiques' }[b.type];
+  const plug = ui.blocks.get(b.type);
+  const title = { test: 'Test', roll: 'Table de dés', combat: 'Combat', shop: 'Boutique', spells: 'Formules magiques' }[b.type] || plug?.label || b.type;
+  if (plug) body = html`<${plug.Editor} adv=${adv} block=${b} set=${set} onChange=${onChange} tgt=${tgt} />`;
   if (b.type === 'spells') {
     const book = adv.rules.spells?.book || [];
     body = html`
@@ -464,6 +476,7 @@ function ItemsTab({ adv, change }) {
       <div class="grid2"><${Text} label="Nom" value=${it.name} onChange=${v => set(id, { name: v })} /><${Text} label="Description" value=${it.description} onChange=${v => set(id, { description: v })} /></div>
       <${EffectsEditor} adv=${adv} value=${it.use || []} onChange=${v => set(id, { use: v })} title="Effets quand le héros l'utilise (vide = objet non utilisable)" />
       ${it.use?.length > 0 && html`<label class="row subtle"><input type="checkbox" checked=${it.consumable !== false} onChange=${e => set(id, { consumable: e.target.checked })} /> Disparaît après utilisation</label>`}
+      ${sorted(ui.itemFields).map(f => html`<${f.Fields} it=${it} id=${id} set=${patch => set(id, patch)} adv=${adv} />`)}
     </section>`)}
   </div>`;
 }
@@ -506,6 +519,7 @@ function RulesTab({ adv, change }) {
         </div>`}`}
     </section>
     <${SpellsRules} adv=${adv} set=${set} stats=${stats} items=${items} />
+    ${sorted(ui.rulesSections).map(r => html`<${r.Section} adv=${adv} change=${change} set=${set} />`)}
     <section class="panel"><header><h3>Classes de héros</h3><button class="btn small" onClick=${() => set({ classes: [...(r.classes || []), { id: 'classe' + ((r.classes || []).length + 1), label: 'Nouvelle classe', description: '', rolls: {}, items: [] }] })}><${Icon} name="plus" />Classe</button></header>
       ${(r.classes || []).map((c, i) => {
         const upd = patch => set({ classes: r.classes.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
@@ -589,3 +603,6 @@ function CheckTab({ adv, problems, open }) {
       <span>${p.message}</span></li>`)}</ul>`}
   </div>`;
 }
+
+// Champs et éditeurs réutilisables par les greffons (voir docs/PLUGINS.md).
+export { Text, Num, Select, Target, ConditionEditor, EffectsEditor, ImageSlot, SoundSlot, nextId, sortIds };

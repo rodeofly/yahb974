@@ -5,6 +5,7 @@ import { Icon, AssetImg, toast, confirmBox } from './common.js';
 import { listLibrary, loadAdventure, importAdventure, exportAdventure, download, duplicateAdventure } from '../store/library.js';
 import { putAdventure, deleteAdventure, listSaves } from '../store/db.js';
 import { newAdventure, slug } from '../core/rules.js';
+import { ui, sorted } from './registry.js';
 
 function Cover({ entry }) {
   const [adv, setAdv] = useState(null);
@@ -67,6 +68,7 @@ export function Library() {
         <button class="btn primary" onClick=${create}><${Icon} name="plus" />Écrire une aventure</button>
         <button class="btn" onClick=${() => fileRef.current.click()}><${Icon} name="upload" />Importer (.lhz)</button>
         <input type="file" accept=".lhz,.zip,.json,application/zip,application/json" hidden ref=${fileRef} onChange=${onImport} />
+        ${sorted(ui.libraryActions).map(a => html`<${a.Action} refresh=${refresh} />`)}
       </div>
     </div>
     ${items === null ? html`<p class="muted">Chargement…</p>` : !items.length ? html`<p class="muted">Aucune aventure pour l'instant.</p>` : html`
@@ -79,12 +81,14 @@ export function Library() {
           ${e.author && html`<span class="muted">par ${e.author}</span>`}
           ${e.description && html`<p class="muted" style="margin:0;font-size:15px">${e.description}</p>`}
           <span class="subtle">${e.sections ? `${e.sections} paragraphes` : ''}${saves[e.id] ? ` · ${saves[e.id]} partie${saves[e.id] > 1 ? 's' : ''} en cours` : ''}</span>
+          ${sorted(ui.libraryExtras).map(x => html`<${x.Extra} entry=${e} />`)}
         </div>
         <div class="foot">
           <a class="btn primary small" href=${`#/jouer/${encodeURIComponent(e.id)}`}><${Icon} name="play" />${saves[e.id] ? 'Continuer' : 'Jouer'}</a>
           <button class="btn small" onClick=${() => edit(e)}><${Icon} name="edit" />${e.source === 'local' ? 'Modifier' : 'Copier pour modifier'}</button>
           <button class="btn small" onClick=${() => doExport(e)} aria-label="Exporter"><${Icon} name="download" /></button>
           <a class="btn small" href=${`#/imprimer/${encodeURIComponent(e.id)}`} aria-label="Version imprimable"><${Icon} name="print" /></a>
+          ${sorted(ui.cardActions).map(a => html`<${a.Action} entry=${e} refresh=${refresh} />`)}
           ${e.source === 'local' && html`<button class="btn small danger" onClick=${() => remove(e)} aria-label="Supprimer"><${Icon} name="trash" /></button>`}
         </div>
       </article>`)}

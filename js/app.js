@@ -2,7 +2,9 @@
 
 import { html, render, useState, useEffect } from './lib/preact-htm.js';
 import { Toasts, Confirm, applyPrefs, prefs, Icon, Modal } from './ui/common.js';
+import './plugins/index.js';
 import { Library } from './ui/library.js';
+import { ui, sorted } from './ui/registry.js';
 import { Play } from './ui/play.js';
 import { Editor } from './ui/editor.js';
 import { persist } from './store/db.js';
@@ -60,6 +62,7 @@ function Settings({ onClose }) {
       <div><button class="btn small" onClick=${() => speak('Vous vous éveillez à l’aube. Votre aventure commence.')}><${Icon} name="speaker" />Essayer la voix</button></div>
       ${!voices.length && html`<p class="subtle">Aucune voix française n'est installée sur cet appareil : la voix par défaut sera utilisée.</p>`}`
     : html`<p class="subtle">Ce navigateur ne propose pas la synthèse vocale.</p>`}
+    ${sorted(ui.settings).map(x => html`<${x.Panel} prefs=${p} set=${set} />`)}
     <p class="subtle">Les aventures, images et parties sont enregistrées dans ce navigateur. Exportez vos aventures (.lhz) pour les sauvegarder ailleurs.</p>
   <//>`;
 }
@@ -75,6 +78,7 @@ function App() {
   let screen;
   if (route.name === 'jouer' && route.id) screen = html`<${Play} key=${route.id + JSON.stringify(route.query)} id=${route.id} query=${route.query} />`;
   else if (route.name === 'imprimer' && route.id) screen = html`<${Print} key=${route.id} id=${route.id} query=${route.query} />`;
+  else if (ui.routes.has(route.name)) { const P = ui.routes.get(route.name); screen = html`<${P} key=${location.hash} id=${route.id} sub=${route.sub} query=${route.query} />`; }
   else if (route.name === 'ecrire' && route.id) screen = html`<${Editor} key=${route.id} id=${route.id} sectionId=${route.sub} />`;
   else screen = html`<${Library} />`;
   return html`

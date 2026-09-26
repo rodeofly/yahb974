@@ -2,6 +2,7 @@
 // Chaque fonction prend un état et renvoie un nouvel état (+ des messages à afficher).
 
 import { makeRng, roll } from './dice.js';
+import { ext, findCondition } from './plugins.js';
 
 export const FORMAT = 'livre-heros/1';
 
@@ -61,6 +62,7 @@ export function normalizeAdventure(adv) {
   a.sections ??= {};
   for (const id of Object.keys(a.sections)) a.sections[id] = { ...newSection(), ...a.sections[id] };
   a.start ??= Object.keys(a.sections)[0] || '1';
+  for (const f of ext.normalize) f(a);
   return a;
 }
 
@@ -109,6 +111,8 @@ export function createHero(adv, { name = 'Héros', classId, seed } = {}) {
     ate: false,
     started: new Date().toISOString(),
   };
+  for (const f of ext.heroInit) f(state, adv, cls, rng);
+  state.rng = rng.state();
   return { rolls: { ...rolls, gold }, state };
 }
 
@@ -121,6 +125,8 @@ export function check(cond, state, adv) {
   if (cond.all) return cond.all.every(c => check(c, state, adv));
   if (cond.any) return cond.any.some(c => check(c, state, adv));
   if (cond.not) return !check(cond.not, state, adv);
+  const plug = findCondition(cond);
+  if (plug) return plug.check(cond, state, adv);
   if (cond.has) return (state.inventory[cond.has] || 0) >= (cond.qty || 1);
   if (cond.flag) return cond.value === undefined ? !!state.flags[cond.flag] : state.flags[cond.flag] === cond.value;
   if (cond.visited) return !!state.visited[cond.visited];
@@ -150,6 +156,8 @@ export function describeCondition(cond, adv) {
     if (c.visited) return `ne pas être passé par le ${c.visited}`;
     return `pas : ${describeCondition(c, adv)}`;
   }
+  const plug = findCondition(cond);
+  if (plug) return plug.describe(cond, adv);
   if (cond.has) return `avoir : ${itemName(adv, cond.has)}${cond.qty > 1 ? ` ×${cond.qty}` : ''}`;
   if (cond.flag) return `être « ${cond.flag} »`;
   if (cond.visited) return `être passé par le ${cond.visited}`;
@@ -252,8 +260,11 @@ export function applyEffects(state, adv, effects = []) {
         s.notes = (s.notes ? s.notes + '\n' : '') + e.text;
         messages.push({ kind: 'info', text: `Noté sur votre feuille : ${e.text}` });
         break;
-      default:
+      default: {
+        const plug = ext.effects.get(e.op);
+        if (plug) plug.apply(s, e, adv, messages);
         break;
+      }
     }
   }
   s = checkDeath(s, adv);
@@ -284,7 +295,7 @@ export function describeEffect(e, adv) {
     case 'note': return `note : ${e.text}`;
     case 'newDay': return 'un nouveau jour commence (repas obligatoire la veille)';
     case 'meal': return `repas offert${e.heal ? ` (+${e.heal})` : ''}`;
-    default: return e.op;
+    default: return ext.effects.get(e.op)?.describe(e, adv) ?? e.op;
   }
 }
 
@@ -315,6 +326,8 @@ export function enter(state, adv, sectionId, { viaEffects = [] } = {}) {
   if (!s.ended) {
     const r = applyEffects(s, adv, sec.onEnter);
     s = r.state; messages = messages.concat(r.messages);
+    for (const f of ext.onEnter) f(s, adv, s.section, messages);
+    s = checkDeath(s, adv);
   }
   if (sec.ending && !s.ended) {
     s.ended = sec.ending;
@@ -332,16 +345,25 @@ export function start(state, adv, from = adv.start) {
 export function choicesFor(state, adv) {
   const sec = adv.sections[state.section];
   if (!sec) return [];
+  const guard = choiceGuard(state, adv);
   return (sec.choices || []).map((c, i) => {
     const ok = check(c.if, state, adv);
-    return { ...c, index: i, available: ok, reason: ok ? '' : `Il faut ${describeCondition(c.if, adv)}.` };
-  }).filter(c => c.available || !c.hideIfUnavailable);
+    const hidden = !ok && !!c.hideIfUnavailable;
+    if (guard) return { ...c, index: i, available: false, hidden, reason: guard };
+    return { ...c, index: i, available: ok, hidden, reason: ok ? '' : `Il faut ${describeCondition(c.if, adv)}.` };
+  }).filter(c => !c.hidden);
+}
+
+/** Raison qui bloque tous les choix (fournie par un greffon), ou null. */
+export function choiceGuard(state, adv) {
+  for (const g of ext.choiceGuards) { const r = g(state, adv); if (r) return r; }
+  return null;
 }
 
 export function choose(state, adv, index) {
   const c = adv.sections[state.section]?.choices?.[index];
   if (!c) throw new Error('Choix inconnu');
-  if (!check(c.if, state, adv)) throw new Error('Ce choix n’est pas disponible.');
+  if (!check(c.if, state, adv) || choiceGuard(state, adv)) throw new Error('Ce choix n’est pas disponible.');
   return enter(state, adv, c.to, { viaEffects: c.effects || [] });
 }
 
@@ -492,6 +514,8 @@ export function targetsOf(sec) {
       b.flee && out.push({ to: String(b.flee), kind: 'combat', label: 'fuite', ref: ['blocks', i, 'flee'] });
       b.lose && out.push({ to: String(b.lose), kind: 'combat', label: 'défaite', ref: ['blocks', i, 'lose'] });
     }
+    const plug = ext.blocks.get(b.type);
+    if (plug?.targets) plug.targets(b, i).forEach(t => t?.to && out.push({ ...t, to: String(t.to) }));
   });
   return out;
 }

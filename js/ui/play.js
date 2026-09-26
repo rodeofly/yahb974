@@ -3,11 +3,12 @@
 import { html, useState, useEffect, useRef, useMemo } from '../lib/preact-htm.js';
 import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox } from './common.js';
 import { loadAdventure, assetUrl } from '../store/library.js';
-import { sfx, ambience, speak, stopSpeaking, speaking, ttsAvailable } from './audio.js';
+import { sfx, ambience, speak, stopSpeaking, ttsAvailable } from './audio.js';
 import { prefs } from './common.js';
 import { putSave, listSaves, deleteSave } from '../store/db.js';
 import * as R from '../core/rules.js';
 import * as C from '../core/combat.js';
+import { ui, sorted, runHooks } from './registry.js';
 
 export function Play({ id, query }) {
   const [adv, setAdv] = useState(null);
@@ -25,6 +26,7 @@ export function Play({ id, query }) {
       if (test) {
         const { state } = R.createHero(adventure, { classId: query.class });
         const r = R.start(state, adventure, query.from || adventure.start);
+        runHooks('onStart', adventure, r.state, { test });
         setGame({ state: r.state, messages: r.messages, stamp: 1 });
         setPhase('read');
         return;
@@ -36,7 +38,12 @@ export function Play({ id, query }) {
   }, [id]);
 
   const update = (state, messages = []) => {
-    setGame(g => ({ state, messages, stamp: (g?.stamp || 0) + 1 }));
+    setGame(g => {
+      const prev = g?.state || null;
+      runHooks('onUpdate', adv, prev, state, { test });
+      if (state.ended && !prev?.ended) runHooks('onEnd', adv, state, { test });
+      return { state, messages, stamp: (g?.stamp || 0) + 1 };
+    });
     if (!test) putSave(adv.id, slot.current, { state, title: adv.meta.title, section: state.section, hero: state.hero.name });
   };
 
@@ -62,6 +69,7 @@ export function Play({ id, query }) {
   if (phase === 'create') return html`<${Creator} adv=${adv} source=${source} onStart=${state => {
     slot.current = 'auto';
     const r = R.start(state, adv, adv.start);
+    runHooks('onStart', adv, r.state, { test });
     update(r.state, r.messages);
     setPhase('read');
   }} />`;
@@ -105,6 +113,7 @@ function Creator({ adv, source, onStart }) {
       </div>`)}
       <div class="rollrow"><b>Repas</b><span class="formula">${cls?.provisions ?? adv.rules.provisions ?? 0}</span><span class="dice-total">${cls?.provisions ?? adv.rules.provisions ?? 0}</span></div>
     </div>
+    ${sorted(ui.creatorPanels).map(p => html`<${p.Panel} adv=${adv} classId=${classId} hero=${hero} />`)}
     <div class="row">
       <button class="btn ${hero ? '' : 'primary'}" onClick=${rollAll}><${Icon} name="dice" />${hero ? 'Relancer les dés' : 'Lancer les dés'}</button>
       <button class="btn primary" disabled=${!hero} onClick=${() => { const s = structuredClone(hero.state); s.hero.name = name.trim() || 'Héros'; onStart(s); }}><${Icon} name="play" />Commencer l'aventure</button>
@@ -185,6 +194,7 @@ function Ending({ adv, state, onRestart, onBack }) {
     <h2>${win ? 'Victoire !' : 'Votre aventure s’achève ici'}</h2>
     <p class="muted">${state.endReason || ''}</p>
     <p>${visited} paragraphe${visited > 1 ? 's' : ''} lu${visited > 1 ? 's' : ''} sur ${total} · ${state.turn} étape${state.turn > 1 ? 's' : ''}</p>
+    ${sorted(ui.endingPanels).map(p => html`<${p.Panel} adv=${adv} state=${state} />`)}
     <div class="row" style="justify-content:center">
       <button class="btn primary" onClick=${onRestart}><${Icon} name="dice" />Nouveau héros</button>
       ${onBack && html`<button class="btn" onClick=${onBack}><${Icon} name="back" />Revenir en arrière</button>`}
@@ -195,7 +205,7 @@ function Ending({ adv, state, onRestart, onBack }) {
 
 /* ---------- blocs interactifs ---------- */
 function Block(props) {
-  const T = { test: TestBlock, roll: RollBlock, combat: CombatBlock, shop: ShopBlock, spells: SpellsBlock }[props.block.type];
+  const T = { test: TestBlock, roll: RollBlock, combat: CombatBlock, shop: ShopBlock, spells: SpellsBlock }[props.block.type] || ui.blocks.get(props.block.type)?.Player;
   return T ? html`<${T} ...${props} />` : null;
 }
 
@@ -245,6 +255,7 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
     update(next, []); setStamp(s => s + 1);
   };
   const exit = c?.over ? C.combatExit(state, adv) : null;
+  const last = c?.last;
   const fleeOk = block.flee && (!c || !c.fleeAfter || c.round >= c.fleeAfter);
   if (!c) return html`<section class="block">
     <h3><${Icon} name="sword" />Combat</h3>
@@ -261,12 +272,11 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
     </div>
   </section>`;
 
-  const last = c.last;
   return html`<section class="block">
     <h3><${Icon} name="sword" />Combat${c.round ? ` · assaut ${c.round}` : ''}</h3>
     <div class="fighters">
       <div class="fighter"><span class="fname"><${Icon} name="heart" />${state.hero.name}</span>
-        <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.skill)}</span><b class="mono">${state.stats[adv.rules.combat.skill].cur}${c.playerMod ? ` ${c.playerMod > 0 ? '+' : ''}${c.playerMod}` : ''}</b></span>
+        <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.skill)}</span><b class="mono">${state.stats[adv.rules.combat.skill].cur}${(c.playerMod + (last?.mods?.attack || 0)) ? ` ${(c.playerMod + (last?.mods?.attack || 0)) > 0 ? '+' : ''}${c.playerMod + (last?.mods?.attack || 0)}` : ''}</b></span>
         <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.health)}</span><b class="mono">${hp.cur} / ${hp.init}</b></span>
         <div class="bar me"><span style=${`width:${100 * hp.cur / hp.init}%`}></span></div>
       </div>
@@ -287,7 +297,9 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
         <span class=${x.outcome === 'wounded' ? 'msg loss' : x.outcome === 'hit' ? 'msg gain' : 'msg'} style="padding:2px 8px">${{ hit: `Touché ! −${x.damage}`, wounded: `Blessé −${x.damage}`, draw: 'Égalité', parry: 'Paré' }[x.outcome]}</span>
       </div>`)}
       ${last.luck && html`<div class=${'outcome ' + (last.luck.lucky ? 'ok' : 'ko')}>Chance : ${last.luck.total} — ${last.luck.lucky ? 'Chanceux' : 'Malchanceux'}</div>`}
+      ${(last.extra || []).map(x => html`<div class="subtle">${x}</div>`)}
     </div>`}
+    ${sorted(ui.combatPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} combat=${c} update=${update} />`)}
     ${!c.over ? html`<div class="row">
       <button class="btn primary" onClick=${() => act(C.attackRound)}><${Icon} name="dice" />Assaut</button>
       ${c.canLuck && html`<button class="btn" onClick=${() => act(C.useLuck)}><${Icon} name="clover" />Tenter sa Chance (${state.stats[adv.rules.combat.luck].cur})</button>`}
@@ -386,9 +398,13 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
     <div class="stack" style="gap:6px"><span class="eyebrow">Sac à dos</span>
       ${inv.length ? html`<ul class="inv">${inv.map(([id, q]) => { const it = adv.items[id] || { name: id }; return html`<li title=${it.description || ''}>
         <span>${it.name}${q > 1 ? ` ×${q}` : ''}</span>
-        ${it.use?.length && !state.ended ? html`<button class="btn small" onClick=${() => { const r = R.useItem(state, adv, id); update(r.state, r.messages); }}>Utiliser</button>` : null}
+        <span class="row" style="gap:4px">
+          ${it.use?.length && !state.ended ? html`<button class="btn small" onClick=${() => { const r = R.useItem(state, adv, id); update(r.state, r.messages); }}>Utiliser</button>` : null}
+          ${!state.ended && ui.itemActions.filter(a => a.show(it, state, adv, id)).map(a => html`<button class="btn small" onClick=${() => { const r = a.run(state, adv, id); update(r.state, r.messages || []); }}>${a.label(it, state, adv, id)}</button>`)}
+        </span>
       </li>`; })}</ul>` : html`<span class="subtle">Vide.</span>`}
     </div>
+    ${sorted(ui.sheetPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} />`)}
     <label class="field">Notes<textarea id="sheet-notes" rows="3" value=${state.notes} onChange=${e => update({ ...state, notes: e.target.value }, [])}></textarea></label>
     <div class="stack" style="gap:8px"><span class="eyebrow">Dés</span>
       <div class="row"><input type="text" id="free-dice" value=${expr} onInput=${e => setExpr(e.target.value)} style="width:90px" aria-label="Formule de dés" />
@@ -433,3 +449,6 @@ function MapModal({ adv, state, onClose }) {
     <div ref=${ref} style="height:60vh;border:1px solid var(--line);border-radius:8px;background:var(--paper)"></div>
   <//>`;
 }
+
+// Composants réutilisables par les greffons (voir docs/PLUGINS.md).
+export { Continue, SpellBook };

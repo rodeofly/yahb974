@@ -7,6 +7,8 @@ import { Icon, AssetImg, markdown } from './common.js';
 import { loadAdventure } from '../store/library.js';
 import { statLabel, itemName } from '../core/rules.js';
 import { renumber } from '../core/validate.js';
+import { ext, findCondition } from '../core/plugins.js';
+import { ui, sorted } from './registry.js';
 import { makeRng, range } from '../core/dice.js';
 
 const UP = (adv, id) => statLabel(adv, id).toUpperCase();
@@ -19,6 +21,8 @@ export function condText(c, adv) {
   if (!c) return '';
   if (c.all) return c.all.map(x => condText(x, adv)).join(' et ');
   if (c.any) return c.any.map(x => condText(x, adv)).join(' ou ');
+  const plug = findCondition(c);
+  if (plug) return plug.print?.(c, adv) ?? plug.describe(c, adv);
   if (c.not) {
     const x = c.not;
     if (x.has) return `vous ne possédez pas : ${itemName(adv, x.has)}`;
@@ -64,7 +68,7 @@ export function effectText(e, adv) {
       break;
     }
     case 'meal': t = `vous prenez un repas : ${plural(e.heal ?? adv.rules.meal.heal, 'point', 'points')} d'${UP(adv, adv.rules.meal.stat)} (sans dépasser votre total de départ).`; break;
-    default: t = '';
+    default: t = ext.effects.get(e.op)?.print?.(e, adv) ?? ext.effects.get(e.op)?.describe(e, adv) ?? '';
   }
   t = t.charAt(0).toUpperCase() + t.slice(1);
   return cond + (cond ? t.charAt(0).toLowerCase() + t.slice(1) : t);
@@ -102,6 +106,8 @@ function blockHtml(b, adv) {
     const cells = (b.options || []).map(o => `<td><b>${esc(String(o.code).toUpperCase())}</b><br>${o.to}</td>`).join('');
     return `<div class="pr-block"><p>${who} pouvez utiliser l’une de ces formules${b.costInText ? '' : ` (retirez son coût de votre ${UP(adv, sp.stat || 'endurance')}, voir le Livre des formules)`} : rendez-vous au numéro indiqué sous son code.</p><table class="pr-table pr-spells"><tbody><tr>${cells}</tr></tbody></table></div>`;
   }
+  const plug = ext.blocks.get(b.type);
+  if (plug?.print) return plug.print(b, adv, { go, esc, UP, plural, condText, effectText });
   return '';
 }
 
@@ -149,6 +155,7 @@ function Rules({ adv }) {
     ${r.time?.enabled && html`<h3>Les journées</h3><p>Quand le texte annonce un nouveau jour, cochez une case Jour. ${r.time.mealRequired !== false ? `Vous devez manger au moins un repas par jour : sinon, vous perdez ${r.time.penalty} points d'${UP(adv, r.time.stat)} le lendemain matin. Cochez la case « a mangé » quand vous mangez.` : ''}</p>`}
     ${r.spells?.enabled && html`<h3>La magie</h3><p>${r.spells.casters?.length ? `Seul${r.spells.casters.length > 1 ? 's' : ''} ${r.spells.casters.map(c => classes.find(x => x.id === c)?.label || c).join(' et ')} peu${r.spells.casters.length > 1 ? 'vent' : 't'} lancer des formules.` : ''} Chaque formule a un code de trois lettres et un coût en ${UP(adv, r.spells.stat)}. Le Livre des formules, à la fin de ce volume, les décrit toutes. Apprenez-les : pendant l'aventure, on ne vous rappellera que les codes, et certains sont des pièges.</p>`}
     ${r.allowBack === false && html`<p><b>Pas de retour en arrière :</b> ne gardez pas le doigt dans les pages !</p>`}
+    ${sorted(ui.printSections.filter(x => x.where === 'rules')).map(x => html`<${x.Section} adv=${adv} />`)}
   </section>`;
 }
 
@@ -172,6 +179,7 @@ function Sheet({ adv }) {
     </div>
     <div class="pr-box pr-wide"><b>RENCONTRES AVEC DES ADVERSAIRES</b>
       <div class="pr-foes-grid">${Array.from({ length: 8 }, () => html`<div class="pr-foe">${statLabel(adv, r.combat.skill)} :<br/>${statLabel(adv, r.combat.health)} :</div>`)}</div></div>
+    ${sorted(ui.printSections.filter(x => x.where === 'sheet')).map(x => html`<${x.Section} adv=${adv} />`)}
   </section>`;
 }
 
@@ -233,6 +241,7 @@ export function Print({ id }) {
         <h2>Le Livre des formules</h2>
         ${book.map(x => html`<p><b class="pr-code">${x.code}</b> ${x.name !== x.code ? html`<b>${x.name}.</b> ` : ''}${x.description} <i>Coût : ${x.cost} ${statLabel(adv, adv.rules.spells.stat)}.${x.requires ? ` Nécessite : ${itemName(adv, x.requires)}.` : ''}</i></p>`)}
       </section>`}
+      ${sorted(ui.printSections.filter(x => x.where === 'appendix')).map(x => html`<section class="pr-page"><${x.Section} adv=${adv} /></section>`)}
     </article>
   </div>`;
 }
