@@ -8,7 +8,7 @@
 
 // [compagnons]
 
-// [defis]
+import './defis/index.js';
 
 // [zefor]
 

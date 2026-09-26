@@ -98,6 +98,7 @@ function imagePaths(adv) {
     if (s.image) paths.add(s.image);
     if (s.sound) paths.add(s.sound);
     (s.blocks || []).forEach(b => (b.enemies || []).forEach(e => e.image && paths.add(e.image)));
+    (s.blocks || []).forEach(b => typeof b.image === 'string' && paths.add(b.image)); // image propre à un bloc (ex. figure d'un défi)
   });
   Object.values(adv.items).forEach(i => i.image && paths.add(i.image));
   return [...paths].filter(p => !/^(https?:|data:|blob:)/.test(p));

@@ -7,7 +7,7 @@
 
 // [compagnons]
 
-// [defis]
+import './defis/core.js';
 
 // [zefor]
 
