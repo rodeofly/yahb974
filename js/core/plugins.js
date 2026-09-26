@@ -20,6 +20,8 @@ export const ext = {
   choiceGuards: [],
   /** [(s, adv, sectionId, messages) → void] : après les effets d'entrée d'un paragraphe (s modifiable). */
   onEnter: [],
+  /** [(adv) → [chemin]] : images ou sons cités par un greffon, à inclure dans l'export .lhz. */
+  assets: [],
 };
 
 export const registerEffect = (op, def) => { ext.effects.set(op, def); };
@@ -30,6 +32,7 @@ export const registerHeroInit = fn => { ext.heroInit.push(fn); };
 export const registerNormalize = fn => { ext.normalize.push(fn); };
 export const registerChoiceGuard = fn => { ext.choiceGuards.push(fn); };
 export const registerEnterHook = fn => { ext.onEnter.push(fn); };
+export const registerAssets = fn => { ext.assets.push(fn); };
 
 export const findCondition = c => (c && typeof c === 'object' ? ext.conditions.find(d => d.match(c)) || null : null);
 export const sumCombat = (name, ...args) => ext.combat.reduce((n, h) => n + (Number(h[name]?.(...args)) || 0), 0);

@@ -11,7 +11,7 @@
 
 // [zefor]
 
-// [carte]
+import './carte/core.js';
 
 // [succes]
 

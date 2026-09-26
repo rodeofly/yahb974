@@ -14,7 +14,7 @@
 
 // [maths]
 
-// [carte]
+import './carte/index.js';
 
 // [succes]
 
