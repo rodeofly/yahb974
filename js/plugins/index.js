@@ -18,7 +18,7 @@ import './carte/index.js';
 
 import './succes/index.js';
 
-// [echanges]
+import './echanges/index.js';
 
 // [partage]
 

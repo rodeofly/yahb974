@@ -15,4 +15,4 @@ import './carte/core.js';
 
 import './succes/core.js';
 
-// [echanges]
+import './echanges/core.js';
