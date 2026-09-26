@@ -9,6 +9,32 @@ Elle s'installe comme une application (PWA), fonctionne hors ligne et n'a besoin
 La conception complète (inventaire des fonctions, architecture, format des aventures) est dans
 [docs/CONCEPTION.md](docs/CONCEPTION.md).
 
+## Fonctionnalités
+
+**Pour jouer** : création du héros aux dés, lecture illustrée, choix conditionnels, tests de Chance et d'Habileté,
+tables de dés, combats simulés, boutiques, magie à codes, jours et repas, sauvegardes multiples, retour en arrière,
+effets sonores et lecture à voix haute, thème clair ou sombre.
+
+**Pour écrire** : éditeur sans code (conditions et effets en listes déroulantes), graphe de l'aventure,
+vérification des renvois, renumérotation façon livre, test depuis n'importe quel paragraphe,
+version imprimable A4 / A5, export et import `.lhz`.
+
+**Greffons** (chacun documenté dans [docs/plugins/](docs/plugins/), architecture dans [docs/PLUGINS.md](docs/PLUGINS.md)) :
+
+| Greffon | Ce qu'il apporte |
+|---|---|
+| [Équipement](docs/plugins/equipement.md) | objets portés (arme, armure, bouclier, bijou), bonus de combat, malus sans arme, sac à capacité limitée |
+| [Compteurs](docs/plugins/compteurs.md) | Réputation, Temps, Malédiction… visibles ou secrets, seuils qui affichent un message, tuent ou font gagner |
+| [Compagnons](docs/plugins/compagnons.md) | alliés qui rejoignent le héros et combattent à ses côtés |
+| [Défis](docs/plugins/defis.md) | énigmes et exercices (réponse, nombre, QCM, cases, ordre) qui débloquent la suite, indices payants, réponses chiffrées |
+| [Zefor](docs/plugins/zefor.md) | parcours zefor974 (maths, logique, programmation, Blokaly…) dont la réussite débloque une étape ; protocole côté zefor dans [docs/ZEFOR.md](docs/ZEFOR.md) |
+| [Maths](docs/plugins/maths.md) | formules `$…$` et `$$…$$` (KaTeX, hors ligne) dans les paragraphes et les choix, onglet d'aide |
+| [Carte](docs/plugins/carte.md) | images à zones cliquables, carte du monde avec lieux visités et chemin parcouru |
+| [Succès](docs/plugins/succes.md) | succès à débloquer, progression dans la bibliothèque, statistiques pour l'auteur |
+| [Échanges](docs/plugins/echanges.md) | export Twine et ink, import Twine, fusion de deux aventures (co-écriture) |
+| [Partage](docs/plugins/partage.md) | lien, « lien magique », QR code projetable en classe, fichier |
+| [Accessibilité](docs/plugins/accessibilite.md) | polices Atkinson Hyperlegible et OpenDyslexic, interlignage, très contrasté, guide de lecture |
+
 ## Lancer l'application
 
 Il faut seulement servir le dossier en HTTP (les modules JavaScript et le service worker ne marchent pas en `file://`) :
@@ -56,13 +82,14 @@ Les aventures publiées sont en lecture seule ; « Copier pour modifier » en fa
 
 ```
 index.html  manifest.webmanifest  sw.js
-css/        app.css, fonts.css (polices incluses dans fonts/)
+css/        app.css, fonts.css (polices incluses dans fonts/, polices d'accessibilité dans fonts/accessibilite/)
 js/core/    moteur pur : dés, règles, combat, validation (testé en Node)
 js/store/   IndexedDB, import/export .lhz, compression des images
-js/ui/      interface Preact + htm (sans compilation)
-js/lib/     bibliothèques incluses : preact-htm, cytoscape, fflate
+js/ui/      interface Preact + htm (sans compilation) et registres des greffons (registry.js)
+js/plugins/ greffons : un dossier par fonctionnalité (core.js moteur, index.js interface)
+js/lib/     bibliothèques incluses : preact-htm, cytoscape, d3, dagre, fflate, KaTeX, qrcode-generator
 adventures/ aventures publiées avec le site (exemple : La Tour de Brume)
-tests/      tests du moteur
+tests/      tests du moteur et des greffons
 tools/      graphe-vers-aventure.py : convertit un livre-jeu analysé (paragraphes + renvois) en .lhz
 ```
 

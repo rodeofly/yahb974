@@ -6,7 +6,8 @@ tout tourne dans le navigateur, fonctionne hors ligne, et une aventure se partag
 
 ## 1. Tout ce qui peut devenir interactif
 
-Légende : ✅ présent dans cette première version · 🔜 prévu, l'architecture le permet déjà.
+Légende : ✅ présent · 🔜 prévu, l'architecture le permet déjà. Entre crochets, le greffon qui apporte la fonction
+(voir [PLUGINS.md](PLUGINS.md) et la documentation de chaque greffon dans [plugins/](plugins/)).
 
 ### Côté joueur
 
@@ -39,7 +40,15 @@ Légende : ✅ présent dans cette première version · 🔜 prévu, l'architect
 | Temps | Jours, obligation de manger chaque jour (pénalité le lendemain), repas offerts | ✅ |
 | Ambiance | Effets sonores synthétisés, musique par paragraphe ou pour toute l'aventure, lecture à voix haute | ✅ |
 | Accessibilité | Thème clair/sombre, taille du texte, texte justifié, formes plutôt que couleurs | ✅ |
-| Succès | Trophées (toutes les fins, sans mourir…) | 🔜 |
+| Succès | Succès (secrets ou non, en fin de partie ou en pleine partie), progression Exploré % / Fins / Succès dans la bibliothèque [succes] | ✅ |
+| Équipement | Emplacements (arme, armure, bouclier, bijou), bonus de combat, malus sans arme, sac à capacité limitée [equipement] | ✅ |
+| Compteurs | Réputation, Temps, Malédiction… visibles ou secrets, avec seuils de message, de mort ou de victoire [compteurs] | ✅ |
+| Compagnons | Alliés qui rejoignent le héros, combattent à ses côtés, peuvent tomber [compagnons] | ✅ |
+| Défis | Énigmes et exercices (réponse, nombre, QCM, cases, remise en ordre), indices payants, réponses chiffrées [defis] | ✅ |
+| Zefor974 | Parcours zefor974 (maths, logique, programmation, Blokaly…) dont la réussite débloque la suite : code, message ou page de retour signée [zefor] | ✅ |
+| Formules | Formules mathématiques `$…$` / `$$…$$` (KaTeX, hors ligne) dans les paragraphes et les choix [maths] | ✅ |
+| Cartes | Image à zones cliquables (avec conditions et effets), carte du monde avec lieux visités et chemin parcouru [carte] | ✅ |
+| Confort de lecture | Polices Atkinson Hyperlegible et OpenDyslexic, interlignage, espacement, très contrasté (≥ 7:1), guide de lecture [accessibilite] | ✅ |
 
 ### Côté auteur
 
@@ -59,7 +68,11 @@ Légende : ✅ présent dans cette première version · 🔜 prévu, l'architect
 | Partage | Export / import d'un fichier `.lhz` (zip : `adventure.json` + images) | ✅ |
 | | Publication : déposer le dossier de l'aventure dans `adventures/` du site | ✅ |
 | | Impression / PDF façon livre (A4 ou A5, règles, Feuille d'Aventure, Livre des formules), numéros mélangés | ✅ |
-| | Co-écriture : fusion de deux exports | 🔜 |
+| | Co-écriture : fusion de deux aventures avec rapport (renommages, collisions d'images) [echanges] | ✅ |
+| | Export Twine (Twee 3, archive HTML) et ink, import Twine 1/2 [echanges] | ✅ |
+| | Partage par lien, « lien magique » (aventure dans l'adresse), QR code projetable, fichier [partage] | ✅ |
+| | Statistiques d'auteur : morts par paragraphe, fins atteintes, paragraphes jamais lus [succes] | ✅ |
+| | Onglet Maths : vérification des formules, aperçu, exemples à copier [maths] | ✅ |
 
 ## 2. Architecture
 
@@ -68,8 +81,10 @@ Navigateur (hors ligne après la 1re visite)
 ├── index.html + service worker (sw.js)   ← cache de l'application et des aventures publiées
 ├── js/core/     moteur PUR (aucun accès au DOM) : dés, règles, effets, combat, validation
 ├── js/store/    persistance : IndexedDB (aventures, images, sauvegardes) + import/export zip
-└── js/ui/       interface Preact + htm (sans étape de compilation)
-                 bibliothèque · création du héros · lecture · combat · feuille · éditeur · graphe
+├── js/ui/       interface Preact + htm (sans étape de compilation)
+│                bibliothèque · création du héros · lecture · combat · feuille · éditeur · graphe
+└── js/plugins/  greffons : <nom>/core.js (moteur pur, crochets de js/core/plugins.js)
+                 et <nom>/index.js (interface, registres de js/ui/registry.js) — voir PLUGINS.md
 ```
 
 ### Pourquoi ces choix
@@ -130,6 +145,24 @@ Navigateur (hors ligne après la 1re visite)
 **Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat`, `shop`, `spells` (options `{code, to, cost?}`).
 **Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`.
 **Son** : `meta.sound` (ambiance générale), `sections[n].sound` + `soundLoop`.
+
+#### Champs ajoutés par les greffons
+
+Tous sont facultatifs : une aventure qui ne les a pas s'ouvre et se joue comme avant. Le détail est dans `docs/plugins/<nom>.md`.
+
+| Greffon | Aventure | Effets / conditions / blocs | État de la partie |
+|---|---|---|---|
+| [equipement](plugins/equipement.md) | `rules.equipment: {enabled, slots:[{id,label}], capacity, unarmedPenalty, weaponSlot}` ; objets : `slot`, `attack`, `damage`, `armor`, `small` | `{op:"equip", item}`, `{op:"unequip", slot, take?}` ; `{equipped, negate?}`, `{equippedSlot, negate?}` | `state.equipement` |
+| [compteurs](plugins/compteurs.md) | `rules.counters: [{id, label, start, min?, max?, visible, icon?, triggers:[{when:"gte"\|"lte", value, action:"message"\|"death"\|"victory", message}]}]` | `{op:"counter", counter, add\|set}` (nombre ou dés) ; `{counter, gte\|lte\|eq}` | `state.counters` |
+| [compagnons](plugins/compagnons.md) | `companions: {id: {name, skill, health, damage?, image?, description?}}` | `{op:"companion", companion, action:"join"\|"leave"\|"heal"\|"hurt", amount?}` ; `{companion}`, `{not:{companion}}`, `{companions:true, gte\|lte\|eq}` | `state.companions` |
+| [defis](plugins/defis.md) | — | bloc `{type:"challenge", kind:"text"\|"number"\|"qcm"\|"multi"\|"order", question, answers, attempts, hints:[{text, cost}], success, failure, successEffects, failureEffects, hashed?, salt?}` | `state.blocks[i]` |
+| [zefor](plugins/zefor.md) | `rules.zefor: {origin, publicKeyJwk, codeKey}` | bloc `{type:"zefor", url, exercise?, mode:"code"\|"message"\|"retour", codeHashes, codeSalt, minScore?, success, failure?, allowSkip?, skipTo?, skipEffects?}` | `state.zefor.done` |
+| [maths](plugins/maths.md) | aucun champ : `$…$` et `$$…$$` dans les textes | — | — |
+| [carte](plugins/carte.md) | `meta.worldMap: {image, alt?, places:{nom:{x,y}}, revealUnvisited?, showPath?}` | bloc `{type:"map", image, alt, hotspots:[{x,y,w,h,label,to,if?,hideIfUnavailable?,effects?}]}` ; `{op:"revealPlace", place}` ; `{placeVisited}`, `{placeNotVisited}`, `{placeKnown}` | `state.carte` |
+| [succes](plugins/succes.md) | `achievements: [{id, title, description, secret, when:"end"\|"anytime", ending, cond?}]` | — | magasin local `succes\|<id>`, `stats\|<id>` |
+| [echanges](plugins/echanges.md) | `meta.ifid` (IFID Twine réutilisé à l'export) | — | — |
+| [partage](plugins/partage.md) | aucun champ ; lien `#/importer/<jeton>` (JSON compressé, en-tête versionné + CRC-32) | — | — |
+| [accessibilite](plugins/accessibilite.md) | aucun champ ; préférences du lecteur (`lh.a11y`) | — | — |
 
 ### Publication d'une aventure
 

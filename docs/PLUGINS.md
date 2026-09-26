@@ -87,6 +87,9 @@ Composants et champs réutilisables :
 - Utilisez les jetons de couleur de `css/app.css` (`--ink`, `--muted`, `--line`, `--surface`, `--paper`, `--accent`…) : clair et sombre fonctionnent alors seuls.
 - Accessibilité : chaque champ a un libellé, chaque bouton-icône un `aria-label`, focus visible, `prefers-reduced-motion` respecté.
 - **Hors ligne** : aucune ressource externe (CDN, API). Toute bibliothèque est copiée dans `js/lib/<nom>/` avec sa licence, et ajoutée à `THIRD_PARTY.md`.
+  Ajoutez chaque fichier du greffon (et de sa bibliothèque) à `SHELL` dans `sw.js`, et changez `VERSION` ;
+  `tests/sw.test.mjs` échoue si un `.js` ou un `.css` manque. Les polices citées par une feuille listée dans
+  `FONT_SHEETS` (url(….woff2)) sont mises en cache à l'installation.
 - Pas d'émoji comme icône ; ajoutez au besoin un tracé dans l'objet `P` de `common.js` (signalez-le) ou dessinez un petit SVG dans votre greffon.
 - Le format des aventures reste **rétrocompatible** : une aventure sans vos champs doit s'ouvrir et se jouer normalement.
 - Pas de `confirm()`/`alert()` : utilisez `confirmBox()` et `toast()`.

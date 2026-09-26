@@ -3,8 +3,7 @@
 // la Feuille d'Aventure est générée, les numéros peuvent être mélangés. Impression ou PDF via le navigateur.
 
 import { html, useState, useEffect, useMemo } from '../lib/preact-htm.js';
-import { Icon, AssetImg, markdown } from './common.js';
-import { inlineMarkdown } from './common.js';
+import { Icon, AssetImg, markdown, inlineMarkdown } from './common.js';
 import { loadAdventure } from '../store/library.js';
 import { statLabel, itemName } from '../core/rules.js';
 import { renumber } from '../core/validate.js';

@@ -1,11 +1,10 @@
 // Écran de jeu : création du héros, lecture, blocs interactifs, feuille d'aventure, fins.
 
 import { html, useState, useEffect, useRef, useMemo } from '../lib/preact-htm.js';
-import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox } from './common.js';
+import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox, InlineText } from './common.js';
 import { loadAdventure, assetUrl } from '../store/library.js';
 import { sfx, ambience, speak, stopSpeaking, ttsAvailable } from './audio.js';
 import { prefs } from './common.js';
-import { InlineText } from './common.js';
 import { putSave, listSaves, deleteSave } from '../store/db.js';
 import * as R from '../core/rules.js';
 import * as C from '../core/combat.js';
