@@ -16,7 +16,7 @@
 
 // [carte]
 
-// [succes]
+import './succes/index.js';
 
 // [echanges]
 

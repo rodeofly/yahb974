@@ -13,6 +13,6 @@
 
 // [carte]
 
-// [succes]
+import './succes/core.js';
 
 // [echanges]

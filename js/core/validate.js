@@ -131,7 +131,9 @@ export function remap(adv, mapping) {
     sections[m(id)] = s;
   }
   const sorted = Object.fromEntries(Object.entries(sections).sort((a, b) => (Number(a[0]) || 0) - (Number(b[0]) || 0) || a[0].localeCompare(b[0])));
-  return { ...structuredClone(adv), sections: sorted, start: m(adv.start) };
+  const out = { ...structuredClone(adv), sections: sorted, start: m(adv.start) };
+  for (const f of ext.remap) f(out, m, remapCond); // champs des greffons hors paragraphes (ex. conditions des succès)
+  return out;
 }
 
 /** Renomme un paragraphe et met à jour tous les renvois. */
