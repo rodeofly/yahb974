@@ -2,13 +2,13 @@
 // Le moteur (vérification des réponses, essais, indices, chiffrement) est dans ./core.js. Voir docs/plugins/defis.md.
 
 import { html, useState, useEffect, useRef, useMemo } from '../../lib/preact-htm.js';
-import { Icon, Prose, AssetImg, markdown, confirmBox, toast, loadCSS } from '../../ui/common.js';
+import { Icon, Prose, AssetImg, markdown, confirmBox, toast, loadCSS, prefs, lightImage } from '../../ui/common.js';
 import { registerBlockUI, registerSheetPanel, registerEndingPanel, registerPrintSection } from '../../ui/registry.js';
 import { registerBlock, ext } from '../../core/plugins.js';
 import { describeEffect, statLabel, de } from '../../core/rules.js';
 import { Continue } from '../../ui/play.js';
 import { Text, Num, EffectsEditor, ImageSlot } from '../../ui/editor.js';
-import { sfx } from '../../ui/audio.js';
+import { sfx, speak, ttsAvailable } from '../../ui/audio.js';
 import { assetUrl } from '../../store/library.js';
 import * as D from './core.js';
 
@@ -49,6 +49,29 @@ export function texToFrench(tex) {
 /** Texte brut pour les libellés accessibles et les annonces : les formules sont dites en français. */
 const plain = s => String(s ?? '').replace(/\$\$([\s\S]+?)\$\$|\$([^$]+)\$/g, (m, a, b) => ` ${texToFrench(a ?? b)} `)
   .replace(/[*_`$\\]/g, '').replace(/\s+/g, ' ').trim();
+/** Lecture automatique à voix haute activée (réglage « lire chaque paragraphe », ex. mode des jeunes lecteurs). */
+const autoSpeak = () => ttsAvailable() && prefs.get('ttsAuto', false);
+/**
+ * Ce que dit la lecture à voix haute du paragraphe pour ce défi : titre, question, propositions (ou éléments à ranger,
+ * dans l'ordre affiché, jamais dans le bon ordre) ; une fois le défi terminé, le verdict et l'explication.
+ */
+function speech(b, { adv, state, index }) {
+  const kind = D.kindOf(b);
+  const bs = D.blockState(state, adv, index);
+  if (D.isFinished(bs)) return [D.verdict(b, bs, adv)?.text, plain(b.explanation || '')].filter(Boolean).join(' ');
+  const out = [b.title ? `${b.title}.` : 'Défi.', plain(String(b.question || '').replace(/^\s*[-•]\s+/gm, ''))];
+  if (kind === 'qcm' || kind === 'multi') {
+    out.push(kind === 'qcm' ? D.say(adv, 'Choisissez une réponse :', 'Choisis une réponse :') : D.say(adv, 'Cochez toutes les bonnes réponses :', 'Coche toutes les bonnes réponses :'));
+    D.options(b).forEach((o, i) => out.push(`${D.letter(i)} : ${plain(o.text)}.`));
+  } else if (kind === 'order') {
+    const items = D.orderItems(b);
+    const order = bs.order?.length === items.length ? bs.order : items.map((_, i) => i);
+    out.push(D.say(adv, 'Remettez dans le bon ordre :', 'Remets dans le bon ordre :'));
+    order.forEach((k, pos) => out.push(`${pos + 1} : ${plain(items[k])}.`));
+  }
+  return out.filter(Boolean).join(' ');
+}
+
 /** Coût d'un indice, sans signe : « 1 pièce d’or », « 1 point de Chance » (le mot « Coût » dit déjà qu'on paie). */
 function costText(e, adv) {
   const n = Math.abs(Number(e?.add));
@@ -67,6 +90,7 @@ const KIND_HINT = {
   multi: 'Plusieurs bonnes réponses possibles',
   order: 'Remettez dans le bon ordre',
 };
+const KIND_HINT_TU = { ...KIND_HINT, text: 'Écris ta réponse', number: 'Réponds par un nombre', order: 'Remets dans le bon ordre' };
 const KIND_OPTIONS = [
   ['text', 'Réponse à écrire (mot, phrase, expression)'],
   ['number', 'Nombre'],
@@ -134,6 +158,8 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
       setNotice('');
       sfx.luck(r.correct);
       update(r.state, r.messages.filter(m => !m.verdict));
+      // Lecture à voix haute automatique (mode des jeunes lecteurs) : le verdict, puis l'explication à la fin du défi.
+      if (autoSpeak()) speak([r.feedback, r.finished ? plain(b.explanation || '') : ''].filter(Boolean).join(' '));
       if (!r.correct && !r.finished && inputRef.current) { inputRef.current.focus(); inputRef.current.select?.(); }
     } catch (err) { toast(err.message); } finally { if (alive.current) setBusy(false); }
   };
@@ -142,13 +168,15 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
   const hintWhy = hint ? D.cannotAfford(state, adv, hint.cost || []) : null;
   const askHint = async () => {
     if (!hint || hintWhy) return;
-    if (D.isFatal(state, adv, hint.cost || []) && !(await confirmBox('Payer cet indice vous coûterait la vie. Le demander quand même ?', 'Lire l’indice'))) return;
+    if (D.isFatal(state, adv, hint.cost || []) && !(await confirmBox(D.say(adv, 'Payer cet indice vous coûterait la vie. Le demander quand même ?', 'Payer cet indice te coûterait la vie. Le demander quand même ?'), 'Lire l’indice'))) return;
     const r = D.useHint(state, adv, index);
     sfx.page();
     update(r.state, r.messages.filter(m => !m.verdict));
+    if (r.hint !== null && autoSpeak()) speak(`Indice ${r.hint + 1} : ${plain(b.hints?.[r.hint]?.text || '')}`);
   };
   const abandon = async () => {
-    if (!(await confirmBox(b.failure ? `Renoncer à ce défi ? Vous irez au paragraphe ${b.failure}.` : 'Renoncer à ce défi ?', 'Renoncer'))) return;
+    const label = D.giveUpLabel(adv);
+    if (!(await confirmBox(b.failure ? `${label} ? ${D.say(adv, 'Vous irez', 'Tu iras')} au paragraphe ${b.failure}.` : `${label} ?`, label))) return;
     const r = D.giveUp(state, adv, index);
     sfx.luck(false);
     update(r.state, r.messages.filter(m => !m.verdict));
@@ -164,7 +192,7 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
   };
 
   const max = D.maxAttempts(b);
-  const v = notice ? { tone: 'info', text: notice } : D.verdict(b, bs);
+  const v = notice ? { tone: 'info', text: notice } : D.verdict(b, bs, adv);
   const dest = done ? (bs.solved ? b.success : b.failure) : null;
   const hasChoices = (adv.sections[state.section]?.choices || []).length > 0;
   const reveal = done && !bs.solved && !!b.revealAnswer && !D.isHashed(b);
@@ -176,17 +204,17 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
     const good = opts[i]?.correct;
     if (done && bs.solved && chosen) return { cls: 'good', icon: 'check', text: 'bonne réponse' };
     if (reveal && good) return { cls: 'good', icon: 'check', text: 'bonne réponse' };
-    if (done && !bs.solved && chosen && (reveal || kind === 'qcm')) return { cls: 'bad', icon: 'x', text: kind === 'multi' ? 'à ne pas cocher' : 'votre choix' };
+    if (done && !bs.solved && chosen && (reveal || kind === 'qcm')) return { cls: 'bad', icon: 'x', text: kind === 'multi' ? 'à ne pas cocher' : D.say(adv, 'votre choix', 'ton choix') };
     if (!done && kind === 'qcm' && tried.has(String(i))) return { cls: 'bad', icon: 'x', text: 'déjà essayé' };
     return null;
   };
 
   let field = null;
-  if (kind === 'text') field = html`<label class="field" for=${uid + '-in'}>Votre réponse
+  if (kind === 'text') field = html`<label class="field" for=${uid + '-in'}>${D.say(adv, 'Votre réponse', 'Ta réponse')}
     <input ref=${inputRef} type="text" id=${uid + '-in'} class="defi-input" value=${text} disabled=${done}
       autocomplete="off" autocapitalize="off" spellcheck=${false} onInput=${edit(e => setText(e.target.value))} /></label>`;
   if (kind === 'number') field = html`<div class="field">
-    <label for=${uid + '-in'}>Votre réponse</label>
+    <label for=${uid + '-in'}>${D.say(adv, 'Votre réponse', 'Ta réponse')}</label>
     <div class="row defi-numrow">
       <input ref=${inputRef} type="text" inputmode="decimal" id=${uid + '-in'} class="defi-input defi-num" value=${text} disabled=${done}
         autocomplete="off" aria-describedby=${uid + '-nh'} onInput=${edit(e => setText(e.target.value))} />
@@ -197,7 +225,7 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
     <span class="subtle" id=${uid + '-nh'}>Virgule ou point pour les décimales (3,5 ou 3.5).</span>
   </div>`;
   if (kind === 'qcm' || kind === 'multi') field = html`<fieldset class="defi-opts" disabled=${done}>
-    <legend class="defi-sr">${kind === 'qcm' ? 'Choisissez une seule réponse' : 'Cochez toutes les bonnes réponses'}</legend>
+    <legend class="defi-sr">${kind === 'qcm' ? D.say(adv, 'Choisissez une seule réponse', 'Choisis une seule réponse') : D.say(adv, 'Cochez toutes les bonnes réponses', 'Coche toutes les bonnes réponses')}</legend>
     ${opts.map((o, i) => {
       const chosen = kind === 'qcm' ? choice === i : picked.includes(i);
       const m = mark(i, chosen);
@@ -212,7 +240,7 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
     })}
   </fieldset>`;
   if (kind === 'order') field = html`<div class="stack" style="gap:6px">
-    ${!done && html`<p class="subtle" id=${uid + '-oh'} style="margin:0">Du premier (en haut) au dernier (en bas) : déplacez les éléments avec les boutons fléchés ↑ (monter) et ↓ (descendre).</p>`}
+    ${!done && html`<p class="subtle" id=${uid + '-oh'} style="margin:0">Du premier (en haut) au dernier (en bas) : ${D.say(adv, 'déplacez', 'déplace')} les éléments avec les boutons fléchés ↑ (monter) et ↓ (descendre).</p>`}
     <ol class="defi-order" ref=${listRef} aria-label="Éléments à remettre dans l’ordre">
       ${order.map((k, pos) => html`<li key=${k} data-pos=${pos}>
         <span class="defi-pos" aria-hidden="true">${pos + 1}</span>
@@ -228,8 +256,8 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
 
   return html`<section class="block defi" aria-labelledby=${uid + '-t'}>
     <h3 id=${uid + '-t'}><${Ico} name="quest" />${b.title || 'Défi'}</h3>
-    <p class="defi-kind subtle">${KIND_HINT[kind]} · ${max ? plural(max, 'essai', 'essais') : 'essais illimités'}${hints.length ? ` · ${plural(hints.length, 'indice', 'indices')}` : ''}</p>
-    ${b.image && html`<figure class="illus defi-fig"><${AssetImg} adv=${adv} source=${source} path=${b.image} alt=${b.title ? `Figure : ${b.title}` : 'Figure du défi'} /></figure>`}
+    <p class="defi-kind subtle">${(D.tutoie(adv) ? KIND_HINT_TU : KIND_HINT)[kind]} · ${max ? plural(max, 'essai', 'essais') : 'essais illimités'}${hints.length ? ` · ${plural(hints.length, 'indice', 'indices')}` : ''}</p>
+    ${b.image && html`<figure class="illus defi-fig"><${AssetImg} adv=${adv} source=${source} path=${b.image} alt=${b.alt || (b.title ? `Figure : ${b.title}` : 'Figure du défi')} /></figure>`}
     ${String(b.question || '').trim() && html`<${Prose} text=${b.question} />`}
     <form class="defi-form" onSubmit=${send}>
       ${field}
@@ -250,10 +278,10 @@ function ChallengePlayer({ adv, source, state, index, block: b, update, go }) {
         ${hintWhy && html`<span class="subtle row" style="gap:4px"><${Icon} name="lock" />${hintWhy}</span>`}
       </div>`}
     </div>`}
-    ${!done && b.allowGiveUp && html`<div><button type="button" class="btn small ghost defi-giveup" onClick=${abandon}>Renoncer à ce défi</button></div>`}
+    ${!done && b.allowGiveUp && html`<div><button type="button" class="btn small ghost defi-giveup" onClick=${abandon}>${D.giveUpLabel(adv)}</button></div>`}
     ${reveal && html`<${Reveal} b=${b} kind=${kind} items=${items} />`}
     ${done && String(b.explanation || '').trim() && html`<div class="defi-explain"><span class="eyebrow">Explication</span><${Prose} text=${b.explanation} /></div>`}
-    ${done && !state.ended && (dest ? html`<div><${Continue} to=${dest} go=${go} /></div>` : hasChoices ? html`<p class="subtle" style="margin:0">Poursuivez avec les choix ci-dessous.</p>` : null)}
+    ${done && !state.ended && (dest ? html`<div><${Continue} to=${dest} go=${go} /></div>` : hasChoices ? html`<p class="subtle" style="margin:0">${D.say(adv, 'Poursuivez', 'Poursuis')} avec les choix ci-dessous.</p>` : null)}
   </section>`;
 }
 
@@ -485,6 +513,7 @@ registerBlockUI(D.TYPE, {
   label: 'Défi', icon: 'question', order: 20,
   create: () => ({ kind: 'text', title: '', question: '', answers: [''], attempts: 3, hints: [], success: '', failure: '', allowGiveUp: false, successEffects: [], failureEffects: [], explanation: '', hashed: false }),
   Player: ChallengePlayer,
+  speech,
   Editor: ChallengeEditor,
 });
 
@@ -529,7 +558,7 @@ function Solutions({ adv }) {
   useEffect(() => {
     document.querySelectorAll('.print-book img[data-defi-src]').forEach(async img => {
       if (img.getAttribute('src')) return;
-      try { const u = await assetUrl(adv, 'local', img.dataset.defiSrc); if (u) img.src = u; } catch { /* image absente */ }
+      try { const u = await assetUrl(adv, 'local', img.dataset.defiSrc); if (u) img.src = /\.svg$/i.test(img.dataset.defiSrc) ? u : await lightImage(u, 900); } catch { /* image absente */ }
     });
   });
   const list = D.solutionsOf(adv);

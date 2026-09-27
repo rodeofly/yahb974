@@ -17,7 +17,7 @@ effets sonores et lecture à voix haute, thème clair ou sombre.
 
 **Pour écrire** : éditeur sans code (conditions et effets en listes déroulantes), graphe de l'aventure,
 vérification des renvois, renumérotation façon livre, test depuis n'importe quel paragraphe,
-version imprimable A4 / A5, export et import `.lhz`.
+version imprimable A4 / A5 (illustrations allégées par défaut : un PDF de quelques Mo au lieu d'une centaine), export et import `.lhz`.
 
 **Greffons** (chacun documenté dans [docs/plugins/](docs/plugins/), architecture dans [docs/PLUGINS.md](docs/PLUGINS.md)) :
 

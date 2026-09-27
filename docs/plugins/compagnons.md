@@ -90,6 +90,10 @@ Le bouton « Estimer la difficulté » de l'éditeur calcule les chances du hér
 ```
 
 **Effet** : `{ "op": "companion", "companion": "kaya", "action": "join" | "leave" | "heal" | "hurt", "amount": 3 }`
+
+**Aventure sans combat** : si aucun paragraphe (ni aucune variante de mode) ne contient de bloc `combat`, la Feuille d'Aventure,
+l'écran de fin et la version imprimable ne montrent des compagnons que le portrait, le nom et la description (ni HABILETÉ,
+ni ENDURANCE, ni état de blessure, ni dégâts). La règle `"rules": { "companionStats": true | false }` force l'un ou l'autre.
 (`amount` facultatif : ENDURANCE à l'arrivée pour `join`, points rendus pour `heal` — absent = tout —,
 points perdus pour `hurt` — absent = 2).
 

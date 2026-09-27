@@ -66,6 +66,9 @@ export function normalizeAdventure(adv) {
   return a;
 }
 
+/** Raison affichée par défaut sous une fin « death » (l'écran de fin la masque quand la fin a son propre titre). */
+export const GENERIC_END = 'Votre aventure s’achève ici.';
+
 export const statLabel = (adv, id) => adv.rules.stats.find(s => s.id === id)?.label || id;
 export const itemName = (adv, id) => adv.items[id]?.name || id;
 
@@ -340,7 +343,7 @@ export function enter(state, adv, sectionId, { viaEffects = [] } = {}) {
   }
   if (sec.ending && !s.ended) {
     s.ended = sec.ending;
-    s.endReason = sec.ending === 'victory' ? 'Vous avez réussi votre quête.' : 'Votre aventure s’achève ici.';
+    s.endReason = sec.ending === 'victory' ? 'Vous avez réussi votre quête.' : GENERIC_END;
   }
   s.log = [...s.log, { turn: s.turn, section: s.section, messages: messages.map(m => m.text) }].slice(-200);
   return { state: s, messages };

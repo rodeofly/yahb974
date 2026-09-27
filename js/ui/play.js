@@ -67,7 +67,7 @@ export function Play({ id, query }) {
     <h1>Reprendre une partie ?</h1>
     <div class="stack">
       ${saves.map(s => html`<div class="rollrow" key=${s.slot}>
-        <div><b>${s.hero || 'Héros'}</b><div class="subtle">${s.state.ended === 'death' ? 'Mort' : s.state.ended === 'victory' ? 'Victoire' : `Paragraphe ${s.section}`}</div></div>
+        <div><b>${s.hero || 'Héros'}</b><div class="subtle">${endLabel(effective(adv, s.state), s.state) || `Paragraphe ${s.section}`}</div></div>
         <span class="subtle">${new Date(s.savedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}${s.slot === 'auto' ? ' · automatique' : ''}</span>
         <div class="row">
           <button class="btn primary small" onClick=${() => { slot.current = s.slot; setGame({ state: s.state, messages: [], stamp: 1 }); setPhase('read'); }}>Reprendre</button>
@@ -159,7 +159,9 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const topRef = useRef();
   const [talking, setTalking] = useState(false);
   const readAloud = () => {
-    const lines = [sec.title, sec.text, ...R.choicesFor(state, adv).filter(c => c.available).map((c, i) => `Choix ${i + 1} : ${c.text || 'continuer'}.`)];
+    // Les blocs visibles (défi, carte…) se lisent aussi : question, propositions, consigne (voir `speech` dans registry.js).
+    const blockLines = state.ended ? [] : (sec.blocks || []).map((b, i) => { try { return ui.blocks.get(b.type)?.speech?.(b, { adv, state, index: i }) || ''; } catch { return ''; } });
+    const lines = [sec.title, sec.text, ...blockLines, ...R.choicesFor(state, adv).filter(c => c.available).map((c, i) => `Choix ${i + 1} : ${c.text || 'continuer'}.`)];
     setTalking(true);
     speak(lines.filter(Boolean).join('. '), { onEnd: () => setTalking(false) });
   };
@@ -185,7 +187,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
         ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
           : html`<button class="btn small" onClick=${readAloud}><${Icon} name="speaker" />Écouter</button>`}
       </div>`}
-      ${sec.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${sec.image} alt=${sec.title || `Illustration du paragraphe ${state.section}`} onClick=${e => setLightbox(e.target.src)} /></figure>`}
+      ${sec.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${sec.image} alt=${sec.alt || sec.title || `Illustration du paragraphe ${state.section}`} onClick=${e => setLightbox(e.target.src)} /></figure>`}
       <${Prose} text=${sec.text} />
       ${messages?.length > 0 && html`<div class="msgs">${messages.map(m => html`<div class=${'msg ' + m.kind}><${Icon} name=${m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`}
       ${!state.ended && (sec.blocks || []).map((b, i) => html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`)}
@@ -209,19 +211,29 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
 }
 
 /* ---------- fins ---------- */
+/** Libellé d'une partie terminée (liste des sauvegardes) : titre de fin propre au paragraphe, sinon Victoire / Mort. */
+export function endLabel(adv, state) {
+  if (!state?.ended) return '';
+  const sec = adv?.sections?.[state.section] || {};
+  return sec.endingTitle || (state.ended === 'victory' ? 'Victoire' : state.ended === 'death' ? 'Mort' : 'Fin');
+}
+
 function Ending({ adv, state, onRestart, onBack }) {
   const win = state.ended === 'victory';
   // Une fin peut avoir son propre titre et sa propre icône (ex. « Le groupe se replie », icône lune pour les petits).
   const sec = adv.sections[state.section] || {};
   const icon = sec.endingIcon || (win ? 'crown' : 'skull');
   const title = sec.endingTitle || (win ? 'Victoire !' : 'Votre aventure s’achève ici');
+  // Fin personnalisée (titre ou icône propres, ex. un repli) : ni son funèbre, ni phrase générique « Votre aventure s’achève ici. ».
+  const custom = !win && !!(sec.endingTitle || sec.endingIcon);
+  const reason = custom && state.endReason === R.GENERIC_END ? '' : state.endReason || '';
   const visited = Object.keys(state.visited).length;
   const total = Object.keys(adv.sections).length;
-  useEffect(() => { win ? sfx.win() : sfx.death(); }, []);
+  useEffect(() => { win ? sfx.win() : custom ? sfx.page() : sfx.death(); }, []);
   return html`<section class="ending">
     <span class="mark"><${Icon} name=${icon} /></span>
     <h2>${title}</h2>
-    <p class="muted">${state.endReason || ''}</p>
+    ${reason && html`<p class="muted">${reason}</p>`}
     <p>${visited} paragraphe${visited > 1 ? 's' : ''} lu${visited > 1 ? 's' : ''} sur ${total} · ${state.turn} étape${state.turn > 1 ? 's' : ''}</p>
     ${sorted(ui.endingPanels).map(p => html`<${p.Panel} adv=${adv} state=${state} />`)}
     <div class="row" style="justify-content:center">
@@ -441,7 +453,12 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
       <span class="row" style="gap:6px"><${Icon} name="coin" /><b class="mono">${state.gold}</b> pièces d’or</span>
       <span class="row" style="gap:6px"><${Icon} name="bread" /><b class="mono">${state.provisions}</b> repas</span>
     </div>
-    <button class="btn small" disabled=${!state.provisions || state.ended} onClick=${() => { const r = R.eat(state, adv); update(r.state, r.messages); }}>Manger un repas (+${adv.rules.meal.heal} ${R.statLabel(adv, adv.rules.meal.stat)})</button>
+    ${(() => {
+      // Inutile de manger quand la caractéristique soignée est au maximum (sauf si les journées exigent un repas).
+      const st = state.stats[adv.rules.meal.stat];
+      const full = !!st && st.cur >= st.init && !(adv.rules.time?.enabled && adv.rules.time.mealRequired !== false);
+      return html`<button class="btn small" disabled=${!state.provisions || state.ended || full} title=${full ? `${R.statLabel(adv, adv.rules.meal.stat)} déjà au maximum` : ''} onClick=${() => { const r = R.eat(state, adv); update(r.state, r.messages); }}>Manger un repas (+${adv.rules.meal.heal} ${R.statLabel(adv, adv.rules.meal.stat)})</button>`;
+    })()}
     <div class="stack" style="gap:6px"><span class="eyebrow">Sac à dos</span>
       ${inv.length ? html`<ul class="inv">${inv.map(([id, q]) => { const it = adv.items[id] || { name: id }; return html`<li title=${it.description || ''}>
         <span>${it.name}${q > 1 ? ` ×${q}` : ''}</span>

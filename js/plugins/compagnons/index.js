@@ -24,6 +24,23 @@ const HP = adv => statLabel(adv, adv.rules.combat.health);
 const pct = (v, max) => Math.max(0, Math.min(100, (100 * v) / Math.max(1, max)));
 /** État lisible sans couleur (noms, pas d'adjectif genré). */
 const shape = (h, max) => (h >= max ? 'Indemne' : h * 3 <= max ? 'Blessures graves' : 'Blessures légères');
+/**
+ * Montrer les caractéristiques de combat des compagnons (habileté, santé, blessures, dégâts) ? Seulement si l'aventure
+ * contient au moins un combat, sauf réglage explicite `rules.companionStats` (true / false). Sans combat, un compagnon
+ * n'est qu'un portrait, un nom et une description.
+ */
+const statsCache = new WeakMap();
+export function companionStats(adv) {
+  const r = adv?.rules?.companionStats;
+  if (typeof r === 'boolean') return r;
+  if (!adv || typeof adv !== 'object') return true;
+  if (!statsCache.has(adv)) {
+    const hasCombat = Object.values(adv.sections || {}).some(sec => [sec, ...Object.values(sec?.variants || {})]
+      .some(v => (v?.blocks || []).some(b => b?.type === 'combat')));
+    statsCache.set(adv, hasCombat);
+  }
+  return statsCache.get(adv);
+}
 const optionsOf = adv => Object.entries(adv.companions || {}).map(([id, c]) => [id, c.name || id]);
 
 /** Portrait carré ; l'initiale reste visible tant que l'image charge (ou s'il n'y en a pas). */
@@ -45,16 +62,17 @@ function Bar({ adv, v, max, name }) {
 function SheetPanel({ adv, source, state }) {
   if (!Object.keys(adv.companions || {}).length) return null;
   const list = companionsOf(state, adv);
+  const stats = companionStats(adv);
   return html`<section class="stack cmp-sheet" style="gap:6px" aria-label="Compagnons">
     <span class="eyebrow cmp-eyebrow"><${GroupIcon} />Compagnons${list.length ? ` (${list.length})` : ''}</span>
     ${list.length ? html`<ul class="cmp-list">${list.map(c => html`<li class="cmp-card" key=${c.id}>
       <${Portrait} adv=${adv} source=${source} c=${c} />
       <div class="cmp-body">
-        <div class="cmp-head"><b class="cmp-name">${c.name}</b><span class="cmp-shape">${shape(c.health, c.max)}</span></div>
-        <div class="statline"><span>${SK(adv)}</span><b class="mono">${c.skill}</b></div>
+        <div class="cmp-head"><b class="cmp-name">${c.name}</b>${stats && html`<span class="cmp-shape">${shape(c.health, c.max)}</span>`}</div>
+        ${stats && html`<div class="statline"><span>${SK(adv)}</span><b class="mono">${c.skill}</b></div>
         <div class="statline"><span>${HP(adv)}</span><b class="mono cmp-hp">${c.health}<small> / ${c.max}</small></b></div>
         <${Bar} adv=${adv} v=${c.health} max=${c.max} name=${c.name} />
-        <div class="statline subtle"><span>Dégâts infligés</span><b class="mono">${c.damage}</b></div>
+        <div class="statline subtle"><span>Dégâts infligés</span><b class="mono">${c.damage}</b></div>`}
         ${c.description && html`<p class="cmp-desc" lang="fr">${c.description}</p>`}
       </div>
     </li>`)}</ul>` : html`<span class="subtle">Personne ne vous accompagne pour l’instant.</span>`}
@@ -100,7 +118,8 @@ function CombatPanel({ adv, source, state, combat: c }) {
 function EndingPanel({ adv, state }) {
   const list = companionsOf(state, adv);
   if (!list.length) return null;
-  return html`<p class="cmp-ending"><${GroupIcon} /><span>À vos côtés jusqu’au bout : ${list.map((c, i) => html`${i ? (i === list.length - 1 ? ' et ' : ', ') : ''}<b>${c.name}</b> (${c.health} / ${c.max})`)}.</span></p>`;
+  const stats = companionStats(adv);
+  return html`<p class="cmp-ending"><${GroupIcon} /><span>À vos côtés jusqu’au bout : ${list.map((c, i) => html`${i ? (i === list.length - 1 ? ' et ' : ', ') : ''}<b>${c.name}</b>${stats ? ` (${c.health} / ${c.max})` : ''}`)}.</span></p>`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -232,6 +251,10 @@ registerConditionUI({
 function PrintRules({ adv }) {
   if (!Object.keys(adv.companions || {}).length) return null;
   const S = SK(adv).toUpperCase(), H = HP(adv).toUpperCase();
+  if (!companionStats(adv)) return html`<div class="cmp-print">
+    <h3>Vos compagnons</h3>
+    <p>Au fil de l'aventure, des compagnons peuvent se joindre à vous, puis vous quitter. Notez leur nom dans la case Compagnons de votre Feuille d'Aventure, et rayez-le quand ils partent.</p>
+  </div>`;
   return html`<div class="cmp-print">
     <h3>Vos compagnons</h3>
     <p>Au fil de l'aventure, des compagnons peuvent se joindre à vous. Notez chacun d'eux dans la case Compagnons de votre Feuille d'Aventure,
@@ -248,6 +271,10 @@ function PrintSheet({ adv }) {
   const n = Object.keys(adv.companions || {}).length;
   if (!n) return null;
   const rows = Math.min(6, Math.max(3, n));
+  if (!companionStats(adv)) return html`<div class="pr-box pr-wide cmp-pr-box"><b>COMPAGNONS</b>
+    <table class="cmp-pr-table"><thead><tr><th>Nom</th></tr></thead>
+      <tbody>${Array.from({ length: rows }, () => html`<tr><td></td></tr>`)}</tbody></table>
+  </div>`;
   return html`<div class="pr-box pr-wide cmp-pr-box"><b>COMPAGNONS</b>
     <table class="cmp-pr-table"><thead><tr><th>Nom</th><th>${SK(adv).toUpperCase()}</th><th>${HP(adv).toUpperCase()} (départ / actuelle)</th><th>Dégâts</th></tr></thead>
       <tbody>${Array.from({ length: rows }, () => html`<tr><td></td><td></td><td></td><td></td></tr>`)}</tbody></table>

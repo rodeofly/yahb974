@@ -20,3 +20,10 @@ test('une fin peut avoir un titre et une icône propres, remplacés par la varia
   const { state } = createHero(petit, { seed: 1 });
   assert.equal(start(state, petit).state.ended, 'death');
 });
+
+test('fin personnalisée : raison générique connue, pour que l’écran de fin puisse la taire', async () => {
+  const { GENERIC_END } = await import('../js/core/rules.js');
+  const adv = normalizeAdventure({ id: 'fins2', start: '1', sections: { '1': { text: 'Repli.', ending: 'death', endingTitle: 'Repli dans la nuit', endingIcon: 'moon' } } });
+  const { state } = createHero(adv, { seed: 1 });
+  assert.equal(start(state, adv).state.endReason, GENERIC_END);
+});

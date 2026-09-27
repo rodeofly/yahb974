@@ -211,6 +211,7 @@ export function Print({ id, query = {} }) {
   const [shuffle, setShuffle] = useState(false);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6));
   const [images, setImages] = useState(true);
+  const [light, setLight] = useState(query.light !== '0'); // illustrations allégées : PDF bien plus petit
   const [cols, setCols] = useState(true);
   const [format, setFormat] = useState('A5');
   // Options des greffons (ex. version selon le mode de jeu) : appliquées à l'aventure avant la renumérotation.
@@ -245,6 +246,7 @@ export function Print({ id, query = {} }) {
         <label class="chk"><input type="checkbox" checked=${shuffle} onChange=${e => setShuffle(e.target.checked)} /> Mélanger les numéros</label>
         ${shuffle && html`<button class="btn small" onClick=${() => setSeed(Math.floor(Math.random() * 1e6))}>Autre tirage</button>`}
         <label class="chk"><input type="checkbox" checked=${images} onChange=${e => setImages(e.target.checked)} /> Illustrations</label>
+        ${images && html`<label class="chk"><input type="checkbox" checked=${light} onChange=${e => setLight(e.target.checked)} /> Illustrations légères (PDF plus petit)</label>`}
         <label class="chk"><input type="checkbox" checked=${cols} onChange=${e => setCols(e.target.checked)} /> Deux colonnes</label>
         <div class="seg" role="group" aria-label="Format">${['A5', 'A4'].map(f => html`<button aria-pressed=${String(format === f)} onClick=${() => setFormat(f)}>${f}</button>`)}</div>
         <button class="btn primary" onClick=${() => window.print()}><${Icon} name="print" />Imprimer ou enregistrer en PDF</button>
@@ -255,7 +257,7 @@ export function Print({ id, query = {} }) {
 
     <article class="print-book" lang="fr">
       <section class="pr-page pr-cover">
-        ${images && adv.meta.cover && html`<div class="pr-cover-img"><${AssetImg} adv=${adv} source=${data.source} path=${adv.meta.cover} alt="" eager /></div>`}
+        ${images && adv.meta.cover && html`<div class="pr-cover-img"><${AssetImg} adv=${adv} source=${data.source} path=${adv.meta.cover} alt="" eager light=${light ? 1200 : 0} /></div>`}
         <h1>${adv.meta.title}</h1>
         ${adv.meta.author && html`<p class="pr-author">${adv.meta.author}</p>`}
         ${adv.meta.description && html`<p class="pr-desc">${adv.meta.description}</p>`}
@@ -267,7 +269,7 @@ export function Print({ id, query = {} }) {
         <p class="pr-start">Commencez votre lecture au paragraphe ${adv.start}.</p>
         ${ids.map(i => { const s = adv.sections[i]; return html`<section class="pr-sec" key=${i}>
           <h3 class="pr-num">${i}</h3>
-          ${images && s.image && html`<div class="pr-img"><${AssetImg} adv=${adv} source=${data.source} path=${s.image} alt="" eager /></div>`}
+          ${images && s.image && html`<div class="pr-img"><${AssetImg} adv=${adv} source=${data.source} path=${s.image} alt="" eager light=${light ? 900 : 0} /></div>`}
           <div class="pr-text" dangerouslySetInnerHTML=${{ __html: sectionHtml(s, adv) }}></div>
         </section>`; })}
       </section>

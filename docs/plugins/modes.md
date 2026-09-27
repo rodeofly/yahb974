@@ -123,6 +123,9 @@ pour la partager). Tous les paragraphes sont imprimés, même ceux qui ne serven
 }
 ```
 
+- **Fins douces** : un paragraphe de fin (ou sa variante) peut porter `endingTitle` (« Repli dans la nuit ») et `endingIcon`
+  (`moon`…). Une telle fin `death` personnalisée n'a ni le son funèbre ni la phrase « Votre aventure s’achève ici. », et la liste
+  des sauvegardes affiche son titre au lieu de « Mort ».
 - `rules.modes` : liste ordonnée (le premier est le mode par défaut ; absent ou `[]` = pas de modes).
   `id` sert dans les liens et le fichier (il ne change pas quand on renomme le mode).
   `icon` : `pousse`, `arbuste`, `arbre`, `boussole`, `loupe`, `montagne`, `lanterne`, `cerveau`, `map`, `star`, `heart`,

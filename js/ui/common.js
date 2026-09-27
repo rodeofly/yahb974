@@ -190,9 +190,44 @@ export function inlineMarkdown(src = '') {
 export const InlineText = ({ text }) => html`<span dangerouslySetInnerHTML=${{ __html: inlineMarkdown(text) }}></span>`;
 
 /* ---------- image d'une aventure ---------- */
-export function AssetImg({ adv, source, path, alt = '', onClick, bump, eager }) {
+/**
+ * Version allégée d'une image pour l'impression : JPEG d'au plus `max` pixels de côté, sur fond blanc.
+ * Chrome garde un JPEG tel quel dans un PDF (compression DCT), alors qu'il réencode un WebP ou un PNG sans perte :
+ * une illustration passe ainsi d'environ 2 Mo à 100-200 Ko dans le PDF. En cas d'échec, l'adresse d'origine.
+ */
+const lightCache = new Map();
+export function lightImage(url, max = 900, quality = 0.82) {
+  if (!url || typeof document === 'undefined') return Promise.resolve(url);
+  const key = `${url}|${max}|${quality}`;
+  if (!lightCache.has(key)) lightCache.set(key, new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) { resolve(url); return; }
+        const k = Math.min(1, max / Math.max(w, h));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+        const g = c.getContext('2d');
+        g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => resolve(b ? URL.createObjectURL(b) : url), 'image/jpeg', quality);
+      } catch { resolve(url); }
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  }));
+  return lightCache.get(key);
+}
+
+/** `light` (nombre de pixels, impression) : image allégée, voir lightImage. */
+export function AssetImg({ adv, source, path, alt = '', onClick, bump, eager, light = 0 }) {
   const [url, setUrl] = useState(null);
-  useEffect(() => { let on = true; setUrl(null); assetUrl(adv, source, path).then(u => on && setUrl(u)); return () => { on = false; }; }, [adv?.id, path, bump]);
+  useEffect(() => {
+    let on = true; setUrl(null);
+    assetUrl(adv, source, path).then(u => (light && u && !/\.svg$/i.test(path || '') ? lightImage(u, light) : u)).then(u => on && setUrl(u));
+    return () => { on = false; };
+  }, [adv?.id, path, bump, light]);
   if (!path || !url) return null;
   return html`<img src=${url} alt=${alt} loading=${eager ? 'eager' : 'lazy'} onClick=${onClick} />`;
 }

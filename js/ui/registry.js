@@ -4,7 +4,7 @@
 // Voir docs/PLUGINS.md.
 
 export const ui = {
-  /** type → { label, icon, order, create(adv) → bloc, Player(props), Editor(props) } */
+  /** type → { label, icon, order, create(adv) → bloc, Player(props), Editor(props), speech?(bloc, { adv, state, index }) → texte lu à voix haute avec le paragraphe } */
   blocks: new Map(),
   /** op → { label, order, blank(adv) → effet, Fields({ e, upd, adv }) } */
   effects: new Map(),

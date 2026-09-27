@@ -329,3 +329,30 @@ test('éditeur : conversion des réponses d’un type à l’autre', () => {
   assert.deepEqual(D.convertAnswers({ kind: 'text', answers: ['douze', '12'] }, 'number'), { value: 12, tolerance: 0 });
   assert.deepEqual(D.convertAnswers({ kind: 'text', hashed: true, answers: ['ab'] }, 'number'), D.defaultAnswers('number'));
 });
+
+test('indices : une caractéristique ne paie pas plus qu’elle n’a (Chance à 0 : indice refusé)', () => {
+  const adv = adventure();
+  const s0 = at(adv, '1');
+  const broke = { ...s0, stats: { ...s0.stats, chance: { ...s0.stats.chance, cur: 0 } } };
+  assert.equal(D.cannotAfford(broke, adv, D.nextHint(broke, adv, 0).cost), 'Il vous faut 1 point de Chance.');
+  const r = D.useHint(broke, adv, 0);
+  assert.equal(r.hint, null);
+  assert.equal(r.state.stats.chance.cur, 0);
+  // La santé du combat (Endurance) reste payable : isFatal demande alors confirmation.
+  assert.equal(D.cannotAfford(broke, adv, [{ op: 'stat', stat: 'endurance', add: -99 }]), null);
+});
+
+test('messages tutoyés et libellé d’abandon réglables (rules.defis)', () => {
+  const adv = adventure();
+  adv.rules.defis = { tu: true, giveUpLabel: 'Passer l’énigme' };
+  assert.equal(D.giveUpLabel(adv), 'Passer l’énigme');
+  assert.equal(D.giveUpLabel(adventure()), 'Renoncer à ce défi');
+  const b = adv.sections['1'].blocks[0];
+  assert.equal(D.verdict({ ...b, attempts: 0 }, { tries: 1, last: { correct: false } }, adv).text, 'Ce n’est pas ça. Essaie encore !');
+  assert.equal(D.verdict(b, { tries: 1, last: { correct: false } }, adv).text, 'Ce n’est pas ça. Il te reste 2 essais.');
+  assert.equal(D.verdict(b, { tries: 1, last: { correct: false } }).text, 'Ce n’est pas ça. Il vous reste 2 essais.');
+  const s = at(adv, '1');
+  const r1 = D.submit(s, adv, 0, 'Paris');
+  assert.equal(D.submit(r1.state, adv, 0, 'paris').feedback, 'Tu as déjà proposé cette réponse : essaie autre chose.');
+  assert.equal(D.inputProblem(b, '', adv), 'Écris d’abord ta réponse.');
+});

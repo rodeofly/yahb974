@@ -14,7 +14,7 @@
 // Voir docs/plugins/defis.md.
 
 import { registerBlock, registerEnterHook, registerHeroInit } from '../../core/plugins.js';
-import { applyEffects, check, itemName } from '../../core/rules.js';
+import { applyEffects, check, itemName, statLabel, de } from '../../core/rules.js';
 import { makeRng } from '../../core/dice.js';
 import { checkEffects } from '../../core/validate.js';
 
@@ -26,6 +26,12 @@ export const HASHABLE = new Set(['text', 'number']);
 export const kindOf = b => (KINDS.includes(b?.kind) ? b.kind : 'text');
 export const isHashed = b => !!b?.hashed && HASHABLE.has(kindOf(b));
 export const maxAttempts = b => Math.max(0, Math.floor(Number(b?.attempts) || 0));
+/** Tutoiement des messages du joueur (règle `rules.defis.tu`) : say(adv, 'Essayez encore.', 'Essaie encore.'). */
+export const tutoie = adv => !!adv?.rules?.defis?.tu;
+export const say = (adv, vous, tu) => (tutoie(adv) ? tu : vous);
+/** Libellé du bouton d'abandon (règle `rules.defis.giveUpLabel`), par défaut « Renoncer à ce défi ». */
+export const giveUpLabel = adv => String(adv?.rules?.defis?.giveUpLabel || '').trim() || 'Renoncer à ce défi';
+
 export const letter = i => String.fromCharCode(65 + (i % 26)) + (i >= 26 ? String(Math.floor(i / 26)) : '');
 
 /* ------------------------------------------------------------------ */
@@ -219,15 +225,15 @@ export async function checkAnswerAsync(b, input, adv) {
 }
 
 /** Raison pour laquelle une saisie n'est pas recevable (aucun essai n'est alors consommé), ou null. */
-export function inputProblem(b, input) {
+export function inputProblem(b, input, adv) {
   const kind = kindOf(b);
-  if (kind === 'text') return normalizeText(input, textOpts(b)) ? null : 'Écrivez d’abord votre réponse.';
+  if (kind === 'text') return normalizeText(input, textOpts(b)) ? null : say(adv, 'Écrivez d’abord votre réponse.', 'Écris d’abord ta réponse.');
   if (kind === 'number') {
-    if (!String(input ?? '').trim()) return 'Écrivez d’abord un nombre.';
-    return Number.isFinite(numberInput(b, input)) ? null : 'Écrivez seulement un nombre (par exemple 3,5 ou −2).';
+    if (!String(input ?? '').trim()) return say(adv, 'Écrivez d’abord un nombre.', 'Écris d’abord un nombre.');
+    return Number.isFinite(numberInput(b, input)) ? null : say(adv, 'Écrivez seulement un nombre (par exemple 3,5 ou −2).', 'Écris seulement un nombre (par exemple 3,5 ou −2).');
   }
-  if (kind === 'qcm') return input !== null && input !== undefined && input !== '' && Number.isInteger(Number(input)) && Number(input) >= 0 && Number(input) < options(b).length ? null : 'Choisissez d’abord une réponse.';
-  if (kind === 'multi') return Array.isArray(input) && input.length ? null : 'Cochez d’abord au moins une case.';
+  if (kind === 'qcm') return input !== null && input !== undefined && input !== '' && Number.isInteger(Number(input)) && Number(input) >= 0 && Number(input) < options(b).length ? null : say(adv, 'Choisissez d’abord une réponse.', 'Choisis d’abord une réponse.');
+  if (kind === 'multi') return Array.isArray(input) && input.length ? null : say(adv, 'Cochez d’abord au moins une case.', 'Coche d’abord au moins une case.');
   const n = orderItems(b).length;
   const arr = Array.isArray(input) ? input.map(Number) : [];
   return arr.length === n && new Set(arr).size === n ? null : 'L’ordre proposé est incomplet.';
@@ -289,16 +295,16 @@ export function exitOf(state, adv, index) {
 }
 
 /** Retour à afficher d'après l'état : { tone: 'ok'|'ko'|'info', text } ou null. */
-export function verdict(b, bs) {
+export function verdict(b, bs, adv) {
   if (!bs) return null;
   if (bs.solved) return { tone: 'ok', text: 'Bonne réponse !' };
-  if (bs.gaveUp) return { tone: 'info', text: 'Vous avez renoncé à ce défi.' };
+  if (bs.gaveUp) return { tone: 'info', text: say(adv, 'Vous avez renoncé à ce défi.', 'Tu as passé ce défi.') };
   if (!bs.last) return null;
   const max = maxAttempts(b);
-  if (bs.failed) return { tone: 'ko', text: 'Ce n’est pas ça. Vous n’avez plus d’essai.' };
-  if (!max) return { tone: 'ko', text: 'Ce n’est pas ça. Essayez encore.' };
+  if (bs.failed) return { tone: 'ko', text: say(adv, 'Ce n’est pas ça. Vous n’avez plus d’essai.', 'Ce n’est pas ça. Tu n’as plus d’essai.') };
+  if (!max) return { tone: 'ko', text: say(adv, 'Ce n’est pas ça. Essayez encore.', 'Ce n’est pas ça. Essaie encore !') };
   const left = max - bs.tries;
-  return { tone: 'ko', text: `Ce n’est pas ça. Il vous reste ${left} essai${left > 1 ? 's' : ''}.` };
+  return { tone: 'ko', text: `Ce n’est pas ça. ${say(adv, 'Il vous reste', 'Il te reste')} ${left} essai${left > 1 ? 's' : ''}.` };
 }
 
 function record(s, index, nb) {
@@ -319,10 +325,10 @@ export function submit(state, adv, index, input, verdictOverride) {
   if (!b) return noop(state, '');
   const bs = blockState(state, adv, index);
   if (isFinished(bs)) return { ...noop(state, ''), correct: bs.solved, finished: true };
-  const problem = inputProblem(b, input);
+  const problem = inputProblem(b, input, adv);
   if (problem) return noop(state, problem);
   const key = answerKey(b, input);
-  if (bs.wrong.includes(key)) return noop(state, 'Vous avez déjà proposé cette réponse : essayez autre chose.');
+  if (bs.wrong.includes(key)) return noop(state, say(adv, 'Vous avez déjà proposé cette réponse : essayez autre chose.', 'Tu as déjà proposé cette réponse : essaie autre chose.'));
   let correct = verdictOverride;
   if (typeof correct !== 'boolean') {
     const r = checkAnswer(b, input, adv);
@@ -343,7 +349,7 @@ export function submit(state, adv, index, input, verdictOverride) {
   s.blocks = { ...s.blocks, [index]: nb };
   const finished = isFinished(nb);
   if (finished) record(s, index, nb);
-  const v = verdict(b, nb);
+  const v = verdict(b, nb, adv);
   return { state: s, messages: [{ kind: correct ? 'gain' : 'loss', text: v.text, verdict: true }, ...r.messages], correct, finished, counted: true, feedback: v.text };
 }
 
@@ -352,18 +358,27 @@ export async function submitAsync(state, adv, index, input) {
   const b = blockAt(state, adv, index);
   if (!b || !isHashed(b)) return submit(state, adv, index, input);
   const bs = blockState(state, adv, index);
-  if (isFinished(bs) || inputProblem(b, input) || bs.wrong.includes(answerKey(b, input))) return submit(state, adv, index, input, false);
+  if (isFinished(bs) || inputProblem(b, input, adv) || bs.wrong.includes(answerKey(b, input))) return submit(state, adv, index, input, false);
   return submit(state, adv, index, input, await checkAnswerAsync(b, input, adv));
 }
 
-/** Raison pour laquelle le héros ne peut pas payer ces effets (or, repas, objet), ou null. */
+/**
+ * Raison pour laquelle le héros ne peut pas payer ces effets (or, repas, objet, points d'une caractéristique), ou null.
+ * Une caractéristique ne peut pas payer plus qu'elle n'a (Chance à 0 : l'indice est refusé), sauf celle de la santé
+ * du combat, dont la perte peut tuer : isFatal demande alors confirmation.
+ */
 export function cannotAfford(state, adv, effects = []) {
+  const il = say(adv, 'Il vous faut', 'Il te faut');
   for (const e of effects || []) {
     if (e.if && !check(e.if, state, adv)) continue;
     const n = -Number(e.add || 0);
-    if (e.op === 'gold' && n > 0 && (state.gold || 0) < n) return `Il vous faut ${n} pièce${n > 1 ? 's' : ''} d’or.`;
-    if (e.op === 'provisions' && n > 0 && (state.provisions || 0) < n) return `Il vous faut ${n} repas.`;
-    if (e.op === 'take' && !state.inventory?.[e.item]) return `Il vous faut : ${itemName(adv, e.item)}.`;
+    if (e.op === 'gold' && n > 0 && (state.gold || 0) < n) return `${il} ${n} pièce${n > 1 ? 's' : ''} d’or.`;
+    if (e.op === 'provisions' && n > 0 && (state.provisions || 0) < n) return `${il} ${n} repas.`;
+    if (e.op === 'take' && !state.inventory?.[e.item]) return `${il} : ${itemName(adv, e.item)}.`;
+    if (e.op === 'stat' && e.set === undefined && !e.addInitial && n > 0 && e.stat !== adv?.rules?.combat?.health) {
+      const cur = state.stats?.[e.stat]?.cur;
+      if (cur !== undefined && cur < n) return `${il} ${n} point${n > 1 ? 's' : ''} ${de(statLabel(adv, e.stat), '’')}.`;
+    }
   }
   return null;
 }
@@ -402,7 +417,7 @@ export function giveUp(state, adv, index) {
   const nb = { ...structuredClone(bs), failed: true, gaveUp: true };
   s.blocks = { ...s.blocks, [index]: nb };
   record(s, index, nb);
-  return { state: s, messages: [{ kind: 'info', text: 'Vous renoncez à ce défi.', verdict: true }, ...r.messages] };
+  return { state: s, messages: [{ kind: 'info', text: say(adv, 'Vous renoncez à ce défi.', 'Tu passes ce défi.'), verdict: true }, ...r.messages] };
 }
 
 /** Bilan de la partie : { solved, failed, hints, total } (total = défis présents dans l'aventure). */

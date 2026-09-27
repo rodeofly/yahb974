@@ -136,6 +136,25 @@ Forme de `answers` selon `kind` :
 | `order` | `["Lundi", "Mardi", "Mercredi"]` (le bon ordre) |
 | chiffré (`"hashed": true`, `text` ou `number`) | `["<64 caractères hexadécimaux>", …]` et `"salt": "<identifiant de l'aventure>"` |
 
+Champs facultatifs du bloc : `"alt"` (texte alternatif de la figure ; sinon « Figure : titre »).
+
+Réglages de l'aventure, facultatifs, dans `rules.defis` :
+
+```jsonc
+"rules": { "defis": {
+  "tu": true,                          // messages au joueur tutoyés : « Ce n’est pas ça. Essaie encore ! », « Ta réponse »…
+  "giveUpLabel": "Passer l’énigme"     // libellé du bouton d'abandon (défaut : « Renoncer à ce défi »)
+} }
+```
+
+**Coûts des indices** : un indice qui coûte des points d'une caractéristique (CHANCE…) est refusé quand le héros n'en a pas
+assez (« Il vous faut 1 point de Chance »), comme pour l'or ou les repas. Seule la caractéristique de santé du combat
+(ENDURANCE) peut être payée jusqu'à la mort, après confirmation.
+
+**Lecture à voix haute** : le bouton « Écouter » du paragraphe (et la lecture automatique) lit aussi les défis visibles :
+titre, question, propositions (A, B, C…) ou éléments à ranger, dans l'ordre affiché. Une fois le défi terminé, il lit le verdict
+et l'explication. Avec la lecture automatique, un indice révélé et le verdict de chaque réponse sont lus aussitôt.
+
 Une aventure sans défi n'est pas concernée ; un défi ouvert sans le greffon est signalé « type de bloc inconnu » et ignoré.
 
 ### Exemple complet : un paragraphe à nombre, avec indice payant

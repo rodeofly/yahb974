@@ -5,7 +5,7 @@
 // Aucune information ne repose sur la couleur : cadres en pointillés, cadenas, formes des repères et texte.
 
 import './core.js';
-import { html, useState, useEffect, useRef, useMemo } from '../../lib/preact-htm.js';
+import { html, useState, useEffect, useLayoutEffect, useRef, useMemo } from '../../lib/preact-htm.js';
 import { Icon, Modal, loadCSS } from '../../ui/common.js';
 import { registerBlockUI, registerSheetPanel, registerEditorTab, registerPrintSection, registerEffectUI, registerConditionUI } from '../../ui/registry.js';
 import { Text, Num, ImageSlot, ConditionEditor, EffectsEditor } from '../../ui/editor.js';
@@ -183,6 +183,8 @@ registerBlockUI(TYPE, {
   order: 40,
   create: () => ({ image: null, alt: '', label: '', hotspots: [] }),
   Player: MapPlayer,
+  // Lecture à voix haute du paragraphe : la consigne de la carte (« Touche le bateau »).
+  speech: b => String(b.label || '').trim(),
   Editor: MapEditor,
 });
 
@@ -194,21 +196,32 @@ const STATUS_TEXT = { here: 'Vous êtes ici', visited: 'lieu visité', known: 'l
 
 function Pin({ m }) {
   const edge = [m.x > 78 ? 'edge-r' : m.x < 22 ? 'edge-l' : '', m.y > 86 ? 'edge-b' : ''].join(' ');
-  return html`<span class=${`carte-pin ${m.status} ${edge}`} style=${`left:${m.x}%;top:${m.y}%`}>
-    <span class="carte-dot" aria-hidden="true">${m.status === 'unknown' ? '?' : ''}</span>
+  // Carte chargée (petit écran) : un numéro dans le repère, le nom dans la liste sous la carte (lieu actuel compris).
+  const numbered = m.n && m.status !== 'unknown';
+  return html`<span class=${`carte-pin ${m.status} ${edge}${numbered ? ' num' : ''}`} style=${`left:${m.x}%;top:${m.y}%`}>
+    <span class="carte-dot" aria-hidden="true">${m.status === 'unknown' ? '?' : numbered ? m.n : ''}</span>
     ${m.status === 'unknown' ? html`<span class="sr-only">Lieu inconnu</span>`
+      : numbered ? html`<span class="sr-only">${m.n}. ${m.name}${m.status === 'here' ? ` (${m.approx ? 'dernier lieu connu' : 'vous êtes ici'})` : ''}</span>`
       : html`<span class="carte-name">${m.name}${m.status === 'here' && html`<small>${m.approx ? 'Dernier lieu connu' : 'Vous êtes ici'}</small>`}</span>`}
   </span>`;
 }
 
-function WorldMap({ adv, source, markers, points = [], onPick, label }) {
+/** Deux étiquettes de lieux se recouvrent-elles ? (mesure réelle, après le chargement de l'image) */
+function labelsOverlap(root) {
+  const r = [...root.querySelectorAll('.carte-name')].map(e => e.getBoundingClientRect());
+  return r.some((a, i) => r.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1));
+}
+
+function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded }) {
   const wm = adv.meta.worldMap || {};
   const url = useAssetUrl(adv, source, wm.image);
   const frame = useRef();
+  const [loaded, setLoaded] = useState(false);
+  useLayoutEffect(() => { if (onCrowded && loaded && frame.current && labelsOverlap(frame.current)) onCrowded(); });
   const pick = e => { if (onPick && frame.current) onPick(pointIn(frame.current, e)); };
   const line = points.map(p => `${p.x},${p.y}`).join(' ');
   return html`<div class=${'carte-frame carte-world' + (onPick ? ' picking' : '')} ref=${frame} onClick=${pick} role=${label ? 'group' : undefined} aria-label=${label}>
-    ${url && html`<img src=${url} alt=${wm.alt || 'Carte du monde'} draggable="false" />`}
+    ${url && html`<img src=${url} alt=${wm.alt || 'Carte du monde'} draggable="false" onLoad=${() => setLoaded(true)} />`}
     ${url && points.length > 1 && html`<svg class="carte-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <polyline class="halo" points=${line} /><polyline points=${line} /></svg>`}
     ${url && markers.map(m => html`<${Pin} key=${m.name} m=${m} />`)}
@@ -230,9 +243,18 @@ function WorldModal({ adv, source, state, onClose }) {
   const visited = visitedPlaces(state, adv);
   const known = knownPlaces(state).map(placeName).filter(p => !visited.includes(p));
   const statuses = ['here', 'visited', 'known', 'unknown'].filter(s => markers.some(m => m.status === s));
+  // Étiquettes qui se recouvrent (petit écran, lieux proches) : repères numérotés et liste des lieux sous la carte.
+  const sig = markers.map(m => m.name + m.status).join('|');
+  const [crowded, setCrowded] = useState(null);
+  const compact = crowded === sig;
+  let k = 0;
+  const shown = compact ? markers.map(m => (m.status !== 'unknown' ? { ...m, n: ++k } : m)) : markers;
   return html`<${Modal} title="Carte du monde" onClose=${onClose} wide>
-    <${WorldMap} adv=${adv} source=${source} markers=${markers} points=${points} />
+    <${WorldMap} adv=${adv} source=${source} markers=${shown} points=${points} onCrowded=${compact ? null : () => setCrowded(sig)} />
     ${!markers.length && html`<p class="subtle" style="margin:0">Aucun lieu de votre voyage n'est encore marqué sur cette carte.</p>`}
+    ${compact && html`<ol class="carte-legend" aria-label="Lieux numérotés sur la carte">
+      ${shown.filter(m => m.n).map(m => html`<li key=${m.name}><span class=${'carte-pin static num ' + m.status}><span class="carte-dot" aria-hidden="true">${m.n}</span></span>${m.status === 'here' ? html`<b>${m.name} (${m.approx ? 'dernier lieu connu' : 'vous êtes ici'})</b>` : m.name}</li>`)}
+    </ol>`}
     <${Keys} statuses=${statuses} path=${points.length > 1} />
     <p class="carte-summary" lang="fr">
       ${here && html`<b>${here.exact ? 'Vous êtes ici' : 'Dernier lieu connu'} : ${here.name}.</b> `}

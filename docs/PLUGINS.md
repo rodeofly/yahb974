@@ -54,7 +54,7 @@ import { registerBlockUI, registerEffectUI, registerConditionUI, registerSheetPa
 
 | Fonction | Où ça s'affiche | Propriétés |
 |---|---|---|
-| `registerBlockUI(type, def)` | bloc dans la lecture et dans l'éditeur | `label`, `icon` (nom d'icône de common.js), `order`, `create(adv)` → champs initiaux du bloc (sans `type`), `Player({ adv, source, state, index, block, update, go })`, `Editor({ adv, block, set, onChange, tgt })` — `set(patch)` fusionne, `tgt(valeur, onChange, libellé)` affiche un champ de destination |
+| `registerBlockUI(type, def)` | bloc dans la lecture et dans l'éditeur | `label`, `icon` (nom d'icône de common.js), `order`, `create(adv)` → champs initiaux du bloc (sans `type`), `Player({ adv, source, state, index, block, update, go })`, `Editor({ adv, block, set, onChange, tgt })` — `set(patch)` fusionne, `tgt(valeur, onChange, libellé)` affiche un champ de destination ; facultatif : `speech(block, { adv, state, index })` → texte lu à voix haute avec le paragraphe (question, consigne…) |
 | `registerEffectUI(op, def)` | liste « Type » des effets | `label`, `order`, `blank(adv)` → effet complet `{ op, … }`, `Fields({ e, upd, adv })` |
 | `registerConditionUI(def)` | liste « Le héros… » des conditions | `t` (identifiant de ligne), `label`, `match(c)` → ligne `{ …champs }` ou `null`, `toCond(row)` → condition, `blank(adv)` → ligne, `Fields({ row, upd, adv })` |
 | `registerSheetPanel(def)` | feuille d'aventure, après le sac à dos | `id`, `order`, `Panel({ adv, source, state, update })` |
