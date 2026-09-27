@@ -53,7 +53,10 @@ function MapPlayer({ adv, source, state, index, block, update }) {
     if (!h.available) { setNote(html`<span><b>${h.label || 'Ce passage'}</b> — fermé. ${h.reason}</span>`); return; }
     try { const r = chooseHotspot(state, adv, index, h.index); update(r.state, r.messages); } catch (e) { setNote(e.message); }
   };
-  const tell = h => (h.available ? `${h.label || 'Passage'} — rendez-vous au ${h.to}` : `${h.label || 'Passage'} — fermé. ${h.reason}`);
+  // Carte-quiz (« Touche le lobe frontal ») : les numéros de destination donneraient la réponse, on les cache.
+  const quiz = !!block.hideTargets;
+  const tu = !!adv.rules?.defis?.tu || !!adv.rules?.tu;
+  const tell = h => (h.available ? (quiz ? (h.label || 'Zone') : `${h.label || 'Passage'} — rendez-vous au ${h.to}`) : `${h.label || 'Passage'} — fermé. ${h.reason}`);
   const withImage = !!block.image && !broken;
 
   // Sur un écran étroit, les zones n'affichent qu'un numéro (repris dans la légende) : les noms ne se chevauchent
@@ -61,24 +64,24 @@ function MapPlayer({ adv, source, state, index, block, update }) {
   return html`<section class="block carte-block">
     <h3><${Icon} name="map" />${block.label || 'Carte'}</h3>
     ${withImage && html`
-      <p class="subtle" style="margin:0">Touchez ou cliquez une zone encadrée de pointillés, ou une destination de la légende, pour vous y rendre${locked ? ' ; un cadenas signale un passage fermé' : ''}.</p>
+      <p class="subtle" style="margin:0">${tu ? 'Touche ou clique une zone encadrée de pointillés, ou une ligne de la légende' : 'Touchez ou cliquez une zone encadrée de pointillés, ou une ligne de la légende'}${quiz ? '' : (tu ? ', pour t’y rendre' : ', pour vous y rendre')}${locked ? ' ; un cadenas signale un passage fermé' : ''}.</p>
       <div class="carte-frame">
         ${url && html`<img src=${url} alt=${block.alt || ''} draggable="false" onError=${() => setBroken(true)} />`}
         ${url && spots.map((h, n) => html`<button type="button" key=${h.index} class=${'carte-zone' + (h.available ? '' : ' locked')} style=${pos(rectOf(h))}
             aria-disabled=${h.available ? undefined : 'true'} aria-label=${tell(h)} title=${tell(h)} onClick=${() => pick(h)}>
-          <span class="carte-tag">${!h.available && html`<${Icon} name="lock" />`}<span class="carte-num" aria-hidden="true">${n + 1}</span><span class="carte-lbl">${h.label || h.to}</span></span>
+          <span class="carte-tag">${!h.available && html`<${Icon} name="lock" />`}<span class="carte-num" aria-hidden="true">${n + 1}</span><span class="carte-lbl">${h.label || (quiz ? '' : h.to)}</span></span>
         </button>`)}
       </div>
       <ul class="carte-legend" aria-label="Destinations de la carte">${spots.map((h, n) => html`<li key=${h.index} class=${h.available ? '' : 'locked'}>
         <button type="button" class="carte-leg-btn" aria-disabled=${h.available ? undefined : 'true'} aria-label=${tell(h)} onClick=${() => pick(h)}>
           <span class="carte-leg-num" aria-hidden="true">${n + 1}</span>
-          ${h.available ? html`<span class="carte-swatch" aria-hidden="true"></span><span>${h.label || 'Passage'}</span><span class="go">→ ${h.to}</span>`
+          ${h.available ? html`<span class="carte-swatch" aria-hidden="true"></span><span>${h.label || (quiz ? `Zone ${n + 1}` : 'Passage')}</span>${!quiz && html`<span class="go">→ ${h.to}</span>`}`
             : html`<${Icon} name="lock" /><span><b>${h.label || 'Passage'}</b> — fermé. ${h.reason}</span>`}
         </button>
       </li>`)}</ul>`}
     ${!withImage && html`<nav class="choices carte-fallback" aria-label="Destinations">
       ${spots.map(h => html`<button class="choice" key=${h.index} disabled=${!h.available} onClick=${() => pick(h)}>
-        <span>${h.label || 'Continuer'}</span><span class="go">${h.to}</span>
+        <span>${h.label || 'Continuer'}</span>${!quiz && html`<span class="go">${h.to}</span>`}
         ${!h.available && html`<span class="why"><${Icon} name="lock" />${h.reason}</span>`}
       </button>`)}
     </nav>`}
@@ -151,6 +154,7 @@ function MapEditor({ adv, block, set, tgt }) {
     <${Text} label="Titre du bloc (facultatif)" value=${b.label} onChange=${v => set({ label: v })} placeholder="Où voulez-vous aller ?" />
     <${ImageSlot} adv=${adv} path=${b.image} name="carte" label="Image de la carte" onChange=${p => set({ image: p })} />
     <${Text} label="Description de l'image (lue par les lecteurs d'écran)" value=${b.alt} onChange=${v => set({ alt: v })} placeholder="Carte de la vallée : le village au nord, le marais au sud…" />
+    <label class="row subtle"><input type="checkbox" checked=${!!b.hideTargets} onChange=${e => set({ hideTargets: e.target.checked || undefined })} /> Carte-quiz : cacher les numéros de destination (sinon ils donneraient la bonne réponse)</label>
     ${url ? html`<p class="subtle" style="margin:0">Faites glisser la souris ou le doigt sur l'image pour tracer une zone. Glissez une zone pour la déplacer, et son coin carré pour la redimensionner. Les champs numériques permettent un réglage précis.</p>
       <${ZoneCanvas} url=${url} alt=${b.alt} zones=${hs} sel=${sel} onSelect=${setSel} onCreate=${addZone} onMove=${(i, r) => setZone(i, r)} />`
       : html`<p class="subtle" style="margin:0">Ajoutez une image pour tracer les zones dessus. Sans image, le joueur voit les destinations sous forme de liste.</p>`}

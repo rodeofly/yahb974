@@ -144,3 +144,8 @@ qui révèle la tour.
   (`state.carte.revealed`).
 - Les images des cartes sont incluses dans l'export `.lhz`.
 - Une aventure sans ces champs fonctionne comme avant ; une ancienne sauvegarde sans `state.carte` aussi.
+
+
+## Carte-quiz : cacher les destinations
+
+Pour une carte qui sert de question (« Touche le lobe frontal »), ajoutez `"hideTargets": true` au bloc (case « Carte-quiz » dans l'éditeur). Les zones et la légende n'affichent plus « → N », et le lecteur d'écran n'annonce plus la destination : seule l'étiquette de la zone reste. Si l'aventure tutoie (`rules.defis.tu`), la consigne passe au tutoiement.
