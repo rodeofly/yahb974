@@ -325,7 +325,16 @@ function ActivityStage({ kind, level, onPass, onMiss, onError, onReady, label })
       // Un essai raté : onFail pour Blokaly (qui appelle aussi onEssai), onEssai pour la brume.
       if (kind === 'maze') ctx.onFail = () => { if (alive) cb.current.onMiss?.(); };
       if (kind === 'brume') ctx.onEssai = e => { if (alive && e && e.passed === false) cb.current.onMiss?.(); };
+      // La brume se donne le focus en se montant : à l'arrivée sur le paragraphe, la page sauterait jusqu'à l'activité
+      // (texte à lire sauté, image paresseuse jamais chargée, lecteur d'écran déplacé). On garde la position et le focus,
+      // sauf si le joueur agissait déjà dans le défi (Recommencer, Réessayer de charger) ou dans l'aperçu de l'éditeur.
+      const sx = scrollX, sy = scrollY;
+      const acting = !!el.closest('.zf-integre, .modal')?.contains(document.activeElement);
       const a = await act.mount(el, ctx);
+      if (!acting && el.contains(document.activeElement)) {
+        document.activeElement.blur();
+        if (scrollX !== sx || scrollY !== sy) scrollTo(sx, sy);
+      }
       if (!alive) { try { a?.destroy?.(); } catch { /* déjà démonté */ } return; }
       api = a; expose(a);
       cb.current.onReady?.();

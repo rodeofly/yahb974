@@ -184,6 +184,8 @@ quitter le livre, sans code à taper ni réseau (une fois l'activité mise en ca
   *Continuer sans le défi*.
 - Mode test : **Simuler une réussite** (4 étoiles) et **Simuler un échec**.
 - Changer de paragraphe démonte l'activité (Blockly, minuteries, écouteurs).
+- À l'arrivée sur le paragraphe, l'activité ne prend pas le focus et la page ne défile pas jusqu'à elle (la brume se
+  donne le focus en se montant) : on lit d'abord le texte. Après **Recommencer** ou **Réessayer**, le focus va dans l'activité.
 
 ### Version imprimable
 
