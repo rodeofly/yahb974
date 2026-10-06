@@ -31,7 +31,7 @@ Légende : ✅ présent · 🔜 prévu, l'architecture le permet déjà. Entre c
 | Feuille d'aventure | Caractéristiques actuelles / initiales, or, repas, objets, notes libres, mis à jour en direct | ✅ |
 | | Manger un repas (+ENDURANCE, plafonné au niveau initial) | ✅ |
 | | Utiliser un objet (potion : effet défini par l'auteur) | ✅ |
-| Boutique | Acheter / vendre des objets contre de l'or | ✅ |
+| Boutique | Acheter des objets contre de l'or, et les revendre au marchand (liste « Le marchand rachète ») | ✅ |
 | Sauvegarde | Sauvegarde automatique, emplacements multiples, reprise | ✅ |
 | | « Doigt dans la page » : revenir en arrière (optionnel, désactivable par l'auteur) | ✅ |
 | Fins | Écran de mort / de victoire, statistiques de la partie, recommencer | ✅ |
@@ -144,7 +144,7 @@ Navigateur (hors ligne après la 1re visite)
 **Conditions** : `{has}`, `{flag}`, `{stat, gte|lte|eq}`, `{gold, gte}`, `{visited}`, `{class}`, combinées par `{all:[…]}`, `{any:[…]}`, `{not:…}`.
 **Effets** : `stat` (add / set / `"initial"` / addInitial), `gold`, `provisions`, `give`, `take`, `flag`, `note`, `newDay`, `meal`.
 **Conditions supplémentaires** : `{caster}`, `{ate}`, `{day, gte}`.
-**Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat` (`enemies`, `win`, `flee?`, `lose?`, `mode?: "together"`, `note?` : règle spéciale affichée au-dessus des combattants), `shop`, `spells` (options `{code, to, cost?}`), `actions` (greffon objets : boutons en un clic).
+**Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat` (`enemies`, `win`, `flee?`, `lose?`, `mode?: "together"`, `note?` : règle spéciale affichée au-dessus des combattants), `shop` (`offers: [{item, price, stock?}]` : ce que le marchand vend ; `wants: [{item, price, stock?}]` : ce qu'il rachète), `spells` (options `{code, to, cost?}`), `actions` (greffon objets : boutons en un clic).
 **Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`.
 **Son** : `meta.sound` (ambiance générale), `sections[n].sound` + `soundLoop`.
 **Renvois cachés** : `sections[n].links: [{ to, label? }]` — destinations que le joueur atteint en tapant un numéro trouvé dans le texte (règle `freeJump`) ; pas de bouton en lecture, mais comptés dans le graphe (pointillés), la vérification et les paragraphes atteignables.

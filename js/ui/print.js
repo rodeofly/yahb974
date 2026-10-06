@@ -108,7 +108,8 @@ function blockHtml(b, adv) {
   }
   if (b.type === 'shop') {
     const rows = (b.offers || []).map(o => `<li>${esc(itemName(adv, o.item))} : ${esc(plural(o.price, 'Pièce d’Or', 'Pièces d’Or'))}${o.stock ? ` (${esc(o.stock)} au plus)` : ''}</li>`).join('');
-    return `<div class="pr-block"><p><b>${esc(b.label || 'Marchand')}.</b> Vous pouvez acheter (rayez l'or dépensé et inscrivez vos achats) :</p><ul>${rows}</ul></div>`;
+    const wants = (b.wants || []).map(o => `<li>${esc(itemName(adv, o.item))} : ${esc(plural(o.price, 'Pièce d’Or', 'Pièces d’Or'))}${o.stock ? ` (${esc(o.stock)} au plus)` : ''}</li>`).join('');
+    return `<div class="pr-block"><p><b>${esc(b.label || 'Marchand')}.</b> Vous pouvez acheter (rayez l'or dépensé et inscrivez vos achats) :</p><ul>${rows}</ul>${wants ? `<p>Le marchand rachète (rayez l'objet vendu, ajoutez l'or) :</p><ul>${wants}</ul>` : ''}</div>`;
   }
   if (b.type === 'spells') {
     const sp = adv.rules.spells || {};

@@ -509,6 +509,22 @@ export function buy(state, adv, blockIndex, offerIndex) {
   return r;
 }
 
+/**
+ * Vendre au marchand l'objet demandé n° `wantIndex` (bloc boutique, liste `wants` : ce que le marchand rachète).
+ * Il faut avoir l'objet ; le marchand peut n'en racheter qu'un nombre limité (`stock`).
+ */
+export function sell(state, adv, blockIndex, wantIndex) {
+  const want = (adv.sections[state.section].blocks[blockIndex].wants || [])[wantIndex];
+  if (!want) return { state, messages: [] };
+  if (!(state.inventory?.[want.item] > 0)) return { state, messages: [{ kind: 'info', text: 'Vous n’avez pas cet objet.' }] };
+  const prev = state.blocks[blockIndex] || {};
+  const sold = { ...(prev.sold || {}), [wantIndex]: ((prev.sold || {})[wantIndex] || 0) + 1 };
+  if (want.stock && sold[wantIndex] > want.stock) return { state, messages: [{ kind: 'info', text: 'Le marchand n’en veut plus.' }] };
+  const r = applyEffects(state, adv, [{ op: 'take', item: want.item }, { op: 'gold', add: Number(want.price) || 0 }, ...(want.effects || [])]);
+  r.state.blocks = { ...r.state.blocks, [blockIndex]: { ...(r.state.blocks[blockIndex] || prev), sold } };
+  return r;
+}
+
 /* ------------------------------------------------------------------ */
 /* Cibles d'un paragraphe (pour le graphe et la validation)            */
 /* ------------------------------------------------------------------ */

@@ -6,7 +6,7 @@
 //   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
 // réseau en contournant le cache HTTP du navigateur).
-const VERSION = 'lh-v14';
+const VERSION = 'lh-v15';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/version.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',

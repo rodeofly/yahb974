@@ -88,7 +88,7 @@ export function validate(adv) {
         if (!(b.enemies || []).length) push(id, 'error', `${where} : aucun adversaire.`);
         if (!b.win) push(id, 'error', `${where} : pas de destination en cas de victoire.`);
       }
-      if (b.type === 'shop') (b.offers || []).forEach(o => { checkItem(id, o.item, where); walkEffects(id, o.effects, where); });
+      if (b.type === 'shop') [...(b.offers || []), ...(b.wants || [])].forEach(o => { checkItem(id, o.item, where); walkEffects(id, o.effects, where); });
       if (!BUILTIN_BLOCKS.has(b.type)) {
         const plug = ext.blocks.get(b.type);
         if (!plug) push(id, 'warning', `${where} : type de bloc inconnu (greffon absent ?).`);
@@ -139,6 +139,7 @@ export function remap(adv, mapping) {
       if (x.table) x.table = x.table.map(t => ({ ...t, to: m(t.to) }));
       if (x.options) x.options = x.options.map(o => ({ ...o, to: m(o.to) }));
       if (x.type === 'shop' && Array.isArray(x.offers)) x.offers = x.offers.map(o => (Array.isArray(o?.effects) ? { ...o, effects: remapEffects(o.effects) } : o));
+      if (x.type === 'shop' && Array.isArray(x.wants)) x.wants = x.wants.map(o => (Array.isArray(o?.effects) ? { ...o, effects: remapEffects(o.effects) } : o));
       const plug = ext.blocks.get(x.type);
       return plug?.remap ? plug.remap(x, m, remapCond) : x;
     });

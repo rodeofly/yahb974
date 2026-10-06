@@ -149,3 +149,27 @@ test('vocabulaire du duel de courage : ni blessure ni « vaincu » dans le journ
   assert.ok(end.combat.log.includes('la scolopendre s’enfuit dans la forêt.'));
   assert.ok(!end.combat.log.some(l => /bless|vaincu/i.test(l)));
 });
+
+/* ---------- boutique : le marchand rachète ---------- */
+import { sell, buy } from '../js/core/rules.js';
+
+test('boutique : acheter puis revendre, rachat limité, refus sans l\'objet', () => {
+  const a = newAdventure('Marché');
+  a.items = { corde: { name: 'Corde de vacoa' }, plume: { name: 'Plume de papangue' } };
+  a.sections = {
+    '1': { text: 'Marché', onEnter: [], choices: [], blocks: [{ type: 'shop', label: 'Les navigateurs',
+      offers: [{ item: 'corde', price: 2 }], wants: [{ item: 'plume', price: 3, stock: 1 }] }] },
+  };
+  const adv = normalizeAdventure(a);
+  let { state } = createHero(adv, { seed: 2 });
+  state.section = '1'; state.gold = 4; state.inventory = { plume: 2 };
+  let r = buy(state, adv, 0, 0);
+  assert.equal(r.state.gold, 2); assert.equal(r.state.inventory.corde, 1);
+  r = sell(r.state, adv, 0, 0);
+  assert.equal(r.state.gold, 5); assert.equal(r.state.inventory.plume, 1);
+  const again = sell(r.state, adv, 0, 0);
+  assert.equal(again.state.gold, 5, 'le marchand n\'en rachète qu\'une');
+  assert.match(again.messages[0].text, /n’en veut plus/);
+  const none = sell({ ...state, inventory: {} }, adv, 0, 0);
+  assert.match(none.messages[0].text, /pas cet objet/);
+});

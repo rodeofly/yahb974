@@ -416,6 +416,18 @@ function ShopBlock({ adv, source, state, index, block, update }) {
         <button class="btn small" disabled=${state.gold < o.price || soldOut} onClick=${() => { const r = R.buy(state, adv, index, j); if (r.state.gold < state.gold) sfx.coin(); update(r.state, r.messages); }}>${soldOut ? 'Épuisé' : bought ? 'Racheter' : 'Acheter'}</button>
       </div>`;
     })}</div>
+    ${(block.wants || []).length > 0 && html`<h4 style="margin:10px 0 4px">${block.wantsLabel || 'Le marchand rachète'}</h4>
+    <div class="stack" style="gap:8px">${block.wants.map((w, j) => {
+      const it = adv.items[w.item] || { name: w.item };
+      const sold = ((state.blocks[index] || {}).sold || {})[j] || 0;
+      const done = w.stock && sold >= w.stock;
+      const have = (state.inventory?.[w.item] || 0) > 0;
+      return html`<div class="rollrow" style="grid-template-columns:1fr auto auto">
+        <div><b>${it.name}</b>${!have && !done && html`<div class="subtle">Tu n’en as pas.</div>`}</div>
+        <span class="mono">+${w.price} PO</span>
+        <button class="btn small" disabled=${!have || done} onClick=${() => { const r = R.sell(state, adv, index, j); if (r.state.gold > state.gold) sfx.coin(); update(r.state, r.messages); }}>${done ? 'Il n’en veut plus' : 'Vendre'}</button>
+      </div>`;
+    })}</div>`}
   </section>`;
 }
 

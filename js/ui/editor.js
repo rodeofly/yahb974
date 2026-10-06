@@ -471,7 +471,15 @@ function BlockEditor({ adv, block, onChange, onRemove, tgt }) {
         <button class="btn small danger rm" aria-label="Retirer l'offre" onClick=${() => set({ offers: b.offers.filter((_, k) => k !== j) })}><${Icon} name="x" /></button>
       </div>`)}
       <div><button class="btn small" disabled=${!items.length} onClick=${() => set({ offers: [...(b.offers || []), { item: items[0][0], price: 1 }] })}><${Icon} name="plus" />Offre</button>
-        ${!items.length && html`<span class="subtle"> Créez d'abord des objets dans l'onglet Objets.</span>`}</div>`;
+        ${!items.length && html`<span class="subtle"> Créez d'abord des objets dans l'onglet Objets.</span>`}</div>
+      <h4 style="margin:10px 0 4px">Le marchand rachète</h4>
+      ${(b.wants || []).map((o, j) => html`<div class="rowline">
+        <${Select} label="Objet" value=${o.item} onChange=${v => set({ wants: b.wants.map((x, k) => (k === j ? { ...x, item: v } : x)) })} options=${[['', '—'], ...items]} />
+        <${Num} label="Prix payé (PO)" value=${o.price} onChange=${v => set({ wants: b.wants.map((x, k) => (k === j ? { ...x, price: v } : x)) })} />
+        <${Num} label="Combien au plus (vide = illimité)" value=${o.stock} onChange=${v => set({ wants: b.wants.map((x, k) => (k === j ? { ...x, stock: v } : x)) })} />
+        <button class="btn small danger rm" aria-label="Retirer le rachat" onClick=${() => set({ wants: b.wants.filter((_, k) => k !== j) })}><${Icon} name="x" /></button>
+      </div>`)}
+      <div><button class="btn small" disabled=${!items.length} onClick=${() => set({ wants: [...(b.wants || []), { item: items[0][0], price: 1 }] })}><${Icon} name="plus" />Rachat</button></div>`;
   }
   return html`<div class="panel" style="background:var(--paper)">
     <header><h3>${title}</h3><button class="btn small danger" onClick=${onRemove}><${Icon} name="trash" />Retirer</button></header>
