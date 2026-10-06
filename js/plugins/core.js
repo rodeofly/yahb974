@@ -4,6 +4,8 @@ import './modes/core.js'; // [modes] (en tête : pas de ligne réservée pour ce
 
 import './equipement/core.js';
 
+import './objets/core.js';
+
 import './compteurs/core.js';
 
 import './compagnons/core.js';
@@ -13,6 +15,8 @@ import './defis/core.js';
 import './zefor/core.js';
 
 import './carte/core.js';
+
+import './campagne/core.js';
 
 import './succes/core.js';
 

@@ -38,7 +38,8 @@ function PassportPicker({ adv, choice, setChoice }) {
   const [typed, setTyped] = useState('');
   const [error, setError] = useState('');
   useEffect(() => { let on = true; if (camp) savedPassports(camp.id).then(l => on && setSaved(l)); return () => { on = false; }; }, [camp?.id]);
-  if (!camp) return null;
+  // Premier livre : pas de livre précédent, donc pas de passeport à reprendre.
+  if (!camp || (Number(camp.book) || 0) <= 1) return null;
   const book = Number(camp.book) || 0;
   const usable = (saved || []).map(e => ({ e, r: P.decodePassport(camp, e.code) })).filter(x => x.r.ok && x.r.pass.book < book || (x.r.ok && !book));
   const pick = (code, pass) => { setError(''); setChoice({ code, pass }); };
@@ -104,8 +105,7 @@ function PassportEnding({ adv, state }) {
   };
   return html`<section class="panel camp-pass" lang="fr">
     <header><h3><${Icon} name="flag" />Ton passeport de voyageur</h3></header>
-    <p style="margin:0">Garde-le précieusement : avec lui, tu continueras <b>${camp.title || 'la campagne'}</b> au livre ${(Number(camp.book) || 0) + 1}
-      avec ton or, tes objets, tes amis et ta mémoire. Sur cet appareil, il est déjà enregistré.</p>
+    <p style="margin:0">${'Garde-le précieusement : avec lui, tu continueras '}<b>${camp.title || 'la campagne'}</b>${` au livre ${(Number(camp.book) || 0) + 1} avec ton or, tes objets, tes amis et ta mémoire. Sur cet appareil, il est déjà enregistré.`}</p>
     <div class="camp-pass-body">
       <${QrSvg} text=${code} />
       <div class="stack">
