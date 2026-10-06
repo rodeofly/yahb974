@@ -261,6 +261,15 @@ function Continue({ to, go, label = 'Continuer' }) {
   return to ? html`<button class="btn primary" onClick=${() => go(to)}>${label}<span class="mono">→ ${to}</span></button>` : null;
 }
 
+/** Règle du test en une phrase ; tutoie le joueur si l'aventure le demande (`rules.tu`, ou `rules.defis.tu`). */
+function testRule(adv, state, block) {
+  const stat = R.statLabel(adv, block.stat);
+  const target = `${state.stats[block.stat]?.cur}${block.mod ? ` ${block.mod > 0 ? '+' : ''}${block.mod}` : ''}`;
+  const cost = block.cost ?? (block.stat === adv.rules.combat.luck ? 1 : 0);
+  if (adv.rules.tu ?? adv.rules.defis?.tu) return `Lance ${block.dice || '2d6'} : tu réussis si le total ne dépasse pas ${target} (${stat}).${cost ? ` Le test te coûte 1 point de ${stat}.` : ''}`;
+  return `Lancez ${block.dice || '2d6'} : réussite si le total est inférieur ou égal à votre ${stat} (${target}).${cost ? ` Le test vous coûte 1 point de ${stat}.` : ''}`;
+}
+
 function TestBlock({ adv, state, index, block, update, go }) {
   const res = state.blocks[index];
   const [stamp, setStamp] = useState(0);
@@ -268,7 +277,7 @@ function TestBlock({ adv, state, index, block, update, go }) {
   const act = () => { const r = R.resolveTest(state, adv, index); setTimeout(() => sfx.luck(r.result.success), 650); update(r.state, []); setStamp(s => s + 1); };
   return html`<section class="block">
     <h3><${Icon} name=${block.stat === adv.rules.combat.luck ? 'clover' : 'dice'} />${label}</h3>
-    <p class="subtle" style="margin:0">Lancez ${block.dice || '2d6'} : réussite si le total est inférieur ou égal à votre ${R.statLabel(adv, block.stat)} (${state.stats[block.stat]?.cur}${block.mod ? ` ${block.mod > 0 ? '+' : ''}${block.mod}` : ''}).${(block.cost ?? (block.stat === adv.rules.combat.luck ? 1 : 0)) ? ` Le test vous coûte 1 point de ${R.statLabel(adv, block.stat)}.` : ''}</p>
+    <p class="subtle" style="margin:0">${testRule(adv, state, block)}</p>
     ${!res ? html`<div><button class="btn primary" onClick=${act}><${Icon} name="dice" />Lancer les dés</button></div>` : html`
       <${Dice} result=${res.roll} stamp=${stamp} />
       <div class=${'outcome ' + (res.success ? 'ok' : 'ko')}>${res.success ? (block.successText || 'Réussi') : (block.failureText || 'Raté')} : ${res.roll.total} contre ${res.target}</div>
@@ -425,7 +434,7 @@ function ShopBlock({ adv, source, state, index, block, update }) {
       return html`<div class="rollrow" style="grid-template-columns:1fr auto auto">
         <div><b>${it.name}</b>${!have && !done && html`<div class="subtle">Tu n’en as pas.</div>`}</div>
         <span class="mono">+${w.price} PO</span>
-        <button class="btn small" disabled=${!have || done} onClick=${() => { const r = R.sell(state, adv, index, j); if (r.state.gold > state.gold) sfx.coin(); update(r.state, r.messages); }}>${done ? 'Il n’en veut plus' : 'Vendre'}</button>
+        <button class="btn small" disabled=${!have || done} onClick=${() => { const r = R.sell(state, adv, index, j); if (r.state.gold > state.gold) sfx.coin(); update(r.state, r.messages); }}>${done ? 'Déjà vendu' : 'Vendre'}</button>
       </div>`;
     })}</div>`}
   </section>`;

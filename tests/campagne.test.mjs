@@ -169,7 +169,7 @@ test('boutique : acheter puis revendre, rachat limité, refus sans l\'objet', ()
   assert.equal(r.state.gold, 5); assert.equal(r.state.inventory.plume, 1);
   const again = sell(r.state, adv, 0, 0);
   assert.equal(again.state.gold, 5, 'le marchand n\'en rachète qu\'une');
-  assert.match(again.messages[0].text, /n’en veut plus/);
+  assert.match(again.messages[0].text, /Déjà vendu/);
   const none = sell({ ...state, inventory: {} }, adv, 0, 0);
   assert.match(none.messages[0].text, /pas cet objet/);
 });

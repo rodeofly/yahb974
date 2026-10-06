@@ -519,7 +519,7 @@ export function sell(state, adv, blockIndex, wantIndex) {
   if (!(state.inventory?.[want.item] > 0)) return { state, messages: [{ kind: 'info', text: 'Vous n’avez pas cet objet.' }] };
   const prev = state.blocks[blockIndex] || {};
   const sold = { ...(prev.sold || {}), [wantIndex]: ((prev.sold || {})[wantIndex] || 0) + 1 };
-  if (want.stock && sold[wantIndex] > want.stock) return { state, messages: [{ kind: 'info', text: 'Le marchand n’en veut plus.' }] };
+  if (want.stock && sold[wantIndex] > want.stock) return { state, messages: [{ kind: 'info', text: 'Déjà vendu : le marchand n’en rachète pas d’autre.' }] };
   const r = applyEffects(state, adv, [{ op: 'take', item: want.item }, { op: 'gold', add: Number(want.price) || 0 }, ...(want.effects || [])]);
   r.state.blocks = { ...r.state.blocks, [blockIndex]: { ...(r.state.blocks[blockIndex] || prev), sold } };
   return r;

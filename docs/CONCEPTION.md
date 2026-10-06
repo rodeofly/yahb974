@@ -145,7 +145,7 @@ Navigateur (hors ligne après la 1re visite)
 **Effets** : `stat` (add / set / `"initial"` / addInitial), `gold`, `provisions`, `give`, `take`, `flag`, `note`, `newDay`, `meal`.
 **Conditions supplémentaires** : `{caster}`, `{ate}`, `{day, gte}`.
 **Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat` (`enemies`, `win`, `flee?`, `lose?`, `mode?: "together"`, `note?` : règle spéciale affichée au-dessus des combattants), `shop` (`offers: [{item, price, stock?}]` : ce que le marchand vend ; `wants: [{item, price, stock?}]` : ce qu'il rachète), `spells` (options `{code, to, cost?}`), `actions` (greffon objets : boutons en un clic).
-**Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`.
+**Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`. `tu: true` : la règle des tests de caractéristique tutoie le joueur (« Lance 2d6 : tu réussis si… ») ; sans `tu`, `defis.tu` sert aussi.
 **Son** : `meta.sound` (ambiance générale), `sections[n].sound` + `soundLoop`.
 **Renvois cachés** : `sections[n].links: [{ to, label? }]` — destinations que le joueur atteint en tapant un numéro trouvé dans le texte (règle `freeJump`) ; pas de bouton en lecture, mais comptés dans le graphe (pointillés), la vérification et les paragraphes atteignables.
 **Repères** : `meta.markers: [{ id, label, icon (emoji), kind?: "item", sections: ["12", …] }]` — paragraphes mis en avant dans le graphe (badge, liste « Repères ») ; ex. les Sept Serpents d'un livre.
