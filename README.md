@@ -24,8 +24,10 @@ version imprimable A4 / A5 (illustrations allégées par défaut : un PDF de que
 | Greffon | Ce qu'il apporte |
 |---|---|
 | [Équipement](docs/plugins/equipement.md) | objets portés (arme, armure, bouclier, bijou), bonus de combat, malus sans arme, sac à capacité limitée |
+| [Objets](docs/plugins/objets.md) | boutons en un clic avec emoji : prendre un objet, payer, encaisser, perdre ou gagner des points ; emoji des objets dans le sac |
 | [Compteurs](docs/plugins/compteurs.md) | Réputation, Temps, Malédiction… visibles ou secrets, seuils qui affichent un message, tuent ou font gagner |
 | [Compagnons](docs/plugins/compagnons.md) | alliés qui rejoignent le héros et combattent à ses côtés |
+| [Campagne](docs/plugins/campagne.md) | plusieurs livres à la suite : passeport du voyageur (code + QR) qui transporte or, objets, amis et mémoire ; vocabulaire du combat par mode |
 | [Défis](docs/plugins/defis.md) | énigmes et exercices (réponse, nombre, QCM, cases, ordre) qui débloquent la suite, indices payants, réponses chiffrées |
 | [Zefor](docs/plugins/zefor.md) | parcours zefor974 (maths, logique, programmation, Blokaly…) dont la réussite débloque une étape ; protocole côté zefor dans [docs/ZEFOR.md](docs/ZEFOR.md) |
 | [Maths](docs/plugins/maths.md) | formules `$…$` et `$$…$$` (KaTeX, hors ligne) dans les paragraphes et les choix, onglet d'aide |
@@ -52,7 +54,7 @@ Le navigateur propose ensuite « Installer l'application ».
 
 Ce dépôt est un site statique. Il suffit de le copier sur n'importe quel hébergement :
 GitHub Pages, Netlify, Cloudflare Pages, un NAS… Ce dépôt est publié automatiquement sur GitHub Pages
-à chaque `git push` sur `main`. Pensez à changer `VERSION` dans `sw.js` à chaque mise en ligne
+à chaque `git push` sur `main`. Pensez à changer `VERSION` dans `sw.js` **et** `js/version.js` à chaque mise en ligne (le numéro s’affiche en tête de la bibliothèque)
 pour que les joueurs reçoivent la nouvelle version.
 
 ## Écrire une aventure

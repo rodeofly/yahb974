@@ -6,10 +6,10 @@
 //   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
 // réseau en contournant le cache HTTP du navigateur).
-const VERSION = 'lh-v8';
+const VERSION = 'lh-v14';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
-  'js/app.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
+  'js/app.js', 'js/version.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
   'js/lib/katex/katex.min.js', 'js/lib/katex/katex.min.css', 'js/lib/qrcode/qrcode.js',
   'js/core/analysis.js', 'js/core/dice.js', 'js/core/rules.js', 'js/core/combat.js', 'js/core/validate.js', 'js/core/plugins.js',
   'js/store/db.js', 'js/store/library.js',
@@ -17,8 +17,10 @@ const SHELL = [
   // Greffons (voir docs/PLUGINS.md) : tests/sw.test.mjs vérifie que chaque fichier y figure.
   'js/plugins/index.js', 'js/plugins/core.js',
   'js/plugins/equipement/core.js', 'js/plugins/equipement/index.js', 'js/plugins/equipement/style.css',
+  'js/plugins/objets/core.js', 'js/plugins/objets/index.js', 'js/plugins/objets/style.css',
   'js/plugins/compteurs/core.js', 'js/plugins/compteurs/index.js', 'js/plugins/compteurs/style.css',
   'js/plugins/compagnons/core.js', 'js/plugins/compagnons/index.js', 'js/plugins/compagnons/style.css',
+  'js/plugins/campagne/core.js', 'js/plugins/campagne/index.js', 'js/plugins/campagne/style.css',
   'js/plugins/defis/core.js', 'js/plugins/defis/index.js', 'js/plugins/defis/style.css',
   'js/plugins/zefor/core.js', 'js/plugins/zefor/index.js', 'js/plugins/zefor/style.css',
   'js/plugins/modes/core.js', 'js/plugins/modes/index.js', 'js/plugins/modes/style.css',

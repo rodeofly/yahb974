@@ -1,0 +1,16 @@
+/* Greffon « campagne » : passeport du voyageur. Couleurs : jetons de css/app.css (clair et sombre). */
+.camp-pick { display: grid; gap: 10px; }
+.camp-options { display: grid; gap: 6px; }
+.camp-opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.camp-opt > span { display: grid; gap: 2px; }
+.camp-opt.on { border-width: 3px; padding: 6px 8px; border-color: var(--accent); }
+.camp-code { align-items: flex-end; flex-wrap: wrap; }
+.camp-code input { text-transform: uppercase; letter-spacing: .05em; }
+.camp-error, .camp-ok { display: flex; gap: 6px; align-items: center; margin: 0; }
+.camp-error { color: var(--danger, #b3261e); font-weight: 600; }
+.camp-pass-body { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.camp-qr { width: 148px; height: 148px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.camp-code-big { font-size: 1.15rem; font-weight: 700; letter-spacing: .06em; word-break: break-all; padding: 8px 10px;
+  border: 2px dashed var(--line); border-radius: 8px; background: var(--paper); }
+.camp-sheet { display: flex; gap: 10px; align-items: center; }
+.camp-rules .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }

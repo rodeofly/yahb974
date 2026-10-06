@@ -329,3 +329,8 @@ button.badge:hover { border-color: var(--accent); }
   .print-root.A5 .print-book { max-width: none; }
   a { color: inherit; }
 }
+
+/* Emoji de contenu (objets, or, repas) et règles spéciales de combat */
+.emoji { font-size: 18px; line-height: 1; display: inline-block; min-width: 22px; text-align: center; }
+.rule { margin: 0; padding: 8px 12px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--paper); font-size: 15px; display: flex; gap: 8px; align-items: flex-start; }
+.history { margin: 0; padding: 0 0 0 20px; font-size: 14px; color: var(--muted); display: grid; gap: 2px; }

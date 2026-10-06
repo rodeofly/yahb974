@@ -5,6 +5,8 @@ import './modes/index.js'; // [modes] (en tête : pas de ligne réservée pour c
 
 import './equipement/index.js';
 
+import './objets/index.js';
+
 import './compteurs/index.js';
 
 import './compagnons/index.js';
@@ -16,6 +18,8 @@ import './zefor/index.js';
 import './maths/index.js';
 
 import './carte/index.js';
+
+import './campagne/index.js';
 
 import './succes/index.js';
 

@@ -44,6 +44,7 @@ Légende : ✅ présent · 🔜 prévu, l'architecture le permet déjà. Entre c
 | Équipement | Emplacements (arme, armure, bouclier, bijou), bonus de combat, malus sans arme, sac à capacité limitée [equipement] | ✅ |
 | Compteurs | Réputation, Temps, Malédiction… visibles ou secrets, avec seuils de message, de mort ou de victoire [compteurs] | ✅ |
 | Compagnons | Alliés qui rejoignent le héros, combattent à ses côtés, peuvent tomber [compagnons] | ✅ |
+| Campagne | Plusieurs livres à la suite : passeport du voyageur (code + QR, enregistré sur l'appareil), vocabulaire du combat par mode [campagne] | ✅ |
 | Défis | Énigmes et exercices (réponse, nombre, QCM, cases, remise en ordre), indices payants, réponses chiffrées [defis] | ✅ |
 | Zefor974 | Parcours zefor974 (maths, logique, programmation, Blokaly…) dont la réussite débloque la suite : code, message ou page de retour signée [zefor] | ✅ |
 | Formules | Formules mathématiques `$…$` / `$$…$$` (KaTeX, hors ligne) dans les paragraphes et les choix [maths] | ✅ |
@@ -122,7 +123,8 @@ Navigateur (hors ligne après la 1re visite)
                  { "id": "sorcier",  "label": "Sorcier",  "rolls": { "habilete": "1d6+4" } } ],
     "gold": "2d6", "provisions": 2, "meal": { "stat": "endurance", "heal": 4 },
     "combat": { "skill": "habilete", "health": "endurance", "damage": 2, "luck": "chance", "fleeDamage": 2 },
-    "allowBack": true
+    "allowBack": true,
+    "freeJump": false   // true : le joueur peut taper un numéro de paragraphe (énigmes « rendez-vous au numéro calculé » des livres papier)
   },
   "items": { "cle-argent": { "name": "Clé d'argent", "description": "Un 111 est gravé dessus." } },
   "start": "1",
@@ -142,9 +144,12 @@ Navigateur (hors ligne après la 1re visite)
 **Conditions** : `{has}`, `{flag}`, `{stat, gte|lte|eq}`, `{gold, gte}`, `{visited}`, `{class}`, combinées par `{all:[…]}`, `{any:[…]}`, `{not:…}`.
 **Effets** : `stat` (add / set / `"initial"` / addInitial), `gold`, `provisions`, `give`, `take`, `flag`, `note`, `newDay`, `meal`.
 **Conditions supplémentaires** : `{caster}`, `{ate}`, `{day, gte}`.
-**Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat`, `shop`, `spells` (options `{code, to, cost?}`).
+**Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat` (`enemies`, `win`, `flee?`, `lose?`, `mode?: "together"`, `note?` : règle spéciale affichée au-dessus des combattants), `shop`, `spells` (options `{code, to, cost?}`), `actions` (greffon objets : boutons en un clic).
 **Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`.
 **Son** : `meta.sound` (ambiance générale), `sections[n].sound` + `soundLoop`.
+**Renvois cachés** : `sections[n].links: [{ to, label? }]` — destinations que le joueur atteint en tapant un numéro trouvé dans le texte (règle `freeJump`) ; pas de bouton en lecture, mais comptés dans le graphe (pointillés), la vérification et les paragraphes atteignables.
+**Repères** : `meta.markers: [{ id, label, icon (emoji), kind?: "item", sections: ["12", …] }]` — paragraphes mis en avant dans le graphe (badge, liste « Repères ») ; ex. les Sept Serpents d'un livre.
+**Graphe** : regroupement « Par étape » (tranches de distance au départ, choisi d'office au-delà de 150 paragraphes), « Voisinage » (rayon autour du paragraphe ouvert), « Masquer les morts ».
 
 #### Champs ajoutés par les greffons
 
@@ -155,6 +160,7 @@ Tous sont facultatifs : une aventure qui ne les a pas s'ouvre et se joue comme a
 | [equipement](plugins/equipement.md) | `rules.equipment: {enabled, slots:[{id,label}], capacity, unarmedPenalty, weaponSlot}` ; objets : `slot`, `attack`, `damage`, `armor`, `small` | `{op:"equip", item}`, `{op:"unequip", slot, take?}` ; `{equipped, negate?}`, `{equippedSlot, negate?}` | `state.equipement` |
 | [compteurs](plugins/compteurs.md) | `rules.counters: [{id, label, start, min?, max?, visible, icon?, triggers:[{when:"gte"\|"lte", value, action:"message"\|"death"\|"victory", message}]}]` | `{op:"counter", counter, add\|set}` (nombre ou dés) ; `{counter, gte\|lte\|eq}` | `state.counters` |
 | [compagnons](plugins/compagnons.md) | `companions: {id: {name, skill, health, damage?, image?, description?}}` | `{op:"companion", companion, action:"join"\|"leave"\|"heal"\|"hurt", amount?}` ; `{companion}`, `{not:{companion}}`, `{companions:true, gte\|lte\|eq}` | `state.companions` |
+| [campagne](plugins/campagne.md) | `rules.campaign: {id, title, book, prefix, modes, fields:{stats, counters, items, flags, companions, gold}, newcomer}` ; fin : `passport: false` | — | `state.campaign = {from, code}` |
 | [defis](plugins/defis.md) | — | bloc `{type:"challenge", kind:"text"\|"number"\|"qcm"\|"multi"\|"order", question, answers, attempts, hints:[{text, cost}], success, failure, successEffects, failureEffects, hashed?, salt?}` | `state.blocks[i]` |
 | [zefor](plugins/zefor.md) | `rules.zefor: {origin, publicKeyJwk, codeKey}` | bloc `{type:"zefor", url, exercise?, mode:"code"\|"message"\|"retour", codeHashes, codeSalt, minScore?, success, failure?, allowSkip?, skipTo?, skipEffects?}` | `state.zefor.done` |
 | [maths](plugins/maths.md) | aucun champ : `$…$` et `$$…$$` dans les textes | — | — |

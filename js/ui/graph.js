@@ -34,7 +34,7 @@ function kind(sec) {
 function styles(big = false) {
   const c = css;
   const list = [
-    { selector: 'node', style: { width: 24, height: 24, shape: 'ellipse', 'background-color': c('--normal'), label: 'data(id)', color: '#fff', 'font-family': 'JetBrains Mono, monospace', 'font-size': 8, 'font-weight': 700, 'text-valign': 'center', 'text-halign': 'center', 'border-width': 1, 'border-color': c('--surface'), 'overlay-opacity': 0 } },
+    { selector: 'node', style: { width: 24, height: 24, shape: 'ellipse', 'background-color': c('--normal'), label: 'data(lbl)', color: '#fff', 'font-family': 'JetBrains Mono, monospace', 'font-size': 8, 'font-weight': 700, 'text-valign': 'center', 'text-halign': 'center', 'border-width': 1, 'border-color': c('--surface'), 'overlay-opacity': 0 } },
     { selector: 'node.combat', style: { shape: 'hexagon', width: 30, height: 27, 'background-color': c('--combat') } },
     { selector: 'node.dice', style: { shape: 'triangle', width: 28, height: 26, 'background-color': c('--spell'), 'text-margin-y': 3 } },
     { selector: 'node.magic', style: { shape: 'star', width: 32, height: 30, 'background-color': c('--spell') } },
@@ -52,6 +52,7 @@ function styles(big = false) {
     { selector: 'edge', style: { width: 1.2, 'line-color': c('--muted'), 'target-arrow-color': c('--muted'), 'target-arrow-shape': 'triangle', 'arrow-scale': 1, 'curve-style': 'bezier', opacity: 0.55 } },
     { selector: 'edge.test, edge.roll', style: { 'line-style': 'dashed' } },
     { selector: 'edge.combat', style: { width: 2.4 } },
+    { selector: 'edge.secret', style: { 'line-style': 'dotted', 'line-dash-pattern': [2, 4], 'line-color': c('--accent'), 'target-arrow-color': c('--accent'), opacity: 0.9 } },
     { selector: 'edge.spell', style: { 'line-color': c('--spell'), 'target-arrow-color': c('--spell'), 'line-style': 'dashed', 'line-dash-pattern': [6, 4] } },
     { selector: 'edge.broken', style: { 'line-color': c('--loss'), 'target-arrow-color': c('--loss'), 'line-style': 'dotted', width: 2, opacity: 1 } },
     { selector: '.dim', style: { opacity: 0.1 } },
@@ -65,6 +66,8 @@ function styles(big = false) {
   ];
   // Grand graphe : les étiquettes ne sont dessinées qu'à un zoom où elles sont lisibles.
   if (big) list.push({ selector: 'node', style: { 'min-zoomed-font-size': 7 } }, { selector: 'edge', style: { 'min-zoomed-font-size': 7 } });
+  // Paragraphes repérés : plus gros, bordure accentuée, et leur badge reste lisible même dézoomé (règle placée après celle des grands graphes : Cytoscape applique les règles dans l'ordre).
+  list.push({ selector: 'node.marked', style: { width: 34, height: 34, 'font-size': 12, 'border-width': 3, 'border-color': c('--accent'), 'z-index': 5, 'min-zoomed-font-size': 0 } });
   return list;
 }
 
@@ -101,9 +104,15 @@ export function GraphTab({ adv, change, open, current }) {
   useEffect(() => { if (!libs) loadGraphLibs().then(() => setLibs(true)).catch(() => {}); }, []);
   const cyRef = useRef(null);
   const simRef = useRef(null);
-  const [view, setView] = useState('main');
+  // Fil principal (sans les sorts) d'office, sauf si la magie porte l'essentiel du livre (Sorcellerie!…) : tout afficher.
+  const [view, setView] = useState(() => { const A0 = analyze(adv); return A0.main.size < 0.6 * A0.depth.size ? 'all' : 'main'; });
+  const [shown, setShown] = useState(0);
   const [layout, setLayout] = useState('spring');
-  const [group, setGroup] = useState('none');
+  const big0 = Object.keys(adv.sections).length > BIG;
+  const [group, setGroup] = useState(big0 ? 'stage' : 'none');   // grand livre : regroupé par étape d'emblée
+  const [radius, setRadius] = useState(0);                          // 0 = tout le livre, sinon voisinage du paragraphe ouvert
+  const [hideDeaths, setHideDeaths] = useState(false);
+  const [marker, setMarker] = useState('');
   const [showPath, setShowPath] = useState(false);
   const [showDom, setShowDom] = useState(false);
   const [pin, setPin] = useState(false);
@@ -120,15 +129,38 @@ export function GraphTab({ adv, change, open, current }) {
     return [...first.entries()].sort((a, b) => a[1] - b[1]).map(([p]) => p);
   }, [structureKey]);
   const days = useMemo(() => [...new Set([...A.day.values()])].sort((a, b) => a - b), [A]);
+  // Étapes : tranches de distance au départ, environ douze groupes.
+  const stage = useMemo(() => {
+    const max = Math.max(0, ...[...A.depth.values()].filter(Number.isFinite));
+    const size = Math.max(1, Math.ceil((max + 1) / 12));
+    const of = id => { const d = A.depth.get(id); return Number.isFinite(d) ? Math.floor(d / size) : Math.floor(max / size) + 1; };
+    const count = Math.floor(max / size) + 2;
+    const labels = Array.from({ length: count }, (_, i) => (i === count - 1 ? 'Hors du fil (numéros à trouver)' : `Étape ${i + 1} · ${i * size}–${(i + 1) * size - 1} pas`));
+    return { of, labels };
+  }, [A]);
+  const markers = useMemo(() => (adv.meta?.markers || []).filter(m => m && m.label && Array.isArray(m.sections)), [adv]);
+  const markerOf = useMemo(() => { const m = new Map(); markers.forEach(k => k.sections.forEach(id => { const l = m.get(String(id)) || []; l.push(k); m.set(String(id), l); })); return m; }, [markers]);
+  // Voisinage : paragraphes à moins de `radius` renvois (dans les deux sens) du paragraphe ouvert.
+  const hood = useMemo(() => {
+    if (!radius) return null;
+    const adj = new Map();
+    const link = (a, b) => { (adj.get(a) || adj.set(a, new Set()).get(a)).add(b); (adj.get(b) || adj.set(b, new Set()).get(b)).add(a); };
+    for (const id of A.ids) targetsOfRaw(adv.sections[id]).forEach(t => { if (adv.sections[t.to]) link(id, String(t.to)); });
+    const seen = new Set([String(current)]); let front = [String(current)];
+    for (let r = 0; r < radius && front.length; r++) { const next = []; front.forEach(id => (adj.get(id) || []).forEach(n => { if (!seen.has(n)) { seen.add(n); next.push(n); } })); front = next; }
+    return seen;
+  }, [A, current, radius]);
 
-  const groupOf = id => group === 'place' ? places.indexOf(adv.sections[id].place || 'Sans lieu') : group === 'day' ? days.indexOf(A.day.get(id) ?? days[days.length - 1]) : -1;
-  const groupLabels = group === 'place' ? places : group === 'day' ? days.map(d => `Jour ${d}`) : null;
+  const groupOf = id => group === 'place' ? places.indexOf(adv.sections[id].place || 'Sans lieu') : group === 'day' ? days.indexOf(A.day.get(id) ?? days[days.length - 1]) : group === 'stage' ? stage.of(id) : -1;
+  const groupLabels = group === 'place' ? places : group === 'day' ? days.map(d => `Jour ${d}`) : group === 'stage' ? stage.labels : null;
 
   /* ---------- construction ---------- */
   useEffect(() => {
     if (!libs || !window.cytoscape || !ref.current) return;
     if (window.cytoscapeDagre && !window.__lhDagre) { window.cytoscape.use(window.cytoscapeDagre); window.__lhDagre = true; }
-    const keep = new Set(view === 'main' && hasSpells ? [...A.main] : A.ids);
+    let keep = new Set(view === 'main' && hasSpells ? [...A.main] : A.ids);
+    if (hood) keep = new Set([...keep].filter(id => hood.has(id)));
+    if (hideDeaths) keep = new Set([...keep].filter(id => adv.sections[id].ending !== 'death' || id === String(current)));
     const landmarks = new Set([String(adv.start), ...A.dominators, ...A.victories]);
     const hasSpell = new Set(A.ids.filter(id => (A.out.get(id) || []).some(t => t.kind === 'spell')));
     const spellOnly = new Set(A.ids.filter(id => !A.main.has(id)));
@@ -141,7 +173,9 @@ export function GraphTab({ adv, change, open, current }) {
       if (view === 'main' && hasSpell.has(id)) cl.push('hasSpell');
       if (view === 'all' && spellOnly.has(id)) cl.push('spellOut');
       if (s.pos && layout === 'spring') cl.push('pinned');
-      const data = { id, cap: `${id} · ${snippet(s.title || s.text, 34)}` };
+      const mk = markerOf.get(id);
+      const data = { id, cap: `${id} · ${snippet(s.title || s.text, 34)}`, lbl: mk ? `${[...new Set(mk.map(m => m.icon || '●'))].join('')}${id}` : id };
+      if (mk) cl.push('marked');
       if (groupLabels) data.parent = 'g' + groupOf(id);
       els.push({ data, classes: cl.join(' ') });
     });
@@ -158,6 +192,7 @@ export function GraphTab({ adv, change, open, current }) {
       });
     });
     missing.forEach(id => els.push({ data: { id, cap: id }, classes: 'p missing' }));
+    setShown(keep.size);
 
     const big = keep.size > BIG;
     // Grand livre : rendu économe pendant le zoom et le déplacement de la vue.
@@ -191,7 +226,7 @@ export function GraphTab({ adv, change, open, current }) {
     const n = cy.getElementById(String(current));
     if (layout === 'frise' && n.length) { cy.zoom(0.9); cy.center(n); } else cy.fit(undefined, 30);
     return () => { simRef.current?.stop(); simRef.current = null; cy.destroy(); cyRef.current = null; };
-  }, [structureKey, view, layout, group, libs]);
+  }, [structureKey, view, layout, group, libs, hood, hideDeaths, markers]);
 
   const pinRef = useRef(pin);
   pinRef.current = pin;
@@ -259,6 +294,12 @@ export function GraphTab({ adv, change, open, current }) {
       paras.forEach(n => { if (!keep.has(n.id())) n.addClass('dim'); });
       cy.edges().forEach(e => { if (!keep.has(e.source().id()) || !keep.has(e.target().id())) e.addClass('dim'); });
     }
+    if (marker) {
+      const list = marker === '__items' ? markers.filter(k => k.kind === 'item') : markers.filter(k => (k.id || k.label) === marker);
+      const ids = new Set(list.flatMap(k => k.sections.map(String)));
+      paras.forEach(n => { if (ids.has(n.id())) n.addClass('hit').removeClass('dim'); else n.addClass('dim'); });
+      cy.edges().addClass('dim');
+    }
     const t = q.trim();
     if (t && !/^\d+$/.test(t)) {
       const rx = norm(t);
@@ -273,7 +314,7 @@ export function GraphTab({ adv, change, open, current }) {
     const n = cy.getElementById(String(current));
     if (n.length) { n.addClass('sel'); n.outgoers('edge').addClass('out'); n.incomers('edge').addClass('inc'); }
   }
-  useEffect(overlays, [showPath, showDom, q, current, structureKey]);
+  useEffect(overlays, [showPath, showDom, q, current, structureKey, marker, hood, hideDeaths]);
 
   const home = () => { const cy = cyRef.current; const n = cy?.getElementById(String(adv.start)); if (n?.length) { cy.zoom(1); cy.center(n); } };
   const shake = () => { const sim = simRef.current; if (!sim) return; sim.nodes().forEach(d => { if (!adv.sections[d.id]?.pos) { d.fx = null; d.fy = null; } }); sim.alpha(0.9).restart(); };
@@ -304,7 +345,17 @@ export function GraphTab({ adv, change, open, current }) {
       <div class="seg" role="group" aria-label="Regrouper">
         <button ...${press('none', group)} onClick=${() => setGroup('none')}>Sans groupe</button>
         <button ...${press('place', group)} onClick=${() => { setGroup('place'); setLayout('spring'); }}>Par lieu</button>
-        <button ...${press('day', group)} onClick=${() => { setGroup('day'); setLayout('spring'); }}>Par jour</button></div>
+        <button ...${press('day', group)} onClick=${() => { setGroup('day'); setLayout('spring'); }}>Par jour</button>
+        <button ...${press('stage', group)} onClick=${() => { setGroup('stage'); setLayout('spring'); }} title="Tranches de distance au départ : lisible même pour un très grand livre">Par étape</button></div>
+      <label class="chk" title="N'afficher que les paragraphes proches du paragraphe ouvert">Voisinage
+        <select value=${radius} onChange=${e => setRadius(Number(e.target.value))} aria-label="Rayon du voisinage" style="min-height:0;padding:2px 4px">
+          <option value="0">tout</option><option value="1">1 renvoi</option><option value="2">2 renvois</option><option value="3">3 renvois</option><option value="5">5 renvois</option></select></label>
+      <label class="chk"><input type="checkbox" checked=${hideDeaths} onChange=${e => setHideDeaths(e.target.checked)} /> Masquer les morts</label>
+      ${markers.length > 0 && html`<label class="chk" title="Paragraphes repérés dans ce livre">Repères
+        <select value=${marker} onChange=${e => setMarker(e.target.value)} aria-label="Repère à mettre en avant" style="min-height:0;padding:2px 4px">
+          <option value="">aucun</option>
+          ${markers.some(m => m.kind === 'item') && html`<option value="__items">🎒 Tous les objets</option>`}
+          ${markers.map(m => html`<option value=${m.id || m.label}>${m.icon || ''} ${m.label} (${m.sections.length})</option>`)}</select></label>`}
       <label class="chk"><input type="checkbox" checked=${showPath} onChange=${e => { setShowPath(e.target.checked); if (e.target.checked) setShowDom(false); }} /> Chemin le plus court</label>
       <label class="chk"><input type="checkbox" checked=${showDom} onChange=${e => { setShowDom(e.target.checked); if (e.target.checked) setShowPath(false); }} /> Passages obligés</label>
       <label class="chk" title="Un paragraphe lâché reste à sa place (enregistré avec l'aventure)"><input type="checkbox" checked=${pin} onChange=${e => setPin(e.target.checked)} /> Épingler</label>
@@ -312,13 +363,14 @@ export function GraphTab({ adv, change, open, current }) {
         <input type="search" value=${q} onInput=${e => setQ(e.target.value)} placeholder="N° ou mot…" aria-label="Chercher dans le graphe" style="width:160px;min-height:34px" />
         ${hits !== null && html`<span class="pill">${hits}</span>`}
       </form>
+      <span class="pill" title="Paragraphes affichés / paragraphes du livre">${shown} / ${A.ids.length}</span>
     </div>
     <div id="graph" ref=${ref} aria-label="Graphe de l'aventure. Cliquez sur un paragraphe pour l'ouvrir, glissez-le pour le déplacer."></div>
     <div class="legend">
       <span><${Shape} k="landmark" />Passage obligé</span><span><${Shape} k="normal" />Récit</span><span><${Shape} k="combat" />Combat</span>
       <span><${Shape} k="dice" />Dés</span><span><${Shape} k="magic" />Formules</span><span><${Shape} k="death" />Mort</span><span><${Shape} k="victory" />Victoire</span>
       ${view === 'main' && hasSpells && html`<span><${Shape} k="hasSpell" />Sorts masqués</span>`}
-      <span>- - - dés / sorts</span><span style="color:var(--loss)">··· renvoi cassé</span>
+      <span>- - - dés / sorts</span><span style="color:var(--accent)">···· numéro à trouver</span><span style="color:var(--loss)">··· renvoi cassé</span>
     </div>
     <div class="graph-actions">
       ${pinnedCount > 0 && html`<button class="btn small" onClick=${unpinAll}>Libérer ${pinnedCount} épinglé${pinnedCount > 1 ? 's' : ''}</button>`}

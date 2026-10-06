@@ -516,6 +516,8 @@ export function buy(state, adv, blockIndex, offerIndex) {
 export function targetsOf(sec) {
   const out = [];
   (sec.choices || []).forEach((c, i) => c.to && out.push({ to: String(c.to), kind: 'choice', label: c.text, ref: ['choices', i] }));
+  // Renvois cachés : numéro que le joueur doit trouver dans le texte (clé, mot de passe…) et taper lui-même (règle freeJump).
+  (sec.links || []).forEach((l, i) => l.to && out.push({ to: String(l.to), kind: 'secret', label: l.label || 'numéro à trouver', ref: ['links', i] }));
   (sec.blocks || []).forEach((b, i) => {
     if (b.type === 'test') {
       b.success && out.push({ to: String(b.success), kind: 'test', label: 'réussite', ref: ['blocks', i, 'success'] });

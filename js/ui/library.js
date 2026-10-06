@@ -6,6 +6,7 @@ import { listLibrary, loadAdventure, importAdventure, exportAdventure, download,
 import { putAdventure, deleteAdventure, listSaves } from '../store/db.js';
 import { newAdventure, slug } from '../core/rules.js';
 import { ui, sorted } from './registry.js';
+import { VERSION } from '../version.js';
 
 /** Identifiant déjà pris à l'import : remplacer (après confirmation) ou garder les deux. */
 export async function askReplace(existing, adv) {
@@ -79,7 +80,7 @@ export function Library() {
   return html`<main class="page">
     <div class="lib-head">
       <div class="stack" style="gap:6px">
-        <span class="eyebrow">Bibliothèque</span>
+        <span class="eyebrow">Bibliothèque <span class="subtle" style="font-weight:400;letter-spacing:0;text-transform:none" title="Version de l’application chargée (identique au cache hors ligne)">· version ${VERSION}</span></span>
         <h1>Choisissez votre aventure</h1>
         <p class="muted" style="margin:0;max-width:60ch">Jouez une aventure, ou écrivez la vôtre avec ses illustrations, ses combats et ses jets de dés.</p>
       </div>

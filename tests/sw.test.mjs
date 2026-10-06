@@ -44,3 +44,9 @@ test('sw.js : le paquet zefor (vendor/zefor/) n’est pas préchargé, et un fic
   assert.ok(!SHELL.some(f => f.startsWith('vendor/')), 'vendor/zefor/ ne doit pas être dans SHELL (mis en cache à la première utilisation)');
   assert.match(sw, /req\.mode === 'navigate' && \(await cache\.match\('index\.html'\)\)/);
 });
+
+test('sw.js et js/version.js annoncent la même version', () => {
+  const sw = readFileSync(join(ROOT, 'sw.js'), 'utf8').match(/const VERSION = '([^']+)'/)[1];
+  const app = readFileSync(join(ROOT, 'js/version.js'), 'utf8').match(/VERSION = '([^']+)'/)[1];
+  assert.equal(app, sw);
+});

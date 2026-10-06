@@ -6,6 +6,38 @@ import { makeRng, roll } from './dice.js';
 import { checkDeath, statLabel } from './rules.js';
 import { ext, sumCombat } from './plugins.js';
 
+/**
+ * Vocabulaire du combat : `rules.combat.words` remplace tout ou partie de ces libellés (un mode peut le faire
+ * aussi, ex. « duel de courage » pour les petits : personne n'est blessé, l'adversaire recule).
+ * Repères remplacés : {name} adversaire, {n} points, {stat} caractéristique de vie, {round}, {me}, {foe}, {txt}, {total}.
+ */
+export const COMBAT_WORDS = {
+  title: 'Combat', round: 'assaut {round}', start: 'Combattre', attack: 'Assaut', auto: 'Combat automatique',
+  flee: 'Fuir', luck: 'Tenter sa Chance', you: 'Vous', versus: 'contre {name}',
+  together: 'Ils vous attaquent tous en même temps.', sequential: 'Vous les affrontez l’un après l’autre.',
+  target: 'Choisissez votre cible (cadre épais). Les autres adversaires attaquent aussi : vous ne faites que parer leurs coups.',
+  hit: 'Touché ! −{n}', wounded: 'Blessé −{n}', draw: 'Égalité', parry: 'Paré', harmless: 'Touché, sans blessure',
+  win: 'Vous avez gagné le combat.', lose: 'Vous avez perdu le combat.', fled: 'Vous avez pris la fuite.',
+  foeHealth: '', down: '{name} est vaincu.', spare: '{name} renonce au combat.', death: 'Vous avez succombé au combat.',
+  logRound: 'Assaut {round} — vous {me} contre {name} {foe} : {txt}.',
+  logHit: 'vous blessez {name} (−{n})', logWounded: '{name} vous blesse (−{n} {stat})', logDraw: 'vous esquivez tous les deux',
+  logParry: 'vous parez l\'attaque de {name}', logHarmless: '{name} vous touche sans vous blesser',
+  logFlee: 'Vous prenez la fuite (−{n} {stat}).',
+  logLuckyHit: 'Chanceux ({total}) : blessure grave, {name} perd 2 points de plus.',
+  logUnluckyHit: 'Malchanceux ({total}) : simple égratignure, {name} récupère 1 point.',
+  logLuckyWound: 'Chanceux ({total}) : vous amortissez le coup, +1 {stat}.',
+  logUnluckyWound: 'Malchanceux ({total}) : le coup est plus grave, −1 {stat}.',
+};
+
+/** Libellés du combat pour cette aventure (et ce mode), complétés par les valeurs par défaut. */
+export function combatWords(adv) {
+  const w = adv?.rules?.combat?.words;
+  return { ...COMBAT_WORDS, ...(w && typeof w === 'object' ? Object.fromEntries(Object.entries(w).filter(([, v]) => typeof v === 'string' && v !== '')) : {}) };
+}
+
+/** Remplace les repères {clé} d'un libellé. */
+export const fillWords = (txt, vars = {}) => String(txt).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+
 /** Démarre le combat du bloc `blockIndex` du paragraphe courant. */
 /** Dégâts saisis : 0 est une vraie valeur (adversaire inoffensif) ; vide ou absent = valeur par défaut. */
 const dmgOf = v => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Math.max(0, Number(v)));
@@ -73,8 +105,9 @@ export function attackRound(state, adv) {
     } else if (ea > pa) outcome = 'harmless'; // adversaire à 0 dégât : il touche sans blesser (pas de Chance à tenter)
     else outcome = 'draw';
     exchanges.push({ enemy: e.id, name: e.name, player: { dice: pr.dice, total: pa }, foe: { dice: er.dice, total: ea }, outcome, damage: outcome === 'wounded' ? taken : outcome === 'hit' ? dealt : 0 });
-    const txt = { hit: `vous blessez ${e.name} (−${dealt})`, wounded: `${e.name} vous blesse (−${taken} ${statLabel(adv, hpId)})`, draw: 'vous esquivez tous les deux', parry: `vous parez l'attaque de ${e.name}`, harmless: `${e.name} vous touche sans vous blesser` }[outcome];
-    lines.push(`Assaut ${c.round} — vous ${pa} contre ${e.name} ${ea} : ${txt}.`);
+    const W = combatWords(adv), v = { name: e.name, stat: statLabel(adv, hpId) };
+    const txt = { hit: fillWords(W.logHit, { ...v, n: dealt }), wounded: fillWords(W.logWounded, { ...v, n: taken }), draw: fillWords(W.logDraw, v), parry: fillWords(W.logParry, v), harmless: fillWords(W.logHarmless, v) }[outcome];
+    lines.push(fillWords(W.logRound, { ...v, round: c.round, me: pa, foe: ea, txt }));
   }
   c.last = { round: c.round, exchanges, luckUsed: false, mods, extra: [] };
   // Tour des greffons (ex. les compagnons frappent à leur tour) : ils peuvent modifier s, c, et ajouter des lignes.
@@ -100,16 +133,17 @@ export function useLuck(state, adv) {
   const lucky = r.total <= luck.cur;
   luck.cur = Math.max(0, luck.cur - 1);
   const lines = [];
+  const W = combatWords(adv), stat = statLabel(adv, adv.rules.combat.health);
   for (const ex of c.last.exchanges) {
     if (ex.outcome === 'hit') {
       const e = c.enemies[ex.enemy];
       if (!e || e.down || e.health <= c.stopAt) continue; // adversaire déjà vaincu : la Chance ne le concerne plus
-      if (lucky) { e.health = Math.max(0, e.health - 2); lines.push(`Chanceux (${r.total}) : blessure grave, ${e.name} perd 2 points de plus.`); }
-      else { e.health = Math.min(e.max, e.health + 1); lines.push(`Malchanceux (${r.total}) : simple égratignure, ${e.name} récupère 1 point.`); }
+      if (lucky) { e.health = Math.max(0, e.health - 2); lines.push(fillWords(W.logLuckyHit, { total: r.total, name: e.name })); }
+      else { e.health = Math.min(e.max, e.health + 1); lines.push(fillWords(W.logUnluckyHit, { total: r.total, name: e.name })); }
     }
     if (ex.outcome === 'wounded') {
-      if (lucky) { hp.cur = Math.min(hp.init, hp.cur + 1); lines.push(`Chanceux (${r.total}) : vous amortissez le coup, +1 ${statLabel(adv, adv.rules.combat.health)}.`); }
-      else { hp.cur = Math.max(0, hp.cur - 1); lines.push(`Malchanceux (${r.total}) : le coup est plus grave, −1 ${statLabel(adv, adv.rules.combat.health)}.`); }
+      if (lucky) { hp.cur = Math.min(hp.init, hp.cur + 1); lines.push(fillWords(W.logLuckyWound, { total: r.total, stat })); }
+      else { hp.cur = Math.max(0, hp.cur - 1); lines.push(fillWords(W.logUnluckyWound, { total: r.total, stat })); }
     }
   }
   c.last.luckUsed = true;
@@ -130,7 +164,7 @@ export function flee(state, adv) {
   const dmg = Number(block.fleeDamage ?? adv.rules.combat.fleeDamage ?? 2);
   const hp = s.stats[adv.rules.combat.health];
   hp.cur = Math.max(0, hp.cur - dmg);
-  s.combat.log = [...s.combat.log, `Vous prenez la fuite (−${dmg} ${statLabel(adv, adv.rules.combat.health)}).`];
+  s.combat.log = [...s.combat.log, fillWords(combatWords(adv).logFlee, { n: dmg, stat: statLabel(adv, adv.rules.combat.health) })];
   s.combat.over = 'flee';
   s.combat.canLuck = false;
   return checkDeath(s, adv);
@@ -145,11 +179,12 @@ export function autoFight(state, adv, maxRounds = 200) {
 
 function settle(s, adv) {
   const c = s.combat;
-  c.enemies.forEach(e => { if (e.health <= c.stopAt && !e.down) { e.down = true; c.log.push(c.stopAt ? `${e.name} renonce au combat.` : `${e.name} est vaincu.`); } });
+  const W = combatWords(adv);
+  c.enemies.forEach(e => { if (e.health <= c.stopAt && !e.down) { e.down = true; c.log.push(fillWords(c.stopAt ? W.spare : W.down, { name: e.name })); } });
   if (s.stats[adv.rules.combat.health].cur <= 0) {
     c.over = 'lose'; c.canLuck = false;
     const block = adv.sections[s.section].blocks[c.block];
-    if (!block.lose) { s.ended = 'death'; s.endReason = 'Vous avez succombé au combat.'; }
+    if (!block.lose) { s.ended = 'death'; s.endReason = W.death; }
   } else if (!alive(c).length) { c.over = 'win'; }
   // Après victoire ou défaite, la Chance ne peut plus changer l'issue sauf si le dernier coup peut être amorti.
   if (c.over === 'win') c.canLuck = false;

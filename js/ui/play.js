@@ -197,6 +197,13 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
           ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
         </button>`)}
       </nav>`}
+      ${!state.ended && adv.rules.freeJump && html`<form class="jump row" style="justify-content:center;gap:8px;margin-top:16px" onSubmit=${e => {
+        e.preventDefault(); const v = String(new FormData(e.target).get('n') || '').trim();
+        if (adv.sections[v]) go(v); else update(state, [{ kind: 'info', text: `Il n'y a pas de paragraphe ${v || '?'}.` }]);
+      }}>
+        <label>Rendez-vous au n° <input name="n" type="number" min="1" inputmode="numeric" style="width:6em" aria-label="Numéro de paragraphe" /></label>
+        <button class="btn small" type="submit"><${Icon} name="play" />Y aller</button>
+      </form>`}
       ${state.ended && html`<${Ending} adv=${adv} state=${state} onRestart=${onRestart} onBack=${adv.rules.allowBack && state.history.length ? goBack : null} />`}
     </article>
     <${Sheet} adv=${adv} source=${source} state=${state} update=${update} open=${sheetOpen} onClose=${() => setSheetOpen(false)}
@@ -298,23 +305,27 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
   const exit = c?.over ? C.combatExit(state, adv) : null;
   const last = c?.last;
   const fleeOk = block.flee && (!c || !c.fleeAfter || c.round >= c.fleeAfter);
+  const W = C.combatWords(adv), F = C.fillWords;
+  const foeHp = W.foeHealth || R.statLabel(adv, adv.rules.combat.health);
   if (!c) return html`<section class="block">
-    <h3><${Icon} name="sword" />Combat</h3>
+    <h3><${Icon} name="sword" />${W.title}</h3>
+    ${block.note && html`<p class="rule"><span class="emoji" aria-hidden="true">📜</span>${block.note}</p>`}
     <div class="fighters">${(block.enemies || []).map(e => html`<div class="fighter">
       ${e.image && html`<${AssetImg} adv=${adv} source=${source} path=${e.image} alt=${e.name} />`}
       <span class="fname">${e.name}</span>
       <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.skill)}</span><b class="mono">${e.skill}</b></span>
-      <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.health)}</span><b class="mono">${e.health}</b></span>
+      <span class="statline"><span>${foeHp}</span><b class="mono">${e.health}</b></span>
     </div>`)}</div>
-    ${block.enemies?.length > 1 && html`<p class="subtle" style="margin:0">${block.mode === 'together' ? 'Ils vous attaquent tous en même temps.' : 'Vous les affrontez l’un après l’autre.'}</p>`}
+    ${block.enemies?.length > 1 && html`<p class="subtle" style="margin:0">${block.mode === 'together' ? W.together : W.sequential}</p>`}
     <div class="row">
-      <button class="btn primary" onClick=${() => update(C.startCombat(state, adv, index), [])}><${Icon} name="sword" />Combattre</button>
-      ${block.flee && !block.fleeAfter && html`<button class="btn" onClick=${() => update(C.flee(C.startCombat(state, adv, index), adv), [])}>Fuir (−${block.fleeDamage ?? adv.rules.combat.fleeDamage})</button>`}
+      <button class="btn primary" onClick=${() => update(C.startCombat(state, adv, index), [])}><${Icon} name="sword" />${W.start}</button>
+      ${block.flee && !block.fleeAfter && html`<button class="btn" onClick=${() => update(C.flee(C.startCombat(state, adv, index), adv), [])}>${W.flee} (−${block.fleeDamage ?? adv.rules.combat.fleeDamage})</button>`}
     </div>
   </section>`;
 
   return html`<section class="block">
-    <h3><${Icon} name="sword" />Combat${c.round ? ` · assaut ${c.round}` : ''}</h3>
+    <h3><${Icon} name="sword" />${W.title}${c.round ? ` · ${F(W.round, { round: c.round })}` : ''}</h3>
+    ${block.note && html`<p class="rule"><span class="emoji" aria-hidden="true">📜</span>${block.note}</p>`}
     <div class="fighters">
       <div class="fighter"><span class="fname"><${Icon} name="heart" />${state.hero.name}</span>
         <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.skill)}</span><b class="mono">${state.stats[adv.rules.combat.skill].cur}${(c.playerMod + (last?.mods?.attack || 0)) ? ` ${(c.playerMod + (last?.mods?.attack || 0)) > 0 ? '+' : ''}${c.playerMod + (last?.mods?.attack || 0)}` : ''}</b></span>
@@ -326,27 +337,28 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
           aria-pressed=${c.mode === 'together' ? e.id === c.target : undefined}>
         <span class="fname">${e.name}</span>
         <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.skill)}</span><b class="mono">${e.skill}</b></span>
-        <span class="statline"><span>${R.statLabel(adv, adv.rules.combat.health)}</span><b class="mono">${e.health} / ${e.max}</b></span>
+        <span class="statline"><span>${foeHp}</span><b class="mono">${e.health} / ${e.max}</b></span>
         <div class="bar"><span style=${`width:${100 * e.health / e.max}%`}></span></div>
       </button>`)}
     </div>
-    ${c.mode === 'together' && !c.over && html`<p class="subtle" style="margin:0">Choisissez votre cible (cadre épais). Les autres adversaires attaquent aussi : vous ne faites que parer leurs coups.</p>`}
+    ${c.mode === 'together' && !c.over && html`<p class="subtle" style="margin:0">${W.target}</p>`}
     ${last && html`<div class="round">
       ${last.exchanges.map(x => html`<div class="vs">
-        <span>Vous</span><${Dice} result=${{ dice: x.player.dice, total: x.player.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.player.total}</b>
-        <span>contre ${x.name}</span><${Dice} result=${{ dice: x.foe.dice, total: x.foe.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.foe.total}</b>
-        <span class=${x.outcome === 'wounded' ? 'msg loss' : x.outcome === 'hit' ? 'msg gain' : 'msg'} style="padding:2px 8px">${{ hit: `Touché ! −${x.damage}`, wounded: `Blessé −${x.damage}`, draw: 'Égalité', parry: 'Paré', harmless: 'Touché, sans blessure' }[x.outcome]}</span>
+        <span>${W.you}</span><${Dice} result=${{ dice: x.player.dice, total: x.player.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.player.total}</b>
+        <span>${F(W.versus, { name: x.name })}</span><${Dice} result=${{ dice: x.foe.dice, total: x.foe.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.foe.total}</b>
+        <span class=${x.outcome === 'wounded' ? 'msg loss' : x.outcome === 'hit' ? 'msg gain' : 'msg'} style="padding:2px 8px">${F(W[x.outcome] || '', { n: x.damage, name: x.name })}</span>
       </div>`)}
       ${last.luck && html`<div class=${'outcome ' + (last.luck.lucky ? 'ok' : 'ko')}>Chance : ${last.luck.total} — ${last.luck.lucky ? 'Chanceux' : 'Malchanceux'}</div>`}
       ${(last.extra || []).map(x => html`<div class="subtle">${x}</div>`)}
     </div>`}
+    ${c.log.length > 1 && html`<ol class="history" aria-label="Assauts précédents">${c.log.slice(0, -1).slice(-5).map(l => html`<li>${l}</li>`)}</ol>`}
     ${sorted(ui.combatPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} combat=${c} update=${update} />`)}
     ${!c.over ? html`<div class="row">
-      <button class="btn primary" onClick=${() => act(C.attackRound)}><${Icon} name="dice" />Assaut</button>
-      ${c.canLuck && html`<button class="btn" onClick=${() => act(C.useLuck)}><${Icon} name="clover" />Tenter sa Chance (${state.stats[adv.rules.combat.luck].cur})</button>`}
-      <button class="btn" onClick=${() => act(C.autoFight)}>Combat automatique</button>
-      ${block.flee && html`<button class="btn" disabled=${!fleeOk} onClick=${() => act(C.flee)}>Fuir${block.fleeAfter && !fleeOk ? ` (après ${block.fleeAfter} assauts)` : ''}</button>`}
-    </div>` : html`<div class=${'outcome ' + (c.over === 'win' ? 'ok' : 'ko')}>${{ win: 'Vous avez gagné le combat.', flee: 'Vous avez pris la fuite.', lose: 'Vous avez perdu le combat.' }[c.over]}</div>
+      <button class="btn primary" onClick=${() => act(C.attackRound)}><${Icon} name="dice" />${W.attack}</button>
+      ${c.canLuck && html`<button class="btn" onClick=${() => act(C.useLuck)}><${Icon} name="clover" />${W.luck} (${state.stats[adv.rules.combat.luck].cur})</button>`}
+      <button class="btn" onClick=${() => act(C.autoFight)}>${W.auto}</button>
+      ${block.flee && html`<button class="btn" disabled=${!fleeOk} onClick=${() => act(C.flee)}>${W.flee}${block.fleeAfter && !fleeOk ? ` (après ${block.fleeAfter} assauts)` : ''}</button>`}
+    </div>` : html`<div class=${'outcome ' + (c.over === 'win' ? 'ok' : 'ko')}>${{ win: W.win, flee: W.fled, lose: W.lose }[c.over]}</div>
       ${!state.ended && html`<div><${Continue} to=${exit} go=${go} /></div>`}`}
     ${c.log.length > 0 && html`<details><summary class="subtle">Journal du combat (${c.log.length})</summary><div class="log">${c.log.map(l => html`<span>${l}</span>`)}</div></details>`}
   </section>`;
@@ -450,8 +462,8 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
       <span class="row" style="gap:6px">${state.ate ? html`<${Icon} name="check" />A mangé aujourd’hui` : html`<${Icon} name="x" />Pas encore mangé`}</span>
     </div>`}
     <div class="row" style="justify-content:space-between">
-      <span class="row" style="gap:6px"><${Icon} name="coin" /><b class="mono">${state.gold}</b> pièces d’or</span>
-      <span class="row" style="gap:6px"><${Icon} name="bread" /><b class="mono">${state.provisions}</b> repas</span>
+      <span class="row" style="gap:6px"><span class="emoji" aria-hidden="true">💰</span><b class="mono">${state.gold}</b> pièces d’or</span>
+      <span class="row" style="gap:6px"><span class="emoji" aria-hidden="true">🍞</span><b class="mono">${state.provisions}</b> repas</span>
     </div>
     ${(() => {
       // Inutile de manger quand la caractéristique soignée est au maximum (sauf si les journées exigent un repas).
@@ -461,12 +473,19 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
     })()}
     <div class="stack" style="gap:6px"><span class="eyebrow">Sac à dos</span>
       ${inv.length ? html`<ul class="inv">${inv.map(([id, q]) => { const it = adv.items[id] || { name: id }; return html`<li title=${it.description || ''}>
-        <span>${it.name}${q > 1 ? ` ×${q}` : ''}</span>
+        <span>${it.icon ? html`<span class="emoji" aria-hidden="true">${it.icon}</span>` : null}${it.name}${q > 1 ? ` ×${q}` : ''}</span>
         <span class="row" style="gap:4px">
           ${it.use?.length && !state.ended ? html`<button class="btn small" aria-label=${`Utiliser : ${it.name}`} onClick=${() => { const r = R.useItem(state, adv, id); update(r.state, r.messages); }}>Utiliser</button>` : null}
           ${!state.ended && ui.itemActions.filter(a => a.show(it, state, adv, id)).map(a => { const label = a.label(it, state, adv, id); return html`<button class="btn small" aria-label=${a.ariaLabel?.(it, state, adv, id) || `${label} : ${it.name}`} onClick=${() => { const r = a.run(state, adv, id); update(r.state, r.messages || []); }}>${label}</button>`; })}
+          ${!state.ended && html`<button class="btn small ghost" aria-label=${`Retirer : ${it.name}`} title="Retirer du sac (comme on raye un objet sur la feuille)" onClick=${() => { const r = R.applyEffects(state, adv, [{ op: 'take', item: id }]); update(r.state, r.messages); }}><${Icon} name="x" /></button>`}
         </span>
       </li>`; })}</ul>` : html`<span class="subtle">Vide.</span>`}
+      ${!state.ended && Object.keys(adv.items).some(id => !(state.inventory[id] > 0)) && html`<form class="row" style="gap:6px" onSubmit=${e => { e.preventDefault(); const id = new FormData(e.target).get('item'); if (id && adv.items[id]) { const r = R.applyEffects(state, adv, [{ op: 'give', item: id }]); update(r.state, r.messages); } }}>
+        <select name="item" aria-label="Objet à ajouter au sac" style="flex:1;min-width:0">
+          ${Object.entries(adv.items).filter(([id]) => !(state.inventory[id] > 0)).map(([id, it]) => html`<option value=${id}>${it.icon ? it.icon + ' ' : ''}${it.name}</option>`)}
+        </select>
+        <button class="btn small" type="submit" title="Ajouter un objet que le texte vous donne"><${Icon} name="plus" />Ajouter</button>
+      </form>`}
     </div>
     ${sorted(ui.sheetPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} />`)}
     <label class="field">Notes<textarea id="sheet-notes" rows="3" value=${state.notes} onChange=${e => update({ ...state, notes: e.target.value }, [])}></textarea></label>

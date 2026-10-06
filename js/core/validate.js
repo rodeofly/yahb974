@@ -131,6 +131,7 @@ export function remap(adv, mapping) {
   for (const [id, sec] of Object.entries(adv.sections)) {
     const s = structuredClone(sec);
     s.choices = (s.choices || []).map(c => ({ ...c, to: m(c.to), if: remapCond(c.if), effects: remapEffects(c.effects) }));
+    if (s.links) s.links = s.links.map(l => ({ ...l, to: m(l.to) }));
     s.onEnter = remapEffects(s.onEnter);
     s.blocks = (s.blocks || []).map(b => {
       const x = { ...b };

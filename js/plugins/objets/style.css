@@ -1,0 +1,11 @@
+/* Greffon « objets » : uniquement les jetons de css/app.css (clair et sombre). */
+.actions-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.action-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); font-size: 15px; line-height: 1.2; text-align: left; }
+.action-btn .emoji { font-size: 22px; line-height: 1; width: 28px; text-align: center; flex: none; }
+.action-btn .fx { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.action-btn:hover:not(:disabled) { border-color: var(--accent); }
+.action-btn.done { border-style: solid; border-color: var(--gain); color: var(--muted); }
+.action-btn.done .emoji::after { content: " ✓"; font-size: 14px; color: var(--gain); }
+.action-btn:disabled { cursor: default; }
+.action-btn.locked { border-style: dashed; opacity: .6; }
+.inv .emoji { font-size: 18px; width: 24px; display: inline-block; text-align: center; }
