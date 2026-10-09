@@ -182,6 +182,8 @@ button.badge:hover { border-color: var(--accent); }
 .inv { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .inv li { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 15px; }
 .sheet-toggle { display: none; }
+/* Boutons flottants du jeu (téléphone) : le sac et la Feuille d'Aventure. */
+.play-fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 25; display: flex; gap: 8px; }
 .pill { font-family: var(--mono); font-weight: 700; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; background: var(--paper); }
 
 @media (max-width: 900px) {

@@ -83,7 +83,8 @@ Le bouton « Estimer la difficulté » de l'éditeur calcule les chances du hér
       "health": 8,         // ENDURANCE de départ (maximum)
       "damage": 2,         // facultatif : dégâts infligés (défaut : rules.combat.damage, soit 2)
       "image": "images/compagnon-kaya-lx3.webp",   // facultatif : portrait
-      "description": "Archère silencieuse de la forêt de Bébour."  // facultatif
+      "description": "Archère silencieuse de la forêt de Bébour.",  // facultatif
+      "plural": false      // facultatif : un groupe (« Tom et Lila se joignent à vous ») ; deviné si le nom contient « et »
     }
   }
 }

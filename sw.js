@@ -6,7 +6,7 @@
 //   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
 // réseau en contournant le cache HTTP du navigateur).
-const VERSION = 'lh-v17';
+const VERSION = 'lh-v18';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/version.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
@@ -30,6 +30,7 @@ const SHELL = [
   'js/plugins/echanges/core.js', 'js/plugins/echanges/index.js', 'js/plugins/echanges/style.css',
   'js/plugins/partage/core.js', 'js/plugins/partage/index.js', 'js/plugins/partage/style.css',
   'js/plugins/accessibilite/core.js', 'js/plugins/accessibilite/index.js', 'js/plugins/accessibilite/style.css',
+  'js/plugins/inventaire/core.js', 'js/plugins/inventaire/index.js', 'js/plugins/inventaire/style.css',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
   'adventures/index.json',
 ];

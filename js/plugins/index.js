@@ -28,3 +28,5 @@ import './echanges/index.js';
 import './partage/index.js';
 
 import './accessibilite/index.js';
+
+import './inventaire/index.js';

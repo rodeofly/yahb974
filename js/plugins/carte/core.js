@@ -3,8 +3,9 @@
 // 1. Bloc « map » : une image avec des zones cliquables qui renvoient à des paragraphes.
 //    { type: 'map', image, alt, label?, hotspots: [{ x, y, w, h, label, to, if?, hideIfUnavailable?, effects? }] }
 //    x, y, w, h sont en pourcentage de l'image (0 à 100).
-// 2. Carte du monde : adv.meta.worldMap = { image, places: { [lieu]: { x, y } }, revealUnvisited, showPath }.
-//    Les lieux sont les valeurs du champ « Lieu » (section.place) des paragraphes.
+// 2. Carte du monde : adv.meta.worldMap = { image, places: { [lieu]: { x, y } }, known?: [lieux], revealUnvisited, showPath }.
+//    Les lieux sont les valeurs du champ « Lieu » (section.place) des paragraphes. `known` : lieux connus dès le départ
+//    (par exemple, ceux d'un livre précédent de la même série).
 // 3. Effet { op: 'revealPlace', place } : le héros apprend où se trouve un lieu (il apparaît sur sa carte).
 // 4. Conditions { placeVisited }, { placeNotVisited }, { placeKnown } : être (ou non) déjà allé dans un lieu.
 // Voir docs/plugins/carte.md.
@@ -81,8 +82,11 @@ export function visitedPlaces(state, adv) {
   return [...out].sort((a, b) => a.localeCompare(b, 'fr'));
 }
 
-/** Lieux révélés par l'effet revealPlace (sans forcément y être allé). */
-export const knownPlaces = state => (Array.isArray(state?.carte?.revealed) ? state.carte.revealed : []);
+/** Lieux connus dès le départ (adv.meta.worldMap.known). */
+export const knownAtStart = adv => (Array.isArray(adv?.meta?.worldMap?.known) ? adv.meta.worldMap.known.map(placeName).filter(Boolean) : []);
+
+/** Lieux connus sans forcément y être allé : révélés par l'effet revealPlace, ou connus dès le départ. */
+export const knownPlaces = (state, adv) => [...new Set([...knownAtStart(adv), ...(Array.isArray(state?.carte?.revealed) ? state.carte.revealed : [])])];
 
 /** Suite des lieux traversés, dans l'ordre (d'après le journal), sans répétition immédiate. */
 export function journey(state, adv) {
@@ -122,7 +126,7 @@ export function worldMarkers(state, adv) {
   const wm = adv?.meta?.worldMap;
   if (!wm) return [];
   const visited = new Set(visitedPlaces(state, adv));
-  const known = new Set(knownPlaces(state).map(placeName));
+  const known = new Set(knownPlaces(state, adv).map(placeName));
   const here = currentPlace(state, adv);
   const out = [];
   for (const raw of Object.keys(wm.places || {})) {
@@ -241,7 +245,7 @@ registerEffect('revealPlace', {
   apply(s, e, adv, messages) {
     const p = placeName(e.place);
     if (!p) return;
-    const rev = knownPlaces(s);
+    const rev = Array.isArray(s.carte?.revealed) ? s.carte.revealed : [];
     if (rev.includes(p)) return;
     s.carte = { ...(s.carte || {}), revealed: [...rev, p] };
     if (!visitedPlaces(s, adv).includes(p)) messages.push({ kind: 'info', text: `Nouveau lieu sur votre carte du monde : ${p}` });
@@ -267,7 +271,7 @@ registerCondition({
     const v = visitedPlaces(state, adv).includes(p);
     if ('placeVisited' in c) return v;
     if ('placeNotVisited' in c) return !v;
-    return v || knownPlaces(state).map(placeName).includes(p);
+    return v || knownPlaces(state, adv).map(placeName).includes(p);
   },
   describe(c) {
     const p = condPlace(c);

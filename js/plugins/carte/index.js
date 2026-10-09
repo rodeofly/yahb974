@@ -7,7 +7,7 @@
 import './core.js';
 import { html, useState, useEffect, useLayoutEffect, useRef, useMemo } from '../../lib/preact-htm.js';
 import { Icon, Modal, loadCSS } from '../../ui/common.js';
-import { registerBlockUI, registerSheetPanel, registerEditorTab, registerPrintSection, registerEffectUI, registerConditionUI } from '../../ui/registry.js';
+import { registerBlockUI, registerSheetPanel, registerEditorTab, registerPrintSection, registerEffectUI, registerConditionUI, registerInventoryTab } from '../../ui/registry.js';
 import { Text, Num, ImageSlot, ConditionEditor, EffectsEditor } from '../../ui/editor.js';
 import { assetUrl } from '../../store/library.js';
 import {
@@ -240,12 +240,17 @@ function Keys({ statuses, path }) {
 }
 
 function WorldModal({ adv, source, state, onClose }) {
+  return html`<${Modal} title="Carte du monde" onClose=${onClose} wide><${WorldView} adv=${adv} source=${source} state=${state} /><//>`;
+}
+
+/** La carte du joueur et sa légende (fenêtre « Carte du monde », onglet du sac). */
+function WorldView({ adv, source, state }) {
   const wm = adv.meta.worldMap;
   const markers = worldMarkers(state, adv);
   const points = wm.showPath !== false ? journeyPoints(state, adv) : [];
   const here = currentPlace(state, adv);
   const visited = visitedPlaces(state, adv);
-  const known = knownPlaces(state).map(placeName).filter(p => !visited.includes(p));
+  const known = knownPlaces(state, adv).map(placeName).filter(p => !visited.includes(p));
   const statuses = ['here', 'visited', 'known', 'unknown'].filter(s => markers.some(m => m.status === s));
   // Étiquettes qui se recouvrent (petit écran, lieux proches) : repères numérotés et liste des lieux sous la carte.
   const sig = markers.map(m => m.name + m.status).join('|');
@@ -253,7 +258,7 @@ function WorldModal({ adv, source, state, onClose }) {
   const compact = crowded === sig;
   let k = 0;
   const shown = compact ? markers.map(m => (m.status !== 'unknown' ? { ...m, n: ++k } : m)) : markers;
-  return html`<${Modal} title="Carte du monde" onClose=${onClose} wide>
+  return html`<div class="stack carte-view" style="gap:12px">
     <${WorldMap} adv=${adv} source=${source} markers=${shown} points=${points} onCrowded=${compact ? null : () => setCrowded(sig)} />
     ${!markers.length && html`<p class="subtle" style="margin:0">Aucun lieu de votre voyage n'est encore marqué sur cette carte.</p>`}
     ${compact && html`<ol class="carte-legend" aria-label="Lieux numérotés sur la carte">
@@ -265,8 +270,15 @@ function WorldModal({ adv, source, state, onClose }) {
       Lieux visités : ${visited.length ? visited.join(', ') : 'aucun'}.
       ${known.length > 0 && ` Lieux connus, pas encore visités : ${known.join(', ')}.`}
     </p>
-  <//>`;
+  </div>`;
 }
+
+// La carte du monde est aussi un onglet du sac (greffon inventaire).
+registerInventoryTab({
+  id: 'carte-monde', order: 80, label: 'Carte', icon: 'map',
+  show: adv => !!adv.meta?.worldMap?.image,
+  Tab: ({ adv, source, state }) => html`<${WorldView} adv=${adv} source=${source} state=${state} />`,
+});
 
 registerSheetPanel({
   id: 'carte-monde',
@@ -340,6 +352,9 @@ function WorldTab({ adv, change, open }) {
             <${Num} label="Horizontal (%)" value=${curPos?.x} min="0" max="100" onChange=${v => setPlace(cur.name, { x: v ?? 0, y: curPos?.y ?? 50 })} />
             <${Num} label="Vertical (%)" value=${curPos?.y} min="0" max="100" onChange=${v => setPlace(cur.name, { x: curPos?.x ?? 50, y: v ?? 0 })} />
           </div>`}
+          ${wm?.image && html`<label class="row subtle"><input type="checkbox" checked=${(wm.known || []).map(placeName).includes(cur.name)}
+            onChange=${e => setWm({ known: e.target.checked ? [...new Set([...(wm.known || []), cur.name])] : (wm.known || []).filter(n => placeName(n) !== cur.name) })} />
+            Connu dès le départ (par exemple, un lieu d'un livre précédent de la série)</label>`}
         </section>`}
         ${orphans.length > 0 && html`<div class="stack" style="gap:6px">
           <span class="subtle">Lieux placés qui ne sont plus cités par aucun paragraphe :</span>

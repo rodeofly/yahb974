@@ -1,0 +1,83 @@
+/* Greffon « inventaire » : le sac (onglets, grille de cases, fiche d'objet), le mode triche, la bande du sac dans la
+   Feuille d'Aventure. Jetons de couleur de css/app.css (clair et sombre). Rien ne repose sur la couleur seule :
+   case choisie = cadre épais ; case vide = pointillés ; nouveau = mot « Nouveau » ; manquant = « ? ». */
+
+.inv-sac { display: grid; gap: 14px; }
+.inv-tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.inv-tab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--paper); color: var(--ink); font: inherit; font-weight: 500; cursor: pointer; position: relative; }
+.inv-tab:hover { border-color: var(--accent); }
+.inv-tab[aria-selected="true"] { border: 2px solid var(--ink); padding: 5px 11px; font-weight: 700; background: var(--surface); }
+.inv-tab .ico { width: 16px; height: 16px; }
+.inv-count { font-size: 12px; color: var(--muted); }
+.inv-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); border: 1px solid var(--paper); }
+
+.inv-panel { min-width: 0; }
+.inv-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); gap: 16px; align-items: start; }
+@media (max-width: 720px) { .inv-layout { grid-template-columns: 1fr; } }
+
+/* ---------- la grille ---------- */
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+.inv-grid.coll { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+.inv-slot { position: relative; aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); cursor: pointer; font: inherit; }
+.inv-slot:hover { border-color: var(--accent); }
+.inv-slot:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.inv-slot.sel { border: 3px solid var(--ink); box-shadow: 0 0 0 2px var(--paper) inset; }
+.inv-slot.missing { border-style: dashed; background: var(--sunk); color: var(--muted); }
+.inv-slot.filler { border-style: dashed; background: transparent; cursor: default; opacity: .6; }
+.inv-ico { font-size: 30px; line-height: 1; }
+.inv-slot.missing .inv-ico { font: 700 22px/1 var(--sans); }
+.inv-num { position: absolute; top: 3px; left: 5px; font-size: 11px; color: var(--muted); }
+.inv-tag { position: absolute; bottom: 2px; right: 4px; min-width: 1.3em; padding: 0 3px; border: 1.5px solid var(--ink); border-radius: 4px;
+  background: var(--surface); font: 700 13px/1.3 var(--sans); text-align: center; }
+.inv-qty { position: absolute; bottom: 3px; left: 5px; font-size: 12px; font-weight: 700; }
+.inv-new { position: absolute; top: -7px; right: -4px; padding: 0 5px; border-radius: 4px; background: var(--accent); color: var(--accent-ink);
+  font: 700 10px/1.6 var(--sans); letter-spacing: .04em; text-transform: uppercase; }
+
+/* ---------- le message d'une collection ---------- */
+.inv-message { margin: 0; display: flex; flex-wrap: wrap; gap: 3px; font: 700 18px/1 var(--mono); }
+.inv-message span { display: inline-grid; place-items: center; min-width: 1.15em; height: 1.6em; }
+.inv-message .on { border-bottom: 2px solid var(--ink); }
+.inv-message .off { border-bottom: 2px dashed var(--line); color: var(--muted); }
+.inv-message .gap { min-width: .6em; }
+
+/* ---------- la fiche ---------- */
+.inv-detail { display: grid; gap: 10px; align-content: start; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); min-width: 0; }
+.inv-detail.empty { place-items: center; min-height: 120px; }
+.inv-detail h3 { margin: 0; font-size: 20px; text-wrap: balance; }
+.inv-detail .prose { margin: 0; font-size: 16px; }
+.inv-detail .prose p:last-child { margin-bottom: 0; }
+.inv-big { font-size: 56px; line-height: 1; }
+.inv-big.missing { font: 700 44px/1 var(--sans); color: var(--muted); }
+.inv-hint { padding: 10px 12px; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--paper); display: grid; gap: 4px; }
+.inv-hint .prose { font-size: 15px; font-style: italic; }
+.inv-hint-btn { justify-self: start; }
+.inv-add select { padding: 6px 8px; }
+
+/* ---------- mode triche ---------- */
+.inv-cheat { border-top: 1px solid var(--line); padding-top: 10px; }
+.inv-cheat > summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.inv-cheat[open] { display: grid; gap: 8px; }
+.inv-cheat p { margin: 0; }
+.inv-cheat.on { justify-content: space-between; align-items: center; border: 2px dashed var(--loss); border-radius: 10px; padding: 8px 12px; }
+.inv-cheat-banner { margin: 0; padding: 6px 10px; border: 2px dashed var(--loss); border-radius: 8px; font-weight: 500; }
+
+/* ---------- la bande du sac, dans la Feuille d'Aventure ---------- */
+.inv-strip { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--paper); color: var(--ink); cursor: pointer; font: inherit; text-align: left; }
+.inv-strip:hover { border-color: var(--accent); }
+.inv-chip { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); font-size: 18px; }
+.inv-strip-more { font-size: 13px; color: var(--muted); }
+.inv-strip-open { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.inv-strip-open .badge { border-color: var(--accent); color: var(--ink); }
+
+/* ---------- éditeur ---------- */
+.inv-ed > summary, .inv-rules > summary { cursor: pointer; }
+.inv-ed[open] { display: grid; gap: 8px; }
+.inv-rules[open] { display: grid; gap: 10px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .inv-new { animation: inv-pop .4s ease-out; }
+  @keyframes inv-pop { from { transform: scale(.6); } to { transform: scale(1); } }
+}

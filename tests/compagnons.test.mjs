@@ -270,3 +270,17 @@ test('usages : effets et conditions des blocs (défi, Zefor, carte, boutique)', 
   const errs = validate(adv).filter(p => p.section === '3' && /compagnon inconnu « kaya »/.test(p.message));
   assert.ok(errs.length >= 2, 'les références dans le bloc Zefor et le défi sont signalées');
 });
+
+test('un compagnon à plusieurs (« Tom et Lila ») : verbes au pluriel, réglable par « plural »', () => {
+  const { adv, state } = sample({ brak: { name: 'Tom et Lila' } });
+  let r = fx(state, adv, join('brak'));
+  assert.equal(r.messages[0].text, 'Tom et Lila se joignent à vous.');
+  r = fx(r.state, adv, { op: 'companion', companion: 'brak', action: 'hurt', amount: 3 });
+  assert.deepEqual(r.messages.map(m => m.text), ['Tom et Lila perdent 3 points d’Endurance (0 / 3).', 'Tom et Lila succombent à leurs blessures.']);
+  assert.equal(describeEffect(join('brak'), adv), 'Tom et Lila se joignent au héros');
+  assert.match(printCompanionEffect({ op: 'companion', companion: 'brak', action: 'leave' }, adv), /^Tom et Lila vous quittent/);
+  adv.companions.brak.plural = false;
+  adv.companions.kaya.plural = true;
+  assert.equal(fx(state, adv, join('brak')).messages[0].text, 'Tom et Lila se joint à vous.');
+  assert.equal(fx(state, adv, join('kaya')).messages[0].text, 'Kaya se joignent à vous.');
+});

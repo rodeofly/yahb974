@@ -50,6 +50,10 @@ export const ui = {
   sectionPanels: [],
   /** [{ id, order, init?(query) → valeur, apply?(adv, valeur) → adv, Control({ adv, value, set }) }] : options de la version imprimable */
   printOptions: [],
+  /** Composant du sac (greffon inventaire) : Inventory({ adv, source, state, update, onClose, tab? }) ; null = liste simple */
+  inventory: null,
+  /** [{ id, order, label, icon, show(adv, state) → bool, Tab({ adv, source, state, update }) }] : onglets en plus dans le sac */
+  inventoryTabs: [],
 };
 
 export const registerBlockUI = (type, def) => { ui.blocks.set(type, def); };
@@ -75,6 +79,8 @@ export const registerCreatorPanel = def => { ui.creatorPanels.push(def); };
 export const registerAdvTransform = fn => { ui.advTransforms.push(fn); };
 export const registerSectionPanel = def => { ui.sectionPanels.push(def); };
 export const registerPrintOption = def => { ui.printOptions.push(def); };
+export const registerInventory = Component => { ui.inventory = Component; };
+export const registerInventoryTab = def => { ui.inventoryTabs.push(def); };
 
 export const sorted = list => [...list].sort((a, b) => (a.order ?? 50) - (b.order ?? 50));
 

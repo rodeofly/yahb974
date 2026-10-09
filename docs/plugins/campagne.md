@@ -54,6 +54,10 @@ Dans le fichier :
 ```
 
 - `newcomer` : ce que reçoit le **nouveau voyageur** (partie sans passeport).
+- `cheatFlag` (facultatif) : une marque de `fields.flags` posée dans le passeport d'une partie en **mode
+  triche** (greffon [inventaire](inventaire.md)). Le livre suivant qui lit ce passeport repart en mode triche,
+  et la Feuille d'Aventure le dit (« 🃏 mode triche »). Une partie de test (`?test=1`) ne délivre pas de
+  passeport.
 - Sur une fin de victoire, `"passport": false` n'affiche pas le passeport (fin secondaire, par exemple).
 - Les objets et compagnons transportés doivent exister dans chaque livre qui les reçoit (`items`,
   `companions`), sinon ils sont ignorés à l'arrivée.

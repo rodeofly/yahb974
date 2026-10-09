@@ -27,6 +27,7 @@ version imprimable A4 / A5 (illustrations allégées par défaut : un PDF de que
 | [Objets](docs/plugins/objets.md) | boutons en un clic avec emoji : prendre un objet, payer, encaisser, perdre ou gagner des points ; emoji des objets dans le sac |
 | [Compteurs](docs/plugins/compteurs.md) | Réputation, Temps, Malédiction… visibles ou secrets, seuils qui affichent un message, tuent ou font gagner |
 | [Compagnons](docs/plugins/compagnons.md) | alliés qui rejoignent le héros et combattent à ses côtés |
+| [Inventaire](docs/plugins/inventaire.md) | sac à onglets à la manière des jeux d'aventure (touche I) : fiches d'objets, indices selon le mode, collections à message caché, carte et carnet ; feuille tenue par le livre et mode triche |
 | [Campagne](docs/plugins/campagne.md) | plusieurs livres à la suite : passeport du voyageur (code + QR) qui transporte or, objets, amis et mémoire ; vocabulaire du combat par mode |
 | [Défis](docs/plugins/defis.md) | énigmes et exercices (réponse, nombre, QCM, cases, ordre) qui débloquent la suite, indices payants, réponses chiffrées |
 | [Zefor](docs/plugins/zefor.md) | parcours zefor974 (maths, logique, programmation, Blokaly…) dont la réussite débloque une étape ; protocole côté zefor dans [docs/ZEFOR.md](docs/ZEFOR.md) |

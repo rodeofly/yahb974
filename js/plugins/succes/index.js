@@ -63,10 +63,11 @@ const titleOf = (adv, id) => S.achievementsOf(adv).find(a => a.id === id)?.title
 
 function announce(adv, ids, test, delay = 0) {
   if (!ids.length) return;
+  const why = test === 'triche' ? 'mode triche' : 'partie de test';
   const say = () => {
     const titles = ids.map(id => titleOf(adv, id));
-    if (titles.length === 1 || (!test && titles.length === 2)) titles.forEach(t => toast(test ? `Succès obtenu (partie de test, non enregistré) : ${t}` : `Succès débloqué : ${t}`));
-    else toast(`${titles.length} succès ${test ? 'obtenus (partie de test, non enregistrés)' : 'débloqués'} : ${titles.join(', ')}`);
+    if (titles.length === 1 || (!test && titles.length === 2)) titles.forEach(t => toast(test ? `Succès obtenu (${why}, non enregistré) : ${t}` : `Succès débloqué : ${t}`));
+    else toast(`${titles.length} succès ${test ? `obtenus (${why}, non enregistrés)` : 'débloqués'} : ${titles.join(', ')}`);
     sfx.coin();
   };
   if (delay) setTimeout(say, delay); else say();
@@ -82,7 +83,7 @@ async function unlock(adv, state, phase, test, delay = 0) {
     const fresh = ids.filter(id => !hits.has(id));
     fresh.forEach(id => hits.add(id));
     testHits.set(k, hits);
-    announce(adv, fresh, true, delay);
+    announce(adv, fresh, state?.cheat ? 'triche' : true, delay);
     return fresh;
   }
   const unlocked = (await kvGet(KEY.unlocked(adv.id))) || {};
@@ -94,10 +95,12 @@ async function unlock(adv, state, phase, test, delay = 0) {
   return fresh;
 }
 
+// Une partie en mode triche (greffon inventaire) se compte comme une partie de test : rien n'est enregistré.
 registerRunHook({
   id: 'succes',
   onStart(adv, state, { test } = {}) {
     if (!adv || !state) return;
+    test = test || !!state.cheat;
     lastVisited.set(adv.id, state.visited || {});
     if (test) testHits.set(runKey(adv, state), new Set());
     const now = new Date().toISOString();
@@ -110,6 +113,7 @@ registerRunHook({
   },
   onUpdate(adv, prev, next, { test } = {}) {
     if (!adv || !next) return;
+    test = test || !!next.cheat;
     const diff = S.visitDiff(prev?.visited || lastVisited.get(adv.id) || {}, next.visited || {});
     lastVisited.set(adv.id, next.visited || {});
     const hasVisits = Object.keys(diff).length > 0;
@@ -124,6 +128,7 @@ registerRunHook({
   },
   onEnd(adv, state, { test } = {}) {
     if (!adv || !state?.ended) return;
+    test = test || !!state.cheat;
     const now = new Date().toISOString();
     return serial(async () => {
       const k = KEY.stats(adv.id, test);
@@ -205,7 +210,7 @@ function LibraryExtra({ entry }) {
 
 function EndingPanel({ adv, state }) {
   const store = useStore(adv.id);
-  const test = isTestRun();
+  const test = isTestRun() || !!state.cheat;
   const list = S.achievementsOf(adv);
   if (!store) return null;
   const p = S.progress(adv, store.stats, store.unlocked);
@@ -219,7 +224,7 @@ function EndingPanel({ adv, state }) {
   const byId = Object.fromEntries(list.map(a => [a.id, a]));
   return html`<section class="sc-panel" aria-label="Succès">
     <h3><${Icon} name="star" />Succès<span class="sc-count" aria-label=${`${p.achievements.n} succès débloqués sur ${p.achievements.total}`}>${p.achievements.n} / ${p.achievements.total}</span></h3>
-    ${test && html`<p class="subtle sc-note"><${Icon} name="flag" />Partie de test : aucun succès n'est enregistré. Voici ceux que cette partie aurait débloqués.</p>`}
+    ${test && html`<p class="subtle sc-note"><${Icon} name="flag" />${state.cheat ? 'Partie en mode triche' : 'Partie de test'} : aucun succès n'est enregistré. Voici ceux que cette partie aurait débloqués.</p>`}
     <div class="stack" style="gap:6px">
       <span class="eyebrow">Pendant cette partie</span>
       ${fresh.length
@@ -238,7 +243,7 @@ function EndingPanel({ adv, state }) {
 /* Feuille d'Aventure : compteur et liste                              */
 /* ------------------------------------------------------------------ */
 
-function SheetPanel({ adv }) {
+function SheetPanel({ adv, state }) {
   const store = useStore(adv.id);
   const [open, setOpen] = useState(false);
   const list = S.achievementsOf(adv);
@@ -249,7 +254,7 @@ function SheetPanel({ adv }) {
     <${Meter} label="Débloqués" n=${n} total=${list.length} text=${`${n} sur ${list.length}`} />
     <div><button class="btn small" onClick=${() => setOpen(true)}><${Icon} name="star" />Voir les succès</button></div>
     ${open && html`<${Modal} title=${`Succès — ${n} sur ${list.length}`} onClose=${() => setOpen(false)}>
-      ${isTestRun() && html`<p class="subtle" style="margin:0">Partie de test : les succès obtenus maintenant ne sont pas enregistrés.</p>`}
+      ${(isTestRun() || state.cheat) && html`<p class="subtle" style="margin:0">${state.cheat ? 'Partie en mode triche' : 'Partie de test'} : les succès obtenus maintenant ne sont pas enregistrés.</p>`}
       <${AchList} adv=${adv} unlocked=${store.unlocked} label="Liste des succès" />
     <//>`}
   </div>`;

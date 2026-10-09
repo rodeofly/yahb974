@@ -98,6 +98,8 @@ function QrSvg({ text }) {
 
 function PassportEnding({ adv, state }) {
   if (!P.showsPassport(state, adv)) return null;
+  // Partie de test (« Tester d'ici ») : on peut partir de n'importe quel paragraphe, donc pas de passeport.
+  if (/[?&]test=1(&|$)/.test(location.hash)) return html`<p class="subtle camp-test" lang="fr"><${Icon} name="flag" /> Partie de test : pas de passeport.</p>`;
   const camp = P.campaignOf(adv);
   const code = P.encodePassport(camp, P.passportOf(state, adv));
   const copy = async () => {
@@ -105,6 +107,7 @@ function PassportEnding({ adv, state }) {
   };
   return html`<section class="panel camp-pass" lang="fr">
     <header><h3><${Icon} name="flag" />Ton passeport de voyageur</h3></header>
+    ${state.cheat && html`<p class="camp-cheat" style="margin:0"><span aria-hidden="true">🃏</span> Partie en mode triche : ce passeport le dit, et le livre suivant commencera lui aussi en mode triche.</p>`}
     <p style="margin:0">${'Garde-le précieusement : avec lui, tu continueras '}<b>${camp.title || 'la campagne'}</b>${` au livre ${(Number(camp.book) || 0) + 1} avec ton or, tes objets, tes amis et ta mémoire. Sur cet appareil, il est déjà enregistré.`}</p>
     <div class="camp-pass-body">
       <${QrSvg} text=${code} />
@@ -121,7 +124,7 @@ registerEndingPanel({ id: 'campagne', order: 5, Panel: PassportEnding });
 
 registerRunHook({
   onEnd: (adv, state, ctx) => {
-    if (ctx?.test || !P.showsPassport(state, adv)) return;
+    if (ctx?.test || !P.showsPassport(state, adv)) return; // une partie de test ne laisse pas de passeport
     const camp = P.campaignOf(adv);
     const code = P.encodePassport(camp, P.passportOf(state, adv));
     rememberPassport(camp, { code, hero: state.hero?.name || '', book: Number(camp.book) || 0, adventureId: adv.id, date: new Date().toISOString() })

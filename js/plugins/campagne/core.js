@@ -2,7 +2,9 @@
 // (une série de livres, façon Sorcellerie !). Voir docs/plugins/campagne.md.
 //
 //   Aventure : adv.rules.campaign = { id, title?, book, prefix?, modes?: [ids], fields: { stats?, counters?, items?,
-//              flags?, companions?, gold? }, newcomer?: { gold?, items?, flags?, counters? } }
+//              flags?, companions?, gold? }, newcomer?: { gold?, items?, flags?, counters? }, cheatFlag? }
+//   Triche   : `cheatFlag` nomme un drapeau de `fields.flags` qui transporte le mode triche (greffon inventaire) : une
+//              partie en mode triche donne un passeport marqué, et le livre suivant repart en mode triche.
 //   Fin      : sections[n].passport === false empêche d'afficher le passeport sur cette victoire.
 //   État     : state.campaign = { from: livre d'origine, code } quand la partie a commencé avec un passeport.
 //
@@ -55,10 +57,16 @@ const CHECK_BITS = 15;   // somme de contrôle
 
 /* ---------- passeport ---------- */
 
+/** Drapeau qui transporte le mode triche d'un livre à l'autre, ou null. */
+export const cheatFlagOf = camp => (camp && typeof camp.cheatFlag === 'string' && arr(camp.fields?.flags).includes(camp.cheatFlag) ? camp.cheatFlag : null);
+/** Ce passeport vient-il d'une partie en mode triche ? */
+export const isCheatPassport = (pass, camp) => { const f = cheatFlagOf(camp); return !!f && (pass?.flags || []).includes(f); };
+
 /** Ce que l'état de la partie transporte vers le livre suivant. */
 export function passportOf(state, adv) {
   const camp = campaignOf(adv);
   const f = fieldsOf(camp);
+  const cheat = cheatFlagOf(camp);
   const modes = arr(camp?.modes);
   const has = id => (state.inventory?.[id] || 0) > 0;
   return {
@@ -68,7 +76,7 @@ export function passportOf(state, adv) {
     gold: f.gold ? Number(state.gold) || 0 : 0,
     counters: Object.fromEntries(f.counters.map(id => [id, Number(state.counters?.[id]) || 0])),
     items: f.items.filter(has),
-    flags: f.flags.filter(id => !!state.flags?.[id]),
+    flags: f.flags.filter(id => !!state.flags?.[id] || (id === cheat && !!state.cheat)),
     companions: f.companions.filter(id => (state.companions || []).some(c => c.id === id)),
   };
 }
@@ -188,6 +196,8 @@ export function applyPassport(state, adv, pass, code = '') {
     state.companions = [...(state.companions || []), { id, health: hp, max: hp }];
   }
   state.campaign = { from: pass.book, code };
+  // Un passeport de triche fait repartir la partie en mode triche : on ne blanchit pas une partie trichée.
+  if (isCheatPassport(pass, campaignOf(adv))) state.cheat = { turn: 0, unlocked: false, passport: true };
   return state;
 }
 
@@ -216,6 +226,7 @@ export function describe(pass, adv) {
   if (items) parts.push(`${items} objet${items > 1 ? 's' : ''}`);
   const comps = (pass.companions || []).map(id => adv?.companions?.[id]?.name || id);
   if (comps.length) parts.push(`avec ${comps.join(', ')}`);
+  if (isCheatPassport(pass, campaignOf(adv))) parts.push('🃏 mode triche');
   return parts.join(' · ');
 }
 

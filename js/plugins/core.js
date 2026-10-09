@@ -21,3 +21,5 @@ import './campagne/core.js';
 import './succes/core.js';
 
 import './echanges/core.js';
+
+import './inventaire/core.js';

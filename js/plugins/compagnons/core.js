@@ -2,7 +2,8 @@
 // Des alliés voyagent avec le héros : ils arrivent, partent, se soignent, sont blessés,
 // et frappent à leur tour pendant les combats (après l'échange du héros).
 //
-// Aventure : adv.companions = { id: { name, skill, health, damage?, image?, description? } }
+// Aventure : adv.companions = { id: { name, skill, health, damage?, image?, description?, plural? } }
+//            plural : le nom désigne plusieurs alliés (« Tom et Lila se joignent à vous ») ; deviné si le nom contient « et ».
 // État     : state.companions = [{ id, health, max }]  (seulement les compagnons présents et vivants)
 // Effet    : { op: 'companion', companion: id, action: 'join'|'leave'|'heal'|'hurt', amount? }
 // Conditions : { companion: id } · { not: { companion: id } } · { companions: true, gte|lte|eq: n } (ou { companions: n } = au moins n)
@@ -19,6 +20,8 @@ export const ACTIONS = ['join', 'leave', 'heal', 'hurt'];
 
 export const companionDef = (adv, id) => (adv?.companions && Object.prototype.hasOwnProperty.call(adv.companions, id) ? adv.companions[id] : null);
 export const companionName = (adv, id) => companionDef(adv, id)?.name || id || '?';
+/** Le compagnon est-il un groupe ? (« plural », sinon un nom du type « Tom et Lila »). */
+export const isPlural = (def, name = def?.name) => (typeof def?.plural === 'boolean' ? def.plural : /\s(et|&)\s/.test(String(name || '')));
 /** Dégâts infligés par un compagnon : les siens, sinon ceux de la règle de combat (2 par défaut). */
 export const companionDamage = (adv, def) => Math.max(0, Number(def?.damage ?? adv?.rules?.combat?.damage ?? 2) || 0);
 const hpLabel = adv => statLabel(adv, adv.rules?.combat?.health || 'endurance');
@@ -47,28 +50,29 @@ export function applyCompanion(s, e, adv, messages) {
   if (!def) return;
   s.companions = Array.isArray(s.companions) ? s.companions.filter(m => m && m.health > 0) : [];
   const name = def.name || e.companion;
+  const v = (one, many) => (isPlural(def, name) ? many : one);
   const max = Math.max(1, Number(def.health) || 1);
   const here = s.companions.find(m => m.id === e.companion);
   const amount = e.amount === undefined || e.amount === null || e.amount === '' ? null : Math.max(0, Number(e.amount) || 0);
   switch (e.action || 'join') {
     case 'join': {
-      if (here) { messages.push({ kind: 'info', text: `${name} est déjà à vos côtés.` }); break; }
+      if (here) { messages.push({ kind: 'info', text: `${name} ${v('est', 'sont')} déjà à vos côtés.` }); break; }
       const health = amount ? Math.min(max, amount) : max;
       s.companions.push({ id: e.companion, health, max });
-      messages.push({ kind: 'gain', text: `${name} se joint à vous.` });
+      messages.push({ kind: 'gain', text: `${name} ${v('se joint', 'se joignent')} à vous.` });
       break;
     }
     case 'leave':
       if (!here) break;
       s.companions = s.companions.filter(m => m.id !== e.companion);
-      messages.push({ kind: 'loss', text: `${name} vous quitte.` });
+      messages.push({ kind: 'loss', text: `${name} vous ${v('quitte', 'quittent')}.` });
       break;
     case 'heal': {
       if (!here) break;
       const before = here.health;
       here.health = amount === null ? here.max : Math.min(here.max, here.health + amount);
       const d = here.health - before;
-      if (d) messages.push({ kind: 'gain', text: `${name} récupère ${pts(d)} ${de(hpLabel(adv))} (${here.health} / ${here.max}).` });
+      if (d) messages.push({ kind: 'gain', text: `${name} ${v('récupère', 'récupèrent')} ${pts(d)} ${de(hpLabel(adv))} (${here.health} / ${here.max}).` });
       break;
     }
     case 'hurt': {
@@ -76,10 +80,10 @@ export function applyCompanion(s, e, adv, messages) {
       const d = Math.min(here.health, amount ?? 2);
       if (!d) break;
       here.health -= d;
-      messages.push({ kind: 'loss', text: `${name} perd ${pts(d)} ${de(hpLabel(adv))} (${here.health} / ${here.max}).` });
+      messages.push({ kind: 'loss', text: `${name} ${v('perd', 'perdent')} ${pts(d)} ${de(hpLabel(adv))} (${here.health} / ${here.max}).` });
       if (here.health <= 0) {
         s.companions = s.companions.filter(m => m.id !== e.companion);
-        messages.push({ kind: 'loss', text: `${name} succombe à ses blessures.` });
+        messages.push({ kind: 'loss', text: `${name} ${v('succombe à ses', 'succombent à leurs')} blessures.` });
       }
       break;
     }
@@ -89,10 +93,11 @@ export function applyCompanion(s, e, adv, messages) {
 
 export function describeCompanionEffect(e, adv) {
   const name = companionName(adv, e.companion);
+  const v = (one, many) => (isPlural(companionDef(adv, e.companion), name) ? many : one);
   const n = e.amount === undefined || e.amount === null || e.amount === '' ? null : Number(e.amount);
   switch (e.action || 'join') {
-    case 'join': return `${name} se joint au héros${n ? ` (${n} ${de(hpLabel(adv))})` : ''}`;
-    case 'leave': return `${name} quitte le héros`;
+    case 'join': return `${name} ${v('se joint', 'se joignent')} au héros${n ? ` (${n} ${de(hpLabel(adv))})` : ''}`;
+    case 'leave': return `${name} ${v('quitte', 'quittent')} le héros`;
     case 'heal': return n === null ? `${name} retrouve toute son ${hpLabel(adv)}` : `${name} récupère ${pts(n)} ${de(hpLabel(adv))}`;
     case 'hurt': return `${name} perd ${pts(n ?? 2)} ${de(hpLabel(adv))}`;
     default: return `compagnon : ${e.action}`;
@@ -103,13 +108,14 @@ export function describeCompanionEffect(e, adv) {
 export function printCompanionEffect(e, adv) {
   const def = companionDef(adv, e.companion) || {};
   const name = def.name || e.companion;
+  const v = (one, many) => (isPlural(def, name) ? many : one);
   const UP = id => statLabel(adv, id).toUpperCase();
   const C = adv.rules?.combat || {};
   const HP = UP(C.health || 'endurance');
   const n = e.amount === undefined || e.amount === null || e.amount === '' ? null : Number(e.amount);
   switch (e.action || 'join') {
-    case 'join': return `${name} se joint à vous : notez ce compagnon dans la case Compagnons de votre Feuille d'Aventure (${UP(C.skill || 'habilete')} ${Number(def.skill) || 0}, ${HP} ${n ? `${n} sur ${Number(def.health) || 0}` : Number(def.health) || 0}${def.damage !== undefined && def.damage !== null && def.damage !== '' ? `, dégâts ${def.damage}` : ''}).`;
-    case 'leave': return `${name} vous quitte : rayez ce nom de la case Compagnons.`;
+    case 'join': return `${name} ${v('se joint', 'se joignent')} à vous : notez ce compagnon dans la case Compagnons de votre Feuille d'Aventure (${UP(C.skill || 'habilete')} ${Number(def.skill) || 0}, ${HP} ${n ? `${n} sur ${Number(def.health) || 0}` : Number(def.health) || 0}${def.damage !== undefined && def.damage !== null && def.damage !== '' ? `, dégâts ${def.damage}` : ''}).`;
+    case 'leave': return `${name} vous ${v('quitte', 'quittent')} : rayez ce nom de la case Compagnons.`;
     case 'heal': return n === null ? `si ${name} vous accompagne, son ${HP} revient à son total de départ.` : `si ${name} vous accompagne, rendez-lui ${pts(n)} ${de(HP)} (sans dépasser son total de départ).`;
     case 'hurt': return `si ${name} vous accompagne, retirez-lui ${pts(n ?? 2)} ${de(HP)} ; à zéro, ce compagnon meurt : rayez son nom.`;
     default: return '';

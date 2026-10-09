@@ -83,7 +83,8 @@ export function Portal({ children, className = 'portal' }) {
   const host = useMemo(() => { const d = document.createElement('div'); d.className = className; document.body.append(d); return d; }, []);
   // Rendu synchrone : une frappe rapide n'est jamais écrasée par un rendu en retard.
   useLayoutEffect(() => { render(children, host); });
-  useEffect(() => () => { render(null, host); host.remove(); }, []);
+  // Démontage dans un effet de mise en page : il a toujours eu lieu, même si la fenêtre se ferme avant la première image.
+  useLayoutEffect(() => () => { render(null, host); host.remove(); }, []);
   return null;
 }
 

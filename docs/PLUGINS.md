@@ -49,7 +49,8 @@ import { registerBlockUI, registerEffectUI, registerConditionUI, registerSheetPa
          registerItemFields, registerRulesSection, registerEditorTab, registerEditorAction, registerSettings,
          registerLibraryExtra, registerLibraryAction, registerCardAction, registerEndingPanel, registerCombatPanel,
          registerRunHook, registerRoute, registerPrintSection, registerMarkdown, registerCreatorPanel,
-         registerAdvTransform, registerSectionPanel, registerPrintOption, effectiveAdventure } from '../../ui/registry.js';
+         registerAdvTransform, registerSectionPanel, registerPrintOption, registerInventory, registerInventoryTab,
+         effectiveAdventure } from '../../ui/registry.js';
 ```
 
 | Fonction | Où ça s'affiche | Propriétés |
@@ -58,7 +59,9 @@ import { registerBlockUI, registerEffectUI, registerConditionUI, registerSheetPa
 | `registerEffectUI(op, def)` | liste « Type » des effets | `label`, `order`, `blank(adv)` → effet complet `{ op, … }`, `Fields({ e, upd, adv })` |
 | `registerConditionUI(def)` | liste « Le héros… » des conditions | `t` (identifiant de ligne), `label`, `match(c)` → ligne `{ …champs }` ou `null`, `toCond(row)` → condition, `blank(adv)` → ligne, `Fields({ row, upd, adv })` |
 | `registerSheetPanel(def)` | feuille d'aventure, après le sac à dos | `id`, `order`, `Panel({ adv, source, state, update })` |
-| `registerItemAction(def)` | boutons à côté d'un objet du sac | `show(it, state, adv, id)`, `label(…)`, `run(state, adv, id)` → `{ state, messages }` |
+| `registerItemAction(def)` | boutons à côté d'un objet du sac (et dans sa fiche, avec le greffon inventaire) | `show(it, state, adv, id)`, `label(…)`, `run(state, adv, id)` → `{ state, messages }` |
+| `registerInventory(Composant)` | fenêtre du sac (touche I, bouton Sac) ; un seul greffon la fournit (inventaire) | `Composant({ adv, source, state, update, tab, onClose })` — `update(state, null)` garde les messages affichés |
+| `registerInventoryTab(def)` | onglet de plus dans la fenêtre du sac | `id`, `order`, `label`, `icon`, `show?(adv, state)`, `Tab({ adv, source, state, update })` |
 | `registerItemFields(def)` | fiche d'un objet (onglet Objets) | `Fields({ it, id, set, adv })` |
 | `registerRulesSection(def)` | onglet Règles | `Section({ adv, change, set })` — `set(patch)` fusionne dans `adv.rules` |
 | `registerEditorTab(def)` | nouvel onglet de l'éditeur | `id`, `label(adv)`, `order`, `Tab({ adv, change, open, current })` — `change(a => { …; return a; })` |

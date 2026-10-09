@@ -66,10 +66,13 @@ vers la tour noire, rendez-vous au **3**. » Les effets sont rappelés entre par
    - **Montrer les lieux pas encore visités sous forme de « ? »** : le joueur sait qu'il y a quelque
      chose à découvrir, sans savoir quoi. Sinon, ils restent cachés.
    - **Tracer le chemin parcouru** : une ligne pointillée relie les lieux dans l'ordre du voyage.
+   - **Connu dès le départ** (case de chaque lieu) : le lieu est montré comme connu avant toute visite
+     (par exemple les lieux d'un livre précédent de la campagne).
 
 ### Pour le joueur
 
-Le bouton **Carte du monde** apparaît dans la Feuille d'Aventure dès que la carte a une image.
+Le bouton **Carte du monde** apparaît dans la Feuille d'Aventure dès que la carte a une image ; avec le
+greffon [inventaire](inventaire.md), la carte est aussi un onglet du sac (touche I).
 Les repères :
 
 | Forme | Signification |
@@ -110,6 +113,7 @@ qui révèle la tour.
       "alt": "La vallée de Brumeval et la côte",   // facultatif
       "places": { "Brumeval": { "x": 32, "y": 42 }, "Tour noire": { "x": 66, "y": 22 } },
       "revealUnvisited": false,                    // true : lieux non visités affichés « ? »
+      "known": ["Brumeval"],                       // facultatif : lieux connus dès le départ (livre précédent…)
       "showPath": true                             // facultatif, vrai par défaut
     }
   },

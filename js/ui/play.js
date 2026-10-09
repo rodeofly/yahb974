@@ -54,7 +54,8 @@ export function Play({ id, query }) {
       const prev = g?.state || null;
       runHooks('onUpdate', a, prev, state, { test });
       if (state.ended && !prev?.ended) runHooks('onEnd', a, state, { test });
-      return { state, messages, stamp: (g?.stamp || 0) + 1 };
+      // messages === null : mise à jour discrète (sac regardé, notes) qui garde les messages affichés.
+      return { state, messages: messages === null ? (g?.messages || []) : messages, stamp: (g?.stamp || 0) + 1 };
     });
     if (!test) putSave(adv.id, slot.current, { state, title: adv.meta.title, section: state.section, hero: state.hero.name });
   };
@@ -156,6 +157,9 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const [map, setMap] = useState(false);
+  const [bag, setBag] = useState(null); // null = sac fermé ; sinon l'onglet à ouvrir ('' = le premier)
+  const bagRef = useRef(bag);
+  bagRef.current = bag;
   const topRef = useRef();
   const [talking, setTalking] = useState(false);
   const readAloud = () => {
@@ -173,6 +177,19 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     if (prefs.get('ttsAuto', false) && ttsAvailable()) readAloud(); else { stopSpeaking(); setTalking(false); }
   }, [state.section, state.turn]);
   useEffect(() => () => stopSpeaking(), []);
+  // Touche I : ouvrir le sac (hors champ de saisie et hors fenêtre déjà ouverte).
+  useEffect(() => {
+    if (!ui.inventory) return undefined;
+    const k = e => {
+      if (e.key !== 'i' && e.key !== 'I') return;
+      if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '') || e.target?.isContentEditable) return;
+      if (bagRef.current !== null || document.querySelector('.modal-portal .modal')) return; // fermer : Échap, comme toute fenêtre
+      e.preventDefault();
+      setBag('');
+    };
+    document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  }, []);
 
   const go = (to, extra = []) => { const r = R.enter(state, adv, to); update(r.state, [...extra, ...r.messages]); };
   const choose = i => { const r = R.choose(state, adv, i); update(r.state, r.messages); };
@@ -182,6 +199,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   return html`<div class="play">
     <article class="reader" ref=${topRef} aria-live="polite">
       ${test && html`<p class="badge" style="margin:0 auto 12px">Mode test : rien n'est sauvegardé</p>`}
+      ${state.cheat && html`<p class="badge" style="margin:0 auto 12px"><span aria-hidden="true">🃏</span> Mode triche</p>`}
       <div class="sec-num">${state.section}${sec.title && html`<small>${sec.title}</small>`}</div>
       ${ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
         ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
@@ -208,10 +226,14 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     </article>
     <${Sheet} adv=${adv} source=${source} state=${state} update=${update} open=${sheetOpen} onClose=${() => setSheetOpen(false)}
       onBack=${adv.rules.allowBack !== false && state.history.length && !state.ended ? goBack : null}
-      onMap=${() => setMap(true)} onSave=${test ? null : onSaveAs} />
-    <button class="btn primary sheet-toggle" style="position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:25" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen} aria-controls="feuille-aventure">
-      <${Icon} name="sheet" />Feuille · ${state.stats[adv.rules.combat.health]?.cur ?? ''}
-    </button>
+      onMap=${() => setMap(true)} onSave=${test ? null : onSaveAs} onBag=${ui.inventory ? tab => setBag(tab || '') : null} />
+    <div class="play-fab">
+      ${ui.inventory && html`<button class="btn sheet-toggle" onClick=${() => setBag('')} aria-label="Ouvrir le sac (touche I)"><${Icon} name="bag" />Sac${newCount(state) ? html` <span class="badge">${newCount(state)}</span>` : null}</button>`}
+      <button class="btn primary sheet-toggle" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen} aria-controls="feuille-aventure">
+        <${Icon} name="sheet" />Feuille · ${state.stats[adv.rules.combat.health]?.cur ?? ''}
+      </button>
+    </div>
+    ${bag !== null && ui.inventory && html`<${ui.inventory} adv=${adv} source=${source} state=${state} update=${update} tab=${bag} onClose=${() => setBag(null)} />`}
     ${lightbox && html`<div class="overlay lightbox" onClick=${() => setLightbox(null)}><img src=${lightbox} alt="" /></div>`}
     ${map && html`<${MapModal} adv=${adv} state=${state} onClose=${() => setMap(false)} />`}
   </div>`;
@@ -458,7 +480,12 @@ function useMedia(q) {
   return on;
 }
 
-function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSave }) {
+/** Objets du sac jamais regardés (greffon inventaire). */
+const newCount = state => Object.entries(state.inventory || {}).filter(([id, q]) => q > 0 && !state.seenItems?.[id]).length;
+/** Le joueur peut-il ajouter ou retirer des objets lui-même ? (feuille libre, ou partie en mode triche) */
+const editable = (adv, state) => !adv.rules.sheet?.locked || !!state.cheat;
+
+function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSave, onBag }) {
   const [free, setFree] = useState(null);
   const [book, setBook] = useState(false);
   const [expr, setExpr] = useState('2d6');
@@ -472,7 +499,7 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
   const asideRef = useRef();
   useEffect(() => { if (open && narrow) asideRef.current?.querySelector('.sheet-toggle')?.focus(); }, [open, narrow]);
   return html`<aside id="feuille-aventure" ref=${asideRef} class=${'sheet' + (open ? ' open' : '')} aria-label="Feuille d'aventure" inert=${narrow && !open}>
-    <h2><span>${state.hero.name}</span>${state.hero.classId && html`<span class="badge">${adv.rules.classes.find(c => c.id === state.hero.classId)?.label}</span>`}</h2>
+    <h2><span>${state.hero.name}</span>${state.hero.classId && html`<span class="badge">${adv.rules.classes.find(c => c.id === state.hero.classId)?.label}</span>`}${state.cheat && html`<span class="badge" title="Partie en mode triche">🃏 triche</span>`}</h2>
     <button class="btn small sheet-toggle" onClick=${onClose}>Fermer la feuille</button>
     <div class="stats">${adv.rules.stats.map(s => { const v = state.stats[s.id]; return html`<div class=${'stat' + (changed[s.id] ? ' flash' : '')} key=${s.id + v.cur}>
       <span class="label">${s.label}</span><span class="val">${v.cur}<small> / ${v.init}</small></span>
@@ -492,22 +519,29 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
       const full = !!st && st.cur >= st.init && !(adv.rules.time?.enabled && adv.rules.time.mealRequired !== false);
       return html`<button class="btn small" disabled=${!state.provisions || state.ended || full} title=${full ? `${R.statLabel(adv, adv.rules.meal.stat)} déjà au maximum` : ''} onClick=${() => { const r = R.eat(state, adv); update(r.state, r.messages); }}>Manger un repas (+${adv.rules.meal.heal} ${R.statLabel(adv, adv.rules.meal.stat)})</button>`;
     })()}
-    <div class="stack" style="gap:6px"><span class="eyebrow">Sac à dos</span>
+    ${onBag ? html`<div class="stack" style="gap:6px"><span class="eyebrow">Sac à dos</span>
+      <button class="inv-strip" onClick=${() => onBag('')} aria-label=${`Ouvrir le sac : ${inv.length} objet${inv.length > 1 ? 's' : ''}${newCount(state) ? `, dont ${newCount(state)} nouveau${newCount(state) > 1 ? 'x' : ''}` : ''}`}>
+        ${inv.slice(0, 10).map(([id]) => html`<span class="inv-chip" key=${id} aria-hidden="true">${adv.items[id]?.icon || '•'}</span>`)}
+        ${inv.length > 10 && html`<span class="inv-strip-more" aria-hidden="true">+${inv.length - 10}</span>`}
+        ${!inv.length && html`<span class="subtle">Vide.</span>`}
+        <span class="inv-strip-open"><${Icon} name="bag" />Ouvrir${newCount(state) ? html` <span class="badge">${newCount(state)} nouveau${newCount(state) > 1 ? 'x' : ''}</span>` : null}</span>
+      </button>
+    </div>` : html`<div class="stack" style="gap:6px"><span class="eyebrow">Sac à dos</span>
       ${inv.length ? html`<ul class="inv">${inv.map(([id, q]) => { const it = adv.items[id] || { name: id }; return html`<li title=${it.description || ''}>
         <span>${it.icon ? html`<span class="emoji" aria-hidden="true">${it.icon}</span>` : null}${it.name}${q > 1 ? ` ×${q}` : ''}</span>
         <span class="row" style="gap:4px">
           ${it.use?.length && !state.ended ? html`<button class="btn small" aria-label=${`Utiliser : ${it.name}`} onClick=${() => { const r = R.useItem(state, adv, id); update(r.state, r.messages); }}>Utiliser</button>` : null}
           ${!state.ended && ui.itemActions.filter(a => a.show(it, state, adv, id)).map(a => { const label = a.label(it, state, adv, id); return html`<button class="btn small" aria-label=${a.ariaLabel?.(it, state, adv, id) || `${label} : ${it.name}`} onClick=${() => { const r = a.run(state, adv, id); update(r.state, r.messages || []); }}>${label}</button>`; })}
-          ${!state.ended && html`<button class="btn small ghost" aria-label=${`Retirer : ${it.name}`} title="Retirer du sac (comme on raye un objet sur la feuille)" onClick=${() => { const r = R.applyEffects(state, adv, [{ op: 'take', item: id }]); update(r.state, r.messages); }}><${Icon} name="x" /></button>`}
+          ${!state.ended && editable(adv, state) && html`<button class="btn small ghost" aria-label=${`Retirer : ${it.name}`} title="Retirer du sac (comme on raye un objet sur la feuille)" onClick=${() => { const r = R.applyEffects(state, adv, [{ op: 'take', item: id }]); update(r.state, r.messages); }}><${Icon} name="x" /></button>`}
         </span>
       </li>`; })}</ul>` : html`<span class="subtle">Vide.</span>`}
-      ${!state.ended && Object.keys(adv.items).some(id => !(state.inventory[id] > 0)) && html`<form class="row" style="gap:6px" onSubmit=${e => { e.preventDefault(); const id = new FormData(e.target).get('item'); if (id && adv.items[id]) { const r = R.applyEffects(state, adv, [{ op: 'give', item: id }]); update(r.state, r.messages); } }}>
+      ${!state.ended && editable(adv, state) && Object.keys(adv.items).some(id => !(state.inventory[id] > 0)) && html`<form class="row" style="gap:6px" onSubmit=${e => { e.preventDefault(); const id = new FormData(e.target).get('item'); if (id && adv.items[id]) { const r = R.applyEffects(state, adv, [{ op: 'give', item: id }]); update(r.state, r.messages); } }}>
         <select name="item" aria-label="Objet à ajouter au sac" style="flex:1;min-width:0">
           ${Object.entries(adv.items).filter(([id]) => !(state.inventory[id] > 0)).map(([id, it]) => html`<option value=${id}>${it.icon ? it.icon + ' ' : ''}${it.name}</option>`)}
         </select>
         <button class="btn small" type="submit" title="Ajouter un objet que le texte vous donne"><${Icon} name="plus" />Ajouter</button>
       </form>`}
-    </div>
+    </div>`}
     ${sorted(ui.sheetPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} />`)}
     <label class="field">Notes<textarea id="sheet-notes" rows="3" value=${state.notes} onChange=${e => update({ ...state, notes: e.target.value }, [])}></textarea></label>
     <div class="stack" style="gap:8px"><span class="eyebrow">Dés</span>
