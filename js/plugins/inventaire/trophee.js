@@ -6,15 +6,15 @@
 // Déclenché par le crochet de partie `onUpdate` (voir index.js) ; rien en mode triche (« Tout débloquer »).
 
 import { html, render, useState, useEffect, useRef } from '../../lib/preact-htm.js';
-import { Prose } from '../../ui/common.js';
+import { Prose, Glyph, Icon } from '../../ui/common.js';
 import { sfx } from '../../ui/audio.js';
 import { onStage } from '../../ui/stage.js';
 
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 
 /** Met des badges dans la file des moments plein écran ; `items` : [{ id, icon, name, earn, description }]. */
-export function celebrate(items) {
-  for (const it of items) onStage((host, done) => render(html`<${Trophy} it=${it} done=${done} />`, host));
+export function celebrate(adv, source, items) {
+  for (const it of items) onStage((host, done) => render(html`<${Trophy} adv=${adv} source=${source} it=${it} done=${done} />`, host));
 }
 
 /** Feu d'artifice sur un canevas : quelques gerbes, gravité, traînées qui s'effacent. */
@@ -67,7 +67,7 @@ function target() {
     || visible(document.querySelector('.inv-strip')) || { left: innerWidth - 60, top: innerHeight - 60, width: 40, height: 40 };
 }
 
-function Trophy({ it, done }) {
+function Trophy({ adv, source, it, done }) {
   const [phase, setPhase] = useState('pop'); // pop → card → stow
   const canvas = useRef(), cardRef = useRef(), btnRef = useRef();
   useFireworks(canvas, phase !== 'stow');
@@ -101,15 +101,15 @@ function Trophy({ it, done }) {
     ${phase === 'pop' && html`<button type="button" class="trophy-stage" ref=${btnRef} onClick=${() => setPhase('card')} aria-label=${`Badge gagné : ${it.name}. Toucher pour lire la carte.`}>
       <span class="trophy-rays" aria-hidden="true"></span>
       <span class="trophy-kicker" aria-hidden="true">Badge gagné !</span>
-      <span class="trophy-spin" aria-hidden="true"><span class="trophy-icon">${it.icon || '🏅'}</span></span>
+      <span class="trophy-spin" aria-hidden="true"><span class="trophy-icon"><${Glyph} adv=${adv} source=${source} icon=${it.icon || '🏅'} /></span></span>
       <span class="trophy-name" aria-hidden="true">${it.name}</span>
       <span class="trophy-hint" aria-hidden="true">Touche pour lire la carte</span>
     </button>`}
     ${phase !== 'pop' && html`<div class="trophy-card" ref=${cardRef}>
-      <div class="trophy-card-head"><span class="trophy-card-icon" aria-hidden="true">${it.icon || '🏅'}</span>
+      <div class="trophy-card-head"><span class="trophy-card-icon" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${it.icon || '🏅'} /></span>
         <div><span class="eyebrow">Badge gagné</span><h2>${it.name}</h2>${it.earn && html`<p class="trophy-earn">✓ ${it.earn}</p>`}</div></div>
       ${it.description && html`<div class="trophy-card-body"><${Prose} text=${it.description} /></div>`}
-      <button type="button" class="btn primary trophy-stow" onClick=${stow}><span aria-hidden="true">🎒</span> Ranger dans le sac</button>
+      <button type="button" class="btn primary trophy-stow" onClick=${stow}><${Icon} name="bag" />Ranger dans le sac</button>
     </div>`}
   </div>`;
 }

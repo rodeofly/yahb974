@@ -8,7 +8,7 @@
 // Le moteur (vue du sac, triche, indices) est dans ./core.js. Voir docs/plugins/inventaire.md.
 
 import { html, useState, useRef, useMemo } from '../../lib/preact-htm.js';
-import { Icon, Modal, Prose, AssetImg, toast, confirmBox, loadCSS } from '../../ui/common.js';
+import { Icon, Modal, Prose, AssetImg, Glyph, iconText, toast, confirmBox, loadCSS } from '../../ui/common.js';
 import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel, registerRunHook } from '../../ui/registry.js';
 import { Text, Num, Select, ImageSlot } from '../../ui/editor.js';
 import * as R from '../../core/rules.js';
@@ -18,9 +18,9 @@ import { celebrate } from './trophee.js';
 
 loadCSS(new URL('./style.css', import.meta.url));
 
-/** Icône d'onglet : nom d'icône du moteur (« map ») ou émoji (« 🗝️ »). */
-const TabIcon = ({ icon }) => (!icon ? null : /^[a-z][a-z-]*$/.test(icon)
-  ? html`<${Icon} name=${icon} />` : html`<span class="emoji" aria-hidden="true">${icon}</span>`);
+/** Icône d'onglet : nom d'icône du moteur (« map »), émoji (« 🗝️ ») ou image du livre (« images/icones/sac.svg »). */
+const TabIcon = ({ icon, adv, source }) => (!icon ? null : /^[a-z][a-z-]*$/.test(icon)
+  ? html`<${Icon} name=${icon} />` : html`<${Glyph} adv=${adv} source=${source} icon=${icon} className="emoji" />`);
 
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
 const modeLabel = (adv, state) => (adv.rules.modes || []).find(m => m.id === state.mode)?.label || '';
@@ -71,7 +71,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
       ${state.cheat && html`<p class="inv-cheat-banner" role="status"><span aria-hidden="true">🃏</span> Partie en mode triche : elle ne compte pas pour les succès.</p>`}
       <div class="inv-tabs" role="tablist" aria-label="Rangements du sac">
         ${tabs.map(t => html`<button role="tab" key=${t.id} class="inv-tab" aria-selected=${t.id === tab?.id ? 'true' : 'false'} onClick=${() => pickTab(t.id)}>
-          <${TabIcon} icon=${t.icon} /><span>${t.label}</span>
+          <${TabIcon} icon=${t.icon} adv=${adv} source=${source} /><span>${t.label}</span>
           ${t.kind === 'collection' && html`<span class="inv-count mono">${t.found}/${t.total}</span>`}
           ${t.kind === 'category' && t.found > 0 && html`<span class="inv-count mono">${t.found}</span>`}
           ${t.kind !== 'extra' && t.slots.some(s => s.owned && fresh.has(s.id)) && html`<span class="inv-dot" aria-label="nouveau"></span>`}
@@ -88,13 +88,13 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
               ${tab.message.map((m, k) => html`<span key=${k} class=${m.letter ? (m.shown ? 'on' : 'off') : 'gap'} aria-hidden="true">${m.letter ? (m.shown ? m.char : '·') : m.char}</span>`)}
             </p>`}
             ${board ? html`<div class="inv-board" style=${`--cols:${tab.columns}`} role="listbox" aria-label=${tab.label} ref=${gridRef} onKeyDown=${onKey}>
-              ${slots.map(s => html`<${BadgeCard} key=${s.id} adv=${adv} slot=${s} on=${s.id === current?.id} isNew=${s.owned && fresh.has(s.id)} pick=${() => setSel(s.id)} />`)}
+              ${slots.map(s => html`<${BadgeCard} key=${s.id} adv=${adv} source=${source} slot=${s} on=${s.id === current?.id} isNew=${s.owned && fresh.has(s.id)} pick=${() => setSel(s.id)} />`)}
             </div>`
             : slots.length || tab?.kind === 'category' ? html`<div class=${'inv-grid' + (tab?.kind === 'collection' ? ' coll' : '')} role="listbox" aria-label=${tab?.label} ref=${gridRef} onKeyDown=${onKey}>
               ${slots.map(s => { const it = adv.items[s.id] || { name: s.id }; const on = s.id === current?.id; return html`<button key=${s.id} role="option" aria-selected=${on ? 'true' : 'false'} tabindex=${on ? 0 : -1}
                   class=${'inv-slot' + (s.owned ? '' : ' missing') + (on ? ' sel' : '')} onClick=${() => setSel(s.id)}
                   aria-label=${s.owned ? `${it.name}${s.qty > 1 ? `, ${s.qty} exemplaires` : ''}${fresh.has(s.id) ? ', nouveau' : ''}` : `Case ${s.index + 1} : pas encore trouvé`}>
-                  ${s.owned ? html`<span class="inv-ico" aria-hidden="true">${it.icon || '•'}</span>` : html`<span class="inv-ico" aria-hidden="true">?</span>`}
+                  ${s.owned ? html`<span class="inv-ico" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${it.icon || '•'} /></span>` : html`<span class="inv-ico" aria-hidden="true">?</span>`}
                   ${tab.kind === 'collection' && html`<span class="inv-num mono" aria-hidden="true">${s.index + 1}</span>`}
                   ${s.owned && it.tag && html`<span class="inv-tag" aria-hidden="true">${it.tag}</span>`}
                   ${s.qty > 1 && html`<span class="inv-qty mono" aria-hidden="true">×${s.qty}</span>`}
@@ -122,7 +122,7 @@ function Detail({ adv, source, state, slot, kind, edit, act, isNew }) {
   const earn = String(it.earn || '').trim();
   if (!slot.owned && kind === 'board') {
     return html`<aside class="inv-detail" aria-live="polite">
-      <span class="inv-big off" aria-hidden="true">${it.icon || '•'}</span>
+      <span class="inv-big off" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${it.icon || '•'} /></span>
       <h3>${it.name}</h3>
       <p class="inv-earn"><span class="eyebrow"><span aria-hidden="true">🔒</span> Pas encore gagné</span>${earn ? html`<span>Pour le gagner : ${earn}</span>` : null}</p>
     </aside>`;
@@ -138,11 +138,11 @@ function Detail({ adv, source, state, slot, kind, edit, act, isNew }) {
   const mode = modeLabel(adv, state);
   const actions = state.ended ? [] : ui.itemActions.filter(a => { try { return a.show(it, state, adv, slot.id); } catch { return false; } });
   return html`<aside class="inv-detail" aria-live="polite">
-    <span class="inv-big" aria-hidden="true">${it.icon || '•'}</span>
+    <span class="inv-big" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${it.icon || '•'} /></span>
     <h3>${it.name}${slot.qty > 1 ? ` ×${slot.qty}` : ''}${isNew && html` <span class="badge">Nouveau</span>`}</h3>
     ${it.image && html`<figure class=${'inv-pic' + (zoom ? ' zoom' : '')}><button type="button" onClick=${() => setZoom(z => !z)} aria-label=${zoom ? 'Réduire l\'image' : 'Agrandir l\'image'}>
       <${AssetImg} adv=${adv} source=${source} path=${it.image} alt=${it.alt || it.name} eager /></button></figure>`}
-    ${I.deckOf(it) && html`<${Deck} deck=${I.deckOf(it)} id=${slot.id} />`}
+    ${I.deckOf(it) && html`<${Deck} deck=${I.deckOf(it)} id=${slot.id} adv=${adv} source=${source} />`}
     ${kind === 'board' && html`<p class="inv-earn won"><span class="eyebrow"><span aria-hidden="true">✓</span> Badge gagné</span>${earn ? html`<span>${earn}</span>` : null}</p>`}
     ${it.description ? html`<${Prose} text=${it.description} />` : html`<p class="subtle" style="margin:0">Pas de description.</p>`}
     ${hint && (hintOpen
@@ -169,13 +169,13 @@ function BoardProgress({ tab, compact }) {
 }
 
 /** Une case du tableau : l'icône (grisée tant que le badge n'est pas gagné), son nom, et comment le gagner. */
-function BadgeCard({ adv, slot, on, isNew, pick }) {
+function BadgeCard({ adv, source, slot, on, isNew, pick }) {
   const it = adv.items[slot.id] || { name: slot.id };
   const earn = String(it.earn || '').trim();
   return html`<button role="option" aria-selected=${on ? 'true' : 'false'} tabindex=${on ? 0 : -1} onClick=${pick}
     class=${'inv-slot inv-badge' + (slot.owned ? ' won' : ' missing') + (on ? ' sel' : '')}
     aria-label=${slot.owned ? `${it.name} : gagné${isNew ? ', nouveau' : ''}` : `${it.name} : pas encore gagné.${earn ? ` Pour le gagner : ${earn}` : ''}`}>
-    <span class="inv-ico" aria-hidden="true">${it.icon || '•'}</span>
+    <span class="inv-ico" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${it.icon || '•'} /></span>
     <span class="inv-badge-name" aria-hidden="true">${it.name}</span>
     <span class="inv-badge-how" aria-hidden="true">${slot.owned ? '✓ Gagné' : earn || '?'}</span>
     ${!slot.owned && html`<span class="inv-lock" aria-hidden="true">🔒</span>`}
@@ -184,7 +184,7 @@ function BadgeCard({ adv, slot, on, isNew, pick }) {
 }
 
 /** Les badges sur la Feuille d'Aventure : une petite grille (gagnés en couleur, les autres grisés), qui ouvre le tableau. */
-function SheetBoards({ adv, state, onBag }) {
+function SheetBoards({ adv, source, state, onBag }) {
   const boards = I.boardsOf(adv, state);
   if (!boards.length) return null;
   return boards.map(b => html`<div class="stack" style="gap:6px" key=${b.id}>
@@ -192,22 +192,22 @@ function SheetBoards({ adv, state, onBag }) {
     <button class="inv-strip inv-board-strip" onClick=${() => onBag?.(b.id)} disabled=${!onBag}
       aria-label=${`${b.label} : ${b.found} sur ${b.total}. Ouvrir le tableau pour voir comment gagner les autres.`}>
       <span class="inv-mini" style=${`--cols:${b.columns}`} aria-hidden="true">
-        ${b.slots.map(s => html`<span class=${'inv-chip' + (s.owned ? '' : ' off')} key=${s.id} title=${adv.items[s.id]?.name || s.id}>${adv.items[s.id]?.icon || '•'}</span>`)}
+        ${b.slots.map(s => html`<span class=${'inv-chip' + (s.owned ? '' : ' off')} key=${s.id} title=${adv.items[s.id]?.name || s.id}><${Glyph} adv=${adv} source=${source} icon=${adv.items[s.id]?.icon || '•'} /></span>`)}
       </span>
-      <span class="inv-strip-open"><${TabIcon} icon=${b.icon} />Voir</span>
+      <span class="inv-strip-open"><${TabIcon} icon=${b.icon} adv=${adv} source=${source} />Voir</span>
     </button>
   </div>`);
 }
 
 /** En fin de partie : le tableau des badges, gagnés ou non. */
-function EndingBoards({ adv, state }) {
+function EndingBoards({ adv, source, state }) {
   const boards = I.boardsOf(adv, state);
   if (!boards.length) return null;
   return boards.map(b => html`<section class="inv-end" key=${b.id} aria-label=${b.label}>
-    <h3><${TabIcon} icon=${b.icon} /> ${b.label}</h3>
+    <h3><${TabIcon} icon=${b.icon} adv=${adv} source=${source} /> ${b.label}</h3>
     <${BoardProgress} tab=${b} />
     <div class="inv-board" style=${`--cols:${b.columns}`}>
-      ${b.slots.map(s => html`<${BadgeCard} key=${s.id} adv=${adv} slot=${s} on=${false} isNew=${false} pick=${() => {}} />`)}
+      ${b.slots.map(s => html`<${BadgeCard} key=${s.id} adv=${adv} source=${source} slot=${s} on=${false} isNew=${false} pick=${() => {}} />`)}
     </div>
   </section>`);
 }
@@ -218,12 +218,12 @@ registerSheetPanel({ id: 'badges', order: 5, Panel: SheetBoards });
 // Pas en mode triche, ni quand plus de trois badges arrivent d'un coup (« Tout débloquer », reprise d'une partie).
 registerRunHook({
   id: 'badges',
-  onUpdate: (adv, prev, state) => {
+  onUpdate: (adv, prev, state, ctx) => {
     if (!prev || state.cheat) return;
     const quiet = new Set(I.collectionsOf(adv).filter(c => c.board && c.celebrate === false).flatMap(c => c.items));
     const won = [...I.boardItems(adv)].filter(id => !quiet.has(id) && state.inventory?.[id] > 0 && !(prev.inventory?.[id] > 0));
     if (!won.length || won.length > 3) return;
-    celebrate(won.map(id => ({ id, ...(adv.items[id] || { name: id }) })));
+    celebrate(adv, ctx?.source, won.map(id => ({ id, ...(adv.items[id] || { name: id }) })));
   },
 });
 registerEndingPanel({ id: 'badges', order: 15, Panel: EndingBoards });
@@ -234,7 +234,7 @@ function AddItem({ adv, state, act }) {
   if (!missing.length) return null;
   return html`<form class="row inv-add" style="gap:6px" onSubmit=${e => { e.preventDefault(); const id = new FormData(e.target).get('item'); if (id && adv.items[id]) act(R.applyEffects(state, adv, [{ op: 'give', item: id }])); }}>
     <select name="item" aria-label="Objet à ajouter au sac" style="flex:1;min-width:0">
-      ${missing.map(([id, it]) => html`<option value=${id}>${it.icon ? it.icon + ' ' : ''}${it.name}</option>`)}
+      ${missing.map(([id, it]) => html`<option value=${id}>${iconText(it.icon)}${it.name}</option>`)}
     </select>
     <button class="btn small" type="submit" title="Ajouter un objet que le texte vous donne"><${Icon} name="plus" />Ajouter</button>
   </form>`;

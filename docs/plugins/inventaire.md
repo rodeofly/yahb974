@@ -83,7 +83,9 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
     "cartes": { "name": "Cartes des élèves", "icon": "🎴",
       "cards": { "view": "map",                         // vue de départ : map (plan), one (une à une), carousel
         "list": [ { "title": "lama", "sub": "2 syllabes", "band": "Le pré", "step": "2", "color": "#558B2F",
-                    "icon": "🌾", "row": "Enzo", "col": "Le pré", "foot": "syllabes" } ] } }
+                    "image": "images/pictos/2683.png",   // pictogramme au-dessus du mot (facultatif)
+                    "icon": "images/icones/x.svg",        // petite icône du bandeau (facultatif ; émoji ou image)
+                    "row": "Enzo", "col": "Le pré", "foot": "syllabes" } ] } }
   },
   "rules": {
     "inventory": {

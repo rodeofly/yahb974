@@ -20,6 +20,9 @@ const P = {
   map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>',
   save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>',
   exit: '<path d="M10 4H5v16h5"/><path d="M15 8l4 4-4 4M19 12H9"/>',
+  grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/>',
+  card: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6"/>',
+  carousel: '<rect x="8" y="4" width="8" height="16" rx="1.5"/><path d="M4 7v10M20 7v10"/>',
   sheet: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
@@ -62,6 +65,31 @@ export function Die({ value, rolling, sides = 6 }) {
     ${Array.from({ length: 9 }, (_, i) => html`<i style=${on.includes(i) ? 'visibility:visible' : ''}></i>`)}
   </span>`;
 }
+/** Une icône de livre est-elle une image du livre (« images/icones/main.svg ») plutôt qu'un émoji ? */
+export const isAssetIcon = v => typeof v === 'string' && /\.(svg|png|jpe?g|webp|gif)$/i.test(v.trim());
+/** Texte d'une icône à mettre devant un nom (listes, messages) : l'émoji, rien pour une image. */
+export const iconText = v => (v && !isAssetIcon(v) ? v + ' ' : '');
+/**
+ * Icône d'un livre : un émoji, ou une image du livre. Un SVG est dessiné dans la couleur du texte (masque CSS :
+ * lisible en clair comme en sombre) ; un PNG (pictogramme) est montré tel quel. La taille suit la police (1em).
+ * `alt` vide : décorative (le mot est écrit à côté) ; sinon, l'icône est lue.
+ */
+export function Glyph({ adv, source, icon, alt = '', className = '' }) {
+  const asset = isAssetIcon(icon);
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let on = true; setUrl(null);
+    if (asset && adv) assetUrl(adv, source, icon.trim()).then(u => on && setUrl(u), () => {});
+    return () => { on = false; };
+  }, [adv?.id, icon, source]);
+  if (!icon) return null;
+  const a11y = alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': 'true' };
+  if (!asset) return html`<span class=${'glyph ' + className} ...${a11y}>${icon}</span>`;
+  if (!url) return html`<span class=${'glyph ' + className} aria-hidden="true"></span>`;
+  if (/\.svg$/i.test(icon.trim())) return html`<span class=${'glyph mask ' + className} ...${a11y} style=${`-webkit-mask-image:url("${url}");mask-image:url("${url}")`}></span>`;
+  return html`<img class=${'glyph pic ' + className} src=${url} alt=${alt} draggable="false" />`;
+}
+
 /** Affiche un résultat de dés ; l'animation rejoue quand `stamp` change. */
 export function Dice({ result, stamp, showTotal = true }) {
   const [rolling, setRolling] = useState(false);

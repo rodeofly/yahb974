@@ -311,3 +311,16 @@ test('fil de lecture : choix suivis dans l’ordre, retours au même paragraphe 
   assert.equal(t.trail[2].via, 'Finir');
   assert.deepEqual(back(t).trail.map(x => x.section), ['1', '2']);
 });
+
+test('avatar aux initiales : mode, initiales, couleurs lisibles', async () => {
+  const { avatarMode, initialsOf, AVATAR_COLORS, avatarGroups } = await import('../js/core/rules.js');
+  assert.equal(avatarMode({ rules: { avatars: 'initials' } }), 'initials');
+  assert.equal(avatarMode({ rules: { avatars: false } }), 'none');
+  assert.equal(avatarMode({ rules: {} }), 'emoji');
+  assert.deepEqual(avatarGroups({ rules: { avatars: 'initials' } }), []);
+  assert.equal(initialsOf('Laure Fontaine'), 'LF');
+  assert.equal(initialsOf('héros'), 'H');
+  assert.equal(initialsOf('Marie-Hélène d’Arc'), 'MA');
+  assert.equal(initialsOf(''), '?');
+  assert.ok(AVATAR_COLORS.length >= 6 && AVATAR_COLORS.every(c => /^#[0-9A-F]{6}$/i.test(c.color) && c.name));
+});

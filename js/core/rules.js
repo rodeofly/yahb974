@@ -93,10 +93,23 @@ export const DEFAULT_AVATARS = [
  */
 export function avatarGroups(adv) {
   const a = adv?.rules?.avatars;
-  if (a === false) return [];
+  if (a === false || a === 'initials') return [];
   if (!Array.isArray(a) || !a.length) return DEFAULT_AVATARS;
   if (a.every(x => typeof x === 'string')) return [{ label: 'Avatars', list: a }];
   return a.filter(g => g && Array.isArray(g.list) && g.list.length).map(g => ({ label: String(g.label || ''), list: g.list.map(String) }));
+}
+/** Genre d'avatar : 'initials' (médaillon aux initiales, `rules.avatars: 'initials'`), 'none' (false), sinon 'emoji'. */
+export const avatarMode = adv => (adv?.rules?.avatars === 'initials' ? 'initials' : adv?.rules?.avatars === false ? 'none' : 'emoji');
+/** Couleurs des médaillons : texte blanc lisible sur chacune (contraste de 6:1 au moins, WCAG AA). */
+export const AVATAR_COLORS = [
+  { color: '#2C6A55', name: 'vert' }, { color: '#1E5FA8', name: 'bleu' }, { color: '#6B3FA0', name: 'violet' },
+  { color: '#B3261E', name: 'rouge' }, { color: '#8A4B0F', name: 'brun' }, { color: '#0F6E74', name: 'bleu canard' },
+  { color: '#4F4F4F', name: 'gris' }, { color: '#A1306B', name: 'framboise' },
+];
+/** Initiales d'un nom : « Laure Fontaine » → « LF », « Héros » → « H » (deux lettres au plus). */
+export function initialsOf(name) {
+  const words = String(name || '').trim().split(/[\s'’-]+/).filter(w => /\p{L}/u.test(w));
+  return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] || '?')[0]).toLocaleUpperCase('fr');
 }
 /** Faut-il lancer des dés à la création ? Non si aucune caractéristique et une bourse de départ fixe. */
 export function needsRoll(adv, classId) {
@@ -256,7 +269,8 @@ export function applyEffects(state, adv, effects = []) {
         s.inventory[e.item] = (s.inventory[e.item] || 0) + q;
         const it = adv.items[e.item];
         // `gain` (greffon inventaire, badges) : « Badge gagné : 🙋 Joker ! » au lieu de « Objet obtenu : … ».
-        messages.push({ kind: 'gain', text: it?.gain ? `${it.gain} : ${it.icon ? it.icon + ' ' : ''}${itemName(adv, e.item)}` : `Objet obtenu : ${itemName(adv, e.item)}${q > 1 ? ` ×${q}` : ''}` });
+        const ico = it?.icon && !/\.(svg|png|jpe?g|webp|gif)$/i.test(String(it.icon).trim()) ? it.icon + ' ' : '';
+        messages.push({ kind: 'gain', text: it?.gain ? `${it.gain} : ${ico}${itemName(adv, e.item)}` : `Objet obtenu : ${itemName(adv, e.item)}${q > 1 ? ` ×${q}` : ''}` });
         break;
       }
       case 'take': {

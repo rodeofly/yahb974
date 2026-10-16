@@ -74,6 +74,7 @@
 .dk-views { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .dk-view { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--line);
   background: var(--paper); color: var(--ink); font: 600 14px/1.4 var(--sans); cursor: pointer; }
+.dk-view .ico { width: 16px; height: 16px; }
 .dk-view[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .dk-filter { display: flex; flex-wrap: wrap; gap: 5px; }
 .dk-card { --c: var(--accent); position: relative; display: grid; grid-template-rows: auto 1fr auto; width: 100%; aspect-ratio: 5 / 7; padding: 0;
@@ -89,6 +90,9 @@ button.dk-card:focus-visible { outline: 3px solid var(--accent); outline-offset:
 .dk-icon { font-size: 18px; }
 .dk-body { display: grid; place-content: center; gap: 6px; padding: 12px 8px;
   background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--c) 16%, transparent), transparent 68%); }
+.dk-pic { display: block; font-size: clamp(64px, 10vw, 110px); line-height: 1; margin: 0 auto 4px; }
+.dk-pic .glyph.pic { width: 1em; height: 1em; border-radius: 8px; }
+.dk-card.mini .dk-pic { font-size: 40px; margin-bottom: 2px; }
 .dk-title { font: 700 clamp(28px, 4.6vw, 44px)/1.05 var(--serif); overflow-wrap: anywhere; } /* pas de petites capitales : « la » et « LA » ne s'encodent pas pareil */
 .dk-sub { font: 600 15px/1.3 var(--mono); color: var(--muted); }
 .dk-foot { display: flex; justify-content: space-between; gap: 6px; padding: 6px 10px; border-top: 1px dashed color-mix(in srgb, var(--c) 45%, var(--line));

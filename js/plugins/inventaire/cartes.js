@@ -4,25 +4,25 @@
 // Le modèle (deckOf) est dans ./core.js. Voir docs/plugins/inventaire.md.
 
 import { html, useState, useEffect, useRef } from '../../lib/preact-htm.js';
-import { prefs } from '../../ui/common.js';
+import { prefs, Glyph, Icon } from '../../ui/common.js';
 
-const VIEWS = [['map', '🗺️', 'Plan'], ['one', '🃏', 'Une à une'], ['carousel', '🎠', 'Carrousel']];
+const VIEWS = [['map', 'grid', 'Plan'], ['one', 'card', 'Une à une'], ['carousel', 'carousel', 'Carrousel']];
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 const describe = c => [c.row, c.step ? `étape ${c.step}` : '', c.band, c.title, c.sub].filter(Boolean).join(', ');
 
 /** Une carte : bandeau coloré (étape, intitulé, icône), le contenu en grand, le pied (la ligne : un élève…). */
-export function Card({ c, mini = false, onClick }) {
+export function Card({ c, mini = false, onClick, adv, source }) {
   const Tag = onClick ? 'button' : 'div';
   return html`<${Tag} type=${onClick ? 'button' : undefined} class=${'dk-card' + (mini ? ' mini' : '')} style=${c.color ? `--c:${c.color}` : ''}
       onClick=${onClick} aria-label=${onClick ? `Voir la carte : ${describe(c)}` : undefined}>
-    <span class="dk-band">${c.step && html`<b class="dk-step">${c.step}</b>`}<span class="dk-band-t">${c.band || ''}</span>${c.icon && html`<span class="dk-icon" aria-hidden="true">${c.icon}</span>`}</span>
-    <span class="dk-body"><span class="dk-title">${c.title}</span>${c.sub && html`<span class="dk-sub">${c.sub}</span>`}</span>
+    <span class="dk-band">${c.step && html`<b class="dk-step">${c.step}</b>`}<span class="dk-band-t">${c.band || ''}</span>${c.icon && html`<span class="dk-icon" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${c.icon} /></span>`}</span>
+    <span class="dk-body">${c.image && html`<span class="dk-pic" aria-hidden="true"><${Glyph} adv=${adv} source=${source} icon=${c.image} /></span>`}<span class="dk-title">${c.title}</span>${c.sub && html`<span class="dk-sub">${c.sub}</span>`}</span>
     ${!mini && (c.row || c.foot) && html`<span class="dk-foot"><span>${c.row || ''}</span><span class="subtle">${c.foot || ''}</span></span>`}
   <//>`;
 }
 
 /** Le paquet de cartes, avec ses trois vues. */
-export function Deck({ deck, id = '' }) {
+export function Deck({ deck, id = '', adv, source }) {
   // La vue choisie est gardée par paquet (les cartes des élèves en plan, les jokers en carrousel…).
   const key = 'deck.view.' + id;
   const [view, setView] = useState(() => { const v = prefs.get(key, deck.view); return VIEWS.some(x => x[0] === v) ? v : deck.view; });
@@ -66,12 +66,12 @@ export function Deck({ deck, id = '' }) {
     <button type="button" class="btn small" onClick=${() => go(-1)} aria-label="Carte précédente">‹</button>
     <span class="mono" aria-live="polite">${at + 1} / ${n}</span>
     <button type="button" class="btn small" onClick=${() => go(1)} aria-label="Carte suivante">›</button>
-    ${view === 'carousel' && !reduced() && html`<button type="button" class="btn small" aria-pressed=${spin ? 'true' : 'false'} onClick=${() => setSpin(s => !s)}>${spin ? '⏸ Arrêter' : '▶ Faire tourner'}</button>`}
+    ${view === 'carousel' && !reduced() && html`<button type="button" class="btn small" aria-pressed=${spin ? 'true' : 'false'} onClick=${() => setSpin(s => !s)}><${Icon} name=${spin ? 'stop' : 'play'} />${spin ? 'Arrêter' : 'Faire tourner'}</button>`}
   </div>`;
 
   return html`<div class="dk">
     <div class="dk-views" role="group" aria-label="Vue des cartes">
-      ${VIEWS.map(([v, icon, label]) => html`<button type="button" class="dk-view" aria-pressed=${view === v ? 'true' : 'false'} onClick=${() => pick(v)}><span aria-hidden="true">${icon}</span>${label}</button>`)}
+      ${VIEWS.map(([v, icon, label]) => html`<button type="button" class="dk-view" aria-pressed=${view === v ? 'true' : 'false'} onClick=${() => pick(v)}><${Icon} name=${icon} />${label}</button>`)}
     </div>
 
     ${view === 'map' && (deck.matrix
@@ -82,16 +82,16 @@ export function Deck({ deck, id = '' }) {
           </span>
           ${deck.rows.map(r => html`<span role="row" class="dk-map-row">
             <span role="rowheader" class="dk-rowhead">${r}</span>
-            ${deck.cols.map(k => { const c = deck.cell(r, k); return html`<span role="cell">${c ? html`<${Card} c=${c} mini onClick=${() => open(c)} />` : null}</span>`; })}
+            ${deck.cols.map(k => { const c = deck.cell(r, k); return html`<span role="cell">${c ? html`<${Card} adv=${adv} source=${source} c=${c} mini onClick=${() => open(c)} />` : null}</span>`; })}
           </span>`)}
         </div>`
-      : html`<div class="dk-grid">${deck.list.map(c => html`<${Card} c=${c} mini onClick=${() => open(c)} />`)}</div>`)}
+      : html`<div class="dk-grid">${deck.list.map(c => html`<${Card} adv=${adv} source=${source} c=${c} mini onClick=${() => open(c)} />`)}</div>`)}
 
     ${view === 'one' && n > 0 && html`${rows}
       <div class="dk-one" tabindex="0" role="region" aria-roledescription="carrousel" aria-label=${`Carte ${at + 1} sur ${n} : ${describe(list[at])}`}
         onKeyDown=${keys} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up}>
         <div class=${'dk-one-card' + (dx ? ' dragging' : '')} key=${at + '-' + (row || '')} style=${`transform:translateX(${dx}px) rotate(${dx / 40}deg)`}>
-          <${Card} c=${list[at]} />
+          <${Card} adv=${adv} source=${source} c=${list[at]} />
         </div>
       </div>
       ${nav}`}
@@ -107,7 +107,7 @@ export function Deck({ deck, id = '' }) {
           return html`<div class=${'dk-slot' + (Math.round(d) === 0 ? ' front' : '')} key=${i} aria-hidden=${Math.round(d) === 0 ? null : 'true'}
             style=${`transform:translateX(calc(${d} * 58%)) translateZ(${-a * 70}px) rotateY(${-d * 24}deg) scale(${1 - Math.min(a, 3) * 0.08});z-index:${10 - Math.round(a)};opacity:${a > 2.6 ? 0.35 : 1}`}
             onClick=${() => { if (dragged.current) { dragged.current = false; return; } if (Math.round(d) !== 0) go(Math.round(d)); }}>
-            <${Card} c=${c} />
+            <${Card} adv=${adv} source=${source} c=${c} />
           </div>`;
         })}
       </div>
