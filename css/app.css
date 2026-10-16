@@ -200,6 +200,18 @@ button.badge:hover { border-color: var(--accent); }
   @keyframes dice-pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
 }
 
+/* ---------- lecture continue, numéros cachés ---------- */
+.sec-num.titled small { font-size: 15px; letter-spacing: .08em; }
+.choice .go.next { font-size: 22px; font-weight: 400; color: var(--muted); }
+.reader.continuous .feed-current { scroll-margin-top: 72px; }
+.feed { display: grid; gap: 0; }
+.feed-past { padding-bottom: 18px; margin-bottom: 22px; border-bottom: 1px solid var(--line); color: color-mix(in srgb, var(--ink) 82%, var(--paper)); }
+.feed-past .illus { max-width: 70%; margin-inline: auto; }
+.feed-choice { margin: 12px 0 0; display: flex; gap: 8px; align-items: baseline; font-family: var(--sans); font-weight: 700; font-size: 15px; color: var(--ink);
+  padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--paper); border-radius: 0 6px 6px 0; }
+.feed-more { text-align: center; margin: 0 0 18px; }
+.feed-current::before { content: ''; }
+
 /* ---------- avatar ---------- */
 .avatar { display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; border: 2px solid var(--line);
   background: var(--paper); font-size: 26px; line-height: 1; cursor: pointer; padding: 0; color: var(--muted); }

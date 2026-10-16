@@ -141,6 +141,7 @@ export function createHero(adv, { name = 'Héros', classId, seed } = {}) {
     combat: null,
     history: [],
     log: [],
+    trail: [],
     ended: null,
     rng: rng.state(),
     turn: 0,
@@ -345,8 +346,12 @@ export function describeEffect(e, adv) {
 
 const snapshot = s => { const { history, log, ...rest } = s; return structuredClone(rest); };
 
-/** Entre dans un paragraphe : historique, effets d'entrée, fin éventuelle. */
-export function enter(state, adv, sectionId, { viaEffects = [] } = {}) {
+/**
+ * Entre dans un paragraphe : historique, effets d'entrée, fin éventuelle.
+ * `via` : texte du choix qui y mène. Le fil de lecture (`state.trail`, lecture continue) garde les paragraphes
+ * dans l'ordre, sans les retours au même paragraphe ; il suit les retours en arrière (il est dans l'instantané).
+ */
+export function enter(state, adv, sectionId, { viaEffects = [], via = null } = {}) {
   const sec = adv.sections[sectionId];
   if (!sec) throw new Error(`Le paragraphe ${sectionId} n'existe pas.`);
   let s = structuredClone(state);
@@ -358,6 +363,7 @@ export function enter(state, adv, sectionId, { viaEffects = [] } = {}) {
     const r = applyEffects(s, adv, viaEffects);
     s = r.state; messages = messages.concat(r.messages);
   }
+  if (s.section !== String(sectionId)) s.trail = [...(s.trail || []), { section: String(sectionId), via: via || null }].slice(-60);
   s.section = String(sectionId);
   s.visited = { ...s.visited, [sectionId]: (s.visited[sectionId] || 0) + 1 };
   s.blocks = {};
@@ -421,7 +427,7 @@ export function choose(state, adv, index) {
   const c = adv.sections[state.section]?.choices?.[index];
   if (!c) throw new Error('Choix inconnu');
   if (!check(c.if, state, adv) || choiceGuard(state, adv)) throw new Error('Ce choix n’est pas disponible.');
-  return enter(state, adv, c.to, { viaEffects: c.effects || [] });
+  return enter(state, adv, c.to, { viaEffects: c.effects || [], via: c.text || null });
 }
 
 export function back(state) {

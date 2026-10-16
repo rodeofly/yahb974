@@ -177,13 +177,21 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     speak(lines.filter(Boolean).join('. '), { onEnd: () => setTalking(false) });
   };
   const lastSection = useRef(null);
+  const curRef = useRef(null);
+  // Réglages de lecture du livre : `rules.numbers: false` cache les numéros ; `rules.continuous: true` garde les
+  // paragraphes lus au-dessus du paragraphe courant (lecture continue, défilement sans fin).
+  const numbers = adv.rules.numbers !== false;
+  const continuous = !!adv.rules.continuous;
   useEffect(() => {
     // Choix « ↺ » (on reste sur le paragraphe : une observation notée, par exemple) : pas de défilement ni de son de page ;
     // le message de l'effet s'affiche juste au-dessus des choix.
+    const first = lastSection.current === null;
     const stay = lastSection.current === state.section;
     lastSection.current = state.section;
     if (stay) return;
-    topRef.current?.scrollIntoView({ block: 'start' });
+    // Lecture continue : on glisse jusqu'au nouveau paragraphe, les précédents restent au-dessus.
+    if (continuous) curRef.current?.scrollIntoView({ block: 'start', behavior: first || reducedMotion() ? 'auto' : 'smooth' });
+    else topRef.current?.scrollIntoView({ block: 'start' });
     sfx.page();
     const path = sec.sound || adv.meta.sound;
     if (path) assetUrl(adv, source, path).then(u => ambience(u, sec.sound ? sec.soundLoop !== false : true)); else ambience(null);
@@ -226,15 +234,17 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const grouped = blocks.some(b => b.group);
   const choiceButton = c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
     <${InlineText} text=${c.text || 'Continuer'} />${String(c.to) === String(state.section)
-      ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : html`<span class="go">${c.to}</span>`}
+      ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : numbers ? html`<span class="go">${c.to}</span>` : html`<span class="go next" aria-hidden="true">›</span>`}
     ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
   </button>`;
 
   return html`<div class="play">
-    <article class="reader" ref=${topRef} aria-live="polite">
+    <article class=${'reader' + (continuous ? ' continuous' : '')} ref=${topRef} aria-live=${continuous ? null : 'polite'}>
       ${test && html`<p class="badge" style="margin:0 auto 12px">Mode test : rien n'est sauvegardé</p>`}
       ${state.cheat && html`<p class="badge" style="margin:0 auto 12px"><span aria-hidden="true">🃏</span> Mode triche</p>`}
-      <div class="sec-num">${state.section}${sec.title && html`<small>${sec.title}</small>`}</div>
+      ${continuous && html`<${Feed} adv=${adv} source=${source} state=${state} numbers=${numbers} onImage=${setLightbox} />`}
+      <div class="feed-current" ref=${curRef} aria-live=${continuous ? 'polite' : null}>
+      ${(numbers || sec.title) && html`<div class=${'sec-num' + (numbers ? '' : ' titled')}>${numbers && state.section}${sec.title && html`<small>${sec.title}</small>`}</div>`}
       ${ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
         ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
           : html`<button class="btn small" onClick=${readAloud}><${Icon} name="speaker" />Écouter</button>`}
@@ -258,10 +268,11 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
         <button class="btn small" type="submit"><${Icon} name="play" />Y aller</button>
       </form>`}
       ${state.ended && html`<${Ending} adv=${adv} state=${state} onRestart=${onRestart} onBack=${adv.rules.allowBack && state.history.length ? goBack : null} />`}
+      </div>
     </article>
     <${Sheet} adv=${adv} source=${source} state=${state} update=${update} open=${sheetOpen} onClose=${() => setSheetOpen(false)}
       onBack=${adv.rules.allowBack !== false && state.history.length && !state.ended ? goBack : null}
-      onMap=${() => setMap(true)} onSave=${test ? null : onSaveAs} onBag=${ui.inventory ? tab => setBag(tab || '') : null} />
+      onMap=${numbers ? () => setMap(true) : null} onSave=${test ? null : onSaveAs} onBag=${ui.inventory ? tab => setBag(tab || '') : null} />
     <div class="play-fab">
       ${ui.inventory && html`<button class="btn sheet-toggle" onClick=${() => setBag('')} aria-label="Ouvrir le sac (touche I)"><${Icon} name="bag" />Sac${newCount(state) ? html` <span class="badge">${newCount(state)}</span>` : null}</button>`}
       <button class="btn primary sheet-toggle" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen} aria-controls="feuille-aventure">
@@ -593,7 +604,7 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
     <div class="sheet-tools">
       ${onBack && html`<button class="btn small" onClick=${onBack}><${Icon} name="back" />Revenir</button>`}
       <span class="sheet-icons">
-        <button class="btn small" onClick=${onMap} title="Paragraphes visités" aria-label="Paragraphes visités"><${Icon} name="route" /></button>
+        ${onMap && html`<button class="btn small" onClick=${onMap} title="Paragraphes visités" aria-label="Paragraphes visités"><${Icon} name="route" /></button>`}
         ${adv.rules.spells?.enabled && html`<button class="btn small" onClick=${() => setBook(true)} title="Formules" aria-label="Formules"><${Icon} name="book" /></button>`}
         ${onSave && html`<button class="btn small" onClick=${onSave} title="Sauvegarder" aria-label="Sauvegarder"><${Icon} name="save" /></button>`}
         <a class="btn small" href="#/" title="Quitter" aria-label="Quitter"><${Icon} name="exit" /></a>
@@ -604,6 +615,36 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
       <${AvatarPicker} groups=${avatars} value=${state.hero.avatar} onPick=${v => { update({ ...state, hero: { ...state.hero, avatar: v } }, null); setPickAvatar(false); }} />
     <//>`}
   </aside>`;
+}
+
+/* ---------- lecture continue ---------- */
+const reducedMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+/** Nombre de paragraphes lus gardés à l'écran au-dessus du paragraphe courant. */
+const FEED_MAX = 30;
+/**
+ * Les paragraphes déjà lus (`state.trail`), au-dessus du paragraphe courant : texte et illustration, puis le choix
+ * qui en est sorti. Rien n'y est interactif (ni dés, ni combat, ni choix). Une ancienne sauvegarde sans fil de lecture
+ * commence au paragraphe courant.
+ */
+function Feed({ adv, source, state, numbers, onImage }) {
+  const trail = state.trail?.length ? state.trail : [];
+  const end = trail.length && trail[trail.length - 1].section === state.section ? trail.length - 1 : trail.length;
+  const from = Math.max(0, end - FEED_MAX);
+  if (end <= 0) return null;
+  return html`<div class="feed" aria-label="Paragraphes déjà lus">
+    ${from > 0 && html`<p class="feed-more subtle">${from} paragraphe${from > 1 ? 's' : ''} plus haut dans la lecture</p>`}
+    ${trail.slice(from, end).map((p, k) => {
+      const s = adv.sections[p.section];
+      if (!s) return null;
+      const via = trail[from + k + 1]?.via;
+      return html`<section class="feed-past" key=${from + k + '-' + p.section}>
+        ${(numbers || s.title) && html`<div class=${'sec-num' + (numbers ? '' : ' titled')}>${numbers && p.section}${s.title && html`<small>${s.title}</small>`}</div>`}
+        ${s.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${s.image} alt=${s.alt || s.title || ''} onClick=${e => onImage(e.target.src)} /></figure>`}
+        <${Prose} text=${s.text} />
+        ${via && html`<p class="feed-choice"><span aria-hidden="true">→</span> <${InlineText} text=${via} /></p>`}
+      </section>`;
+    })}
+  </div>`;
 }
 
 /* ---------- avatar ---------- */

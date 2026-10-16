@@ -543,6 +543,8 @@ function RulesTab({ adv, change }) {
       <label class="row"><input type="checkbox" checked=${r.allowBack !== false} onChange=${e => set({ allowBack: e.target.checked })} /> Autoriser le retour en arrière (« doigt dans la page »)</label>
       <label class="row"><input type="checkbox" checked=${r.economy !== false} onChange=${e => set({ economy: e.target.checked })} /> Or et repas sur la feuille d'aventure (décocher pour un livre sans économie)</label>
       <label class="row"><input type="checkbox" checked=${!!r.tu} onChange=${e => set({ tu: e.target.checked || undefined })} /> Le moteur tutoie le lecteur (« Noté sur ta feuille »)</label>
+      <label class="row"><input type="checkbox" checked=${r.numbers === false} onChange=${e => set({ numbers: e.target.checked ? false : undefined })} /> Cacher les numéros de paragraphe en lecture (titres seuls ; la version imprimable les garde)</label>
+      <label class="row"><input type="checkbox" checked=${!!r.continuous} onChange=${e => set({ continuous: e.target.checked || undefined })} /> Lecture continue : les paragraphes lus restent au-dessus, on descend au suivant</label>
     </section>
     <section class="panel"><header><h3>Journées et repas</h3></header>
       <label class="row"><input type="checkbox" checked=${!!r.time?.enabled} onChange=${e => set({ time: { ...r.time, enabled: e.target.checked } })} /> Compter les jours</label>

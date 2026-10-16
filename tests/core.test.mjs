@@ -293,3 +293,21 @@ test('dés : le résultat donne le nombre de faces', () => {
   assert.equal(r.dice.length, 3);
   assert.ok(r.dice.every(v => v >= 1 && v <= 12));
 });
+
+test('fil de lecture : choix suivis dans l’ordre, retours au même paragraphe ignorés, retour en arrière', () => {
+  const a = newAdventure('Fil');
+  a.sections = {
+    '1': { text: 'Départ', choices: [{ text: 'Rester', to: '1' }, { text: 'Avancer', to: '2' }] },
+    '2': { text: 'Milieu', choices: [{ text: 'Finir', to: '3' }] },
+    '3': { text: 'Fin', ending: 'victory' },
+  };
+  const adv = normalizeAdventure(a);
+  let s = start(createHero(adv, { seed: 1 }).state, adv).state;
+  s = choose(s, adv, 0).state;
+  s = choose(s, adv, 1).state;
+  assert.deepEqual(s.trail, [{ section: '1', via: null }, { section: '2', via: 'Avancer' }]);
+  const t = choose(s, adv, 0).state;
+  assert.deepEqual(t.trail.map(x => x.section), ['1', '2', '3']);
+  assert.equal(t.trail[2].via, 'Finir');
+  assert.deepEqual(back(t).trail.map(x => x.section), ['1', '2']);
+});
