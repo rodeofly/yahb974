@@ -31,6 +31,11 @@ Une aventure sans réglage garde son sac habituel : un seul onglet « Objets »,
   **Une à une** (on fait glisser la carte, ou ‹ › et les flèches du clavier ; filtre par ligne) et **Carrousel**
   (les cartes tournent autour de celle du milieu ; on les fait glisser, ou « Faire tourner »). Toucher une carte
   du plan l'ouvre en grand. L'appareil se souvient de la vue choisie pour chaque paquet.
+  Une carte peut avoir **deux faces** : celle du lecteur (l'image, le mot, la réponse) et celle du joueur
+  (`player`, par exemple l'image seule, sans le mot à trouver) ; le bouton **Côté élève** les fait voir, et la
+  version imprimable imprime la face du joueur. Règle d'accessibilité : un pictogramme placé au-dessus d'un mot se
+  lit comme ce mot ; l'image d'une carte est donc celle de son mot, et l'icône du thème (la zone) va dans le
+  bandeau, à côté de son nom.
 - **Le Carnet** : les notes de la partie (celles que le livre fait écrire, et les siennes), et **Télécharger le
   relevé** : un fichier Markdown avec la date, le héros, les compteurs (en tableau), les badges gagnés et à gagner,
   puis le carnet ligne à ligne, pour l'analyse après la partie. Avec `rules.noteTime: true`, chaque note commence
@@ -92,6 +97,7 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
         "list": [ { "title": "lama", "sub": "2 syllabes", "band": "Le pré", "step": "2", "color": "#558B2F",
                     "image": "images/pictos/2683.png",   // pictogramme au-dessus du mot (facultatif)
                     "icon": "images/icones/x.svg",        // petite icône du bandeau (facultatif ; émoji ou image)
+                    "player": { "title": "", "image": "images/pictos/9067.png" },  // face du joueur (facultatif)
                     "row": "Enzo", "col": "Le pré", "foot": "syllabes" } ] } }
   },
   "rules": {

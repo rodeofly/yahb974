@@ -563,6 +563,7 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
         title="Changer la couleur de l'avatar" aria-label=${`Avatar ${R.initialsOf(state.hero.name)} : changer la couleur`}>${R.initialsOf(state.hero.name)}</button>`}${avatars.length > 0 && html`<button class=${'avatar' + (state.hero.avatar ? '' : ' empty')} onClick=${() => setPickAvatar(true)}
         title="Changer d'avatar" aria-label=${state.hero.avatar ? `Avatar ${state.hero.avatar} : changer` : 'Choisir un avatar'}>${state.hero.avatar || '+'}</button>`}<span class="hero-name">${state.hero.name}</span>${state.hero.classId && html`<span class="badge">${adv.rules.classes.find(c => c.id === state.hero.classId)?.label}</span>`}${state.cheat && html`<span class="badge" title="Partie en mode triche">🃏 triche</span>`}</h2>
     <button class="btn small sheet-toggle" onClick=${onClose}>Fermer la feuille</button>
+    ${sorted(ui.sheetPanels).filter(p => p.place === 'top').map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} onBag=${onBag} />`)}
     <div class="stats">${adv.rules.stats.map(s => { const v = state.stats[s.id]; return html`<div class=${'stat' + (changed[s.id] ? ' flash' : '')} key=${s.id + v.cur}>
       <span class="label">${s.label}</span><span class="val">${v.cur}<small> / ${v.init}</small></span>
       <div class="bar me"><span style=${`width:${Math.max(0, Math.min(100, 100 * v.cur / v.init))}%`}></span></div>
@@ -604,7 +605,7 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
         <button class="btn small" type="submit" title="Ajouter un objet que le texte vous donne"><${Icon} name="plus" />Ajouter</button>
       </form>`}
     </div>`}
-    ${sorted(ui.sheetPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} onBag=${onBag} />`)}
+    ${sorted(ui.sheetPanels).filter(p => p.place !== 'top').map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} onBag=${onBag} />`)}
     <details class="sheet-fold" open=${fold.notes} onToggle=${e => prefs.set('sheet.notes', e.currentTarget.open)}>
       <summary><span class="eyebrow">Notes</span>${noteLines > 0 && html`<span class="subtle">${noteLines} ligne${noteLines > 1 ? 's' : ''}</span>`}</summary>
       <textarea id="sheet-notes" rows="4" aria-label="Notes" value=${state.notes} onChange=${e => update({ ...state, notes: e.target.value }, [])}></textarea>

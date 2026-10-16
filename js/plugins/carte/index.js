@@ -285,6 +285,7 @@ registerInventoryTab({
 registerSheetPanel({
   id: 'carte-monde',
   order: 30,
+  place: 'top', // tout en haut de la feuille, sous le nom du héros
   Panel({ adv, source, state }) {
     const [open, setOpen] = useState(false);
     if (!adv.meta.worldMap?.image) return null;

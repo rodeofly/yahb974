@@ -87,7 +87,10 @@ button.dk-card:focus-visible { outline: 3px solid var(--accent); outline-offset:
   font: 700 12px/1.2 var(--sans); letter-spacing: .05em; text-transform: uppercase; }
 .dk-band-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dk-step { display: inline-grid; place-items: center; min-width: 22px; height: 22px; border-radius: 50%; background: #fff; color: var(--c); font: 700 13px/1 var(--mono); }
-.dk-icon { font-size: 18px; }
+.dk-icon { font-size: 18px; display: inline-grid; }
+.dk-icon .glyph.pic { width: 24px; height: 24px; border-radius: 5px; background: #fff; padding: 1px; }
+.dk-print-card .dk-icon .glyph.pic { width: 6mm; height: 6mm; }
+.dk-side { margin-left: 6px; }
 .dk-body { display: grid; place-content: center; gap: 6px; padding: 12px 8px;
   background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--c) 16%, transparent), transparent 68%); }
 .dk-pic { display: block; font-size: clamp(64px, 10vw, 110px); line-height: 1; margin: 0 auto 4px; }
@@ -97,7 +100,8 @@ button.dk-card:focus-visible { outline: 3px solid var(--accent); outline-offset:
 .dk-sub { font: 600 15px/1.3 var(--mono); color: var(--muted); }
 .dk-foot { display: flex; justify-content: space-between; gap: 6px; padding: 6px 10px; border-top: 1px dashed color-mix(in srgb, var(--c) 45%, var(--line));
   font: 700 13px/1.3 var(--sans); }
-.dk-card.mini { aspect-ratio: 4 / 3; border-radius: 10px; box-shadow: 0 3px 8px rgb(0 0 0 / .12); }
+.dk-card.mini { aspect-ratio: auto; min-height: 124px; border-radius: 10px; box-shadow: 0 3px 8px rgb(0 0 0 / .12); }
+.dk-card.mini .dk-body { padding: 8px 6px 10px; gap: 3px; }
 .dk-card.mini .dk-band { padding: 4px 7px; font-size: 10px; }
 .dk-card.mini .dk-step { min-width: 18px; height: 18px; font-size: 11px; }
 .dk-card.mini .dk-icon { font-size: 14px; }
@@ -111,6 +115,8 @@ button.dk-card:focus-visible { outline: 3px solid var(--accent); outline-offset:
   background: color-mix(in srgb, var(--c) 18%, var(--paper)); border-bottom: 3px solid var(--c); font: 700 13px/1.2 var(--sans); }
 .dk-colhead b { font-family: var(--mono); color: var(--c); }
 .dk-rowhead { display: grid; align-items: center; font: 700 15px/1.2 var(--sans); }
+.dk-map [role="cell"] { display: grid; }
+.dk-map .dk-card.mini { height: 100%; }
 .dk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 
 /* une à une, carrousel */
