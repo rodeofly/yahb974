@@ -9,11 +9,12 @@
 
 import { html, useState, useRef, useMemo } from '../../lib/preact-htm.js';
 import { Icon, Modal, Prose, AssetImg, toast, confirmBox, loadCSS } from '../../ui/common.js';
-import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel } from '../../ui/registry.js';
+import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel, registerRunHook } from '../../ui/registry.js';
 import { Text, Num, Select, ImageSlot } from '../../ui/editor.js';
 import * as R from '../../core/rules.js';
 import * as I from './core.js';
 import { Deck } from './cartes.js';
+import { celebrate } from './trophee.js';
 
 loadCSS(new URL('./style.css', import.meta.url));
 
@@ -212,6 +213,19 @@ function EndingBoards({ adv, state }) {
 }
 
 registerSheetPanel({ id: 'badges', order: 5, Panel: SheetBoards });
+
+// Un badge gagné est un moment d'arrêt : feu d'artifice, badge qui tourne, sa carte, puis il se range dans le sac.
+// Pas en mode triche, ni quand plus de trois badges arrivent d'un coup (« Tout débloquer », reprise d'une partie).
+registerRunHook({
+  id: 'badges',
+  onUpdate: (adv, prev, state) => {
+    if (!prev || state.cheat) return;
+    const quiet = new Set(I.collectionsOf(adv).filter(c => c.board && c.celebrate === false).flatMap(c => c.items));
+    const won = [...I.boardItems(adv)].filter(id => !quiet.has(id) && state.inventory?.[id] > 0 && !(prev.inventory?.[id] > 0));
+    if (!won.length || won.length > 3) return;
+    celebrate(won.map(id => ({ id, ...(adv.items[id] || { name: id }) })));
+  },
+});
 registerEndingPanel({ id: 'badges', order: 15, Panel: EndingBoards });
 
 /** Ajouter un objet soi-même : feuille libre, ou partie en mode triche. */

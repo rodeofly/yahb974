@@ -19,6 +19,11 @@ Une aventure sans réglage garde son sac habituel : un seul onglet « Objets »,
   pas gagné), son nom et **comment le gagner** ; une jauge « 3 sur 9 ». La Feuille d'Aventure en montre une
   petite grille (3 × 3 par défaut) qui ouvre le tableau, et l'écran de fin le bilan des badges. Un badge gagné
   s'annonce « Badge gagné : 🙋 Joker ! » et sa fiche s'ouvre comme celle d'un objet.
+- **Un badge gagné est un moment d'arrêt** : le badge surgit au milieu d'un feu d'artifice et tourne sur lui-même
+  devant des rayons, avec une fanfare ; un toucher le retourne pour lire sa carte (comment il a été gagné, sa fiche) ;
+  « Ranger dans le sac » (ou Échap) l'envoie voler jusqu'aux badges de la feuille (ou au bouton Sac). Plusieurs
+  badges gagnés d'un coup passent l'un après l'autre ; rien en mode triche ni au-delà de trois d'un coup ; sans
+  animation si l'appareil réduit les animations. `"celebrate": false` sur la collection la rend discrète.
 - **Une image** (objet avec `image`, par exemple un plateau de jeu) : la fiche prend toute la largeur et montre
   l'image ; un toucher l'agrandit. Elle se choisit dans l'éditeur (onglet Objets, volet « Dans le sac »).
 - **Un paquet de cartes** (objet avec `cards`) : sa fiche prend toute la largeur et propose trois vues :
@@ -92,7 +97,7 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
           "message": "LE…" },                     // une lettre par objet, dans l'ordre ; espaces et ponctuation libres
         { "id": "badges", "label": "Badges", "icon": "🏅",
           "items": ["badge-joker", "badge-miroir"],
-          "board": true, "columns": 3 }           // tableau des badges : 3 colonnes par défaut (1 à 6)
+          "board": true, "columns": 3 }           // tableau des badges : 3 colonnes par défaut (1 à 6) ; "celebrate": false : sans célébration
       ]
     },
     "sheet": {
