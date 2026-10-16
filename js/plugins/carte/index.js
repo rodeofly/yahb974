@@ -442,6 +442,7 @@ registerRunHook({
   id: 'voyage',
   onUpdate: (adv, prev, state, ctx) => {
     if (!prev?.section || prev.section === state.section || state.cheat?.unlocked) return;
+    if (document.documentElement.classList.contains('lh-focus')) return; // mode saisie : droit au but, pas de voyage
     const from = K.placeName(adv.sections[prev.section]?.place), to = K.placeName(adv.sections[state.section]?.place);
     if (!from || !to || from === to) return;
     const hops = K.travelHops(adv, from, to);

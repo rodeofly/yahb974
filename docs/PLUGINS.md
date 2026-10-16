@@ -55,9 +55,10 @@ import { registerBlockUI, registerEffectUI, registerConditionUI, registerSheetPa
 
 | Fonction | Où ça s'affiche | Propriétés |
 |---|---|---|
-| `registerBlockUI(type, def)` | bloc dans la lecture et dans l'éditeur | `label`, `icon` (nom d'icône de common.js), `order`, `create(adv)` → champs initiaux du bloc (sans `type`), `Player({ adv, source, state, index, block, update, go })`, `Editor({ adv, block, set, onChange, tgt })` — `set(patch)` fusionne, `tgt(valeur, onChange, libellé)` affiche un champ de destination ; facultatif : `speech(block, { adv, state, index })` → texte lu à voix haute avec le paragraphe (question, consigne…) |
+| `registerBlockUI(type, def)` | bloc dans la lecture et dans l'éditeur | `label`, `icon` (nom d'icône de common.js), `order`, `create(adv)` → champs initiaux du bloc (sans `type`), `Player({ adv, source, state, index, block, update, go })`, `Editor({ adv, block, set, onChange, tgt })` — `set(patch)` fusionne, `tgt(valeur, onChange, libellé)` affiche un champ de destination ; facultatif : `speech(block, { adv, state, index })` → texte lu à voix haute avec le paragraphe (question, consigne…) ; `keepInFocus: true` : reste visible en mode saisie |
 | `registerEffectUI(op, def)` | liste « Type » des effets | `label`, `order`, `blank(adv)` → effet complet `{ op, … }`, `Fields({ e, upd, adv })` |
 | `registerConditionUI(def)` | liste « Le héros… » des conditions | `t` (identifiant de ligne), `label`, `match(c)` → ligne `{ …champs }` ou `null`, `toCond(row)` → condition, `blank(adv)` → ligne, `Fields({ row, upd, adv })` |
+| `registerGroupPanel(def)` | saisie rapide, sous les onglets : ce qui concerne le groupe choisi | `id`, `order`, `Panel({ adv, state, group })` |
 | `registerSheetPanel(def)` | feuille d'aventure, après le sac à dos ; `place: 'top'` : tout en haut, sous le nom du héros | `id`, `order`, `place?`, `Panel({ adv, source, state, update, onBag })` |
 | `registerItemAction(def)` | boutons à côté d'un objet du sac (et dans sa fiche, avec le greffon inventaire) | `show(it, state, adv, id)`, `label(…)`, `run(state, adv, id)` → `{ state, messages }` |
 | `registerInventory(Composant)` | fenêtre du sac (touche I, bouton Sac) ; un seul greffon la fournit (inventaire) | `Composant({ adv, source, state, update, tab, onClose })` — `update(state, null)` garde les messages affichés |

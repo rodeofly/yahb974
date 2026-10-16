@@ -6,7 +6,7 @@ import { Icon, loadCSS, confirmBox, toast } from '../../ui/common.js';
 import { Text, Num, Select } from '../../ui/editor.js';
 import {
   registerSheetPanel, registerRulesSection, registerEffectUI, registerConditionUI,
-  registerPrintSection, registerCreatorPanel, registerEndingPanel,
+  registerPrintSection, registerCreatorPanel, registerEndingPanel, registerGroupPanel,
 } from '../../ui/registry.js';
 import { applyEffects } from '../../core/rules.js';
 import { isDice, range } from '../../core/dice.js';
@@ -100,6 +100,16 @@ function CounterTable({ tb, value, changed = {} }) {
 }
 
 registerSheetPanel({ id: 'compteurs', order: 20, Panel: SheetPanel });
+
+/** Sous les onglets de la saisie : les compteurs de l'élève choisi (ceux dont la ligne est son nom). */
+function GroupCounters({ adv, state, group }) {
+  const list = K.countersOf(adv).filter(c => c.id && K.isVisible(c) && c.row === group);
+  if (!list.length) return null;
+  return html`<p class="cpt-group" aria-label=${`Compteurs de ${group}`}>
+    ${list.map(c => html`<span class="cpt-chip" key=${c.id + K.counterValue(state, adv, c.id)}><${CIcon} name=${c.icon} />${c.column || c.label}<b class="mono">${K.counterValue(state, adv, c.id)}</b></span>`)}
+  </p>`;
+}
+registerGroupPanel({ id: 'compteurs', order: 10, Panel: GroupCounters });
 
 /* ------------------------------------------------------------------ */
 /* Création du héros et écran de fin                                   */

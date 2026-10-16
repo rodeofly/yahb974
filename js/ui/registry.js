@@ -54,6 +54,8 @@ export const ui = {
   inventory: null,
   /** [{ id, order, label, icon, show(adv, state) → bool, Tab({ adv, source, state, update }) }] : onglets en plus dans le sac */
   inventoryTabs: [],
+  /** [{ id, order, Panel({ adv, state, group }) }] : sous les onglets de la saisie, ce qui concerne le groupe choisi (un élève…) */
+  groupPanels: [],
 };
 
 export const registerBlockUI = (type, def) => { ui.blocks.set(type, def); };
@@ -81,6 +83,7 @@ export const registerSectionPanel = def => { ui.sectionPanels.push(def); };
 export const registerPrintOption = def => { ui.printOptions.push(def); };
 export const registerInventory = Component => { ui.inventory = Component; };
 export const registerInventoryTab = def => { ui.inventoryTabs.push(def); };
+export const registerGroupPanel = def => { ui.groupPanels.push(def); };
 
 export const sorted = list => [...list].sort((a, b) => (a.order ?? 50) - (b.order ?? 50));
 

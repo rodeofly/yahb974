@@ -70,3 +70,11 @@
 .cpt-cell.start b { font-weight: 700; }
 .cpt-cell.end { border-style: double; border-width: 3px; }
 .cpt-cell .ico { width: 10px; height: 10px; }
+
+/* ---------- saisie : compteurs de l'élève choisi ---------- */
+.cpt-group { margin: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; } /* une seule ligne, qui défile */
+.cpt-group::-webkit-scrollbar { display: none; }
+.cpt-chip { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font: 500 13px/1.3 var(--sans); }
+.cpt-chip .ico { width: 14px; height: 14px; }
+.cpt-chip b { font-size: 15px; }
+@media (prefers-reduced-motion: no-preference) { .cpt-chip { animation: cpt-chip-in .3s ease-out; } @keyframes cpt-chip-in { from { transform: scale(1.12); } } }

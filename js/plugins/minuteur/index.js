@@ -42,6 +42,7 @@ function TimerEditor({ block: b, set }) {
 registerBlockUI(TYPE, {
   label: 'Minuteur',
   icon: 'timer',
+  keepInFocus: true, // reste visible en mode saisie (le temps d'attente sert pendant la saisie)
   order: 60,
   create: () => ({ seconds: 5, label: '', after: '' }),
   Player: TimerPlayer,

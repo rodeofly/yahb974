@@ -239,9 +239,37 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const choices = R.choicesFor(state, adv);
   const blocks = R.groupChoices(choices);
   const grouped = blocks.some(b => b.group);
+  // Saisie rapide (choix regroupés : un groupe = un élève…) : un groupe à la fois, en onglets, sur téléphone et en
+  // « mode saisie » ; le mode saisie ne garde que les onglets, les boutons, les messages et les blocs utiles (minuteur).
+  const groupNames = blocks.filter(b => b.group).map(b => b.group);
+  const [focusPref, setFocusPref] = useState(() => prefs.get('focus', false));
+  const focus = focusPref && grouped && !state.ended;
+  const phone = useMedia('(max-width: 700px)');
+  const tabbed = grouped && (focus || phone || sec.choiceLayout === 'tabs');
+  const [tab, setTab] = useState(null);
+  const current = groupNames.includes(tab) ? tab : groupNames[0];
+  useEffect(() => { document.documentElement.classList.toggle('lh-focus', !!focus); }, [focus]);
+  useEffect(() => () => document.documentElement.classList.remove('lh-focus'), []);
+  const toggleFocus = () => { const v = !focusPref; setFocusPref(v); prefs.set('focus', v); };
+  // Glisser vers la gauche ou la droite sur les boutons : groupe suivant ou précédent (sans noter d'observation).
+  const swipe = useRef(null);
+  const swipeStart = e => { swipe.current = { x: e.clientX, y: e.clientY, moved: false }; };
+  const swipeEnd = e => {
+    const s = swipe.current;
+    if (!s) return;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy) && groupNames.length > 1) {
+      s.moved = true;
+      const i = groupNames.indexOf(current);
+      setTab(groupNames[(i + (dx < 0 ? 1 : -1) + groupNames.length) % groupNames.length]);
+    }
+  };
+  const swipeClick = e => { if (swipe.current?.moved) { e.stopPropagation(); e.preventDefault(); } swipe.current = null; };
   // Sans numéros : le choix qui mène à une autre étape en montre le numéro (« 3 »), sinon « › ».
   const goStep = c => { const st = adv.sections[c.to]?.step; return st != null && st !== '' && String(st) !== String(sec.step ?? '')
     ? html`<span class="go step" aria-label=${`étape ${st}`}>${st}</span>` : html`<span class="go next" aria-hidden="true">›</span>`; };
+  // Messages de la dernière action ; en mode saisie, juste au-dessus des boutons, en plus court.
+  const msgsView = messages?.length > 0 && html`<div class=${'msgs' + (focus ? ' compact' : '')}>${messages.map(m => html`<div class=${'msg ' + m.kind + (m.alert ? ' alert' : '')} role=${m.alert ? 'alert' : null}><${Icon} name=${m.alert ? 'flag' : m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`;
   const choiceButton = c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
     <${InlineText} text=${c.text || 'Continuer'} />${String(c.to) === String(state.section)
       ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : numbers ? html`<span class="go">${c.to}</span>` : goStep(c)}
@@ -249,21 +277,35 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   </button>`;
 
   return html`<div class="play">
-    <article class=${'reader' + (continuous ? ' continuous' : '')} ref=${topRef} aria-live=${continuous ? null : 'polite'}>
+    <article class=${'reader' + (continuous ? ' continuous' : '') + (focus ? ' focus' : '')} ref=${topRef} aria-live=${continuous ? null : 'polite'}>
       ${test && html`<p class="badge" style="margin:0 auto 12px">Mode test : rien n'est sauvegardé</p>`}
       ${state.cheat && html`<p class="badge" style="margin:0 auto 12px"><span aria-hidden="true">🃏</span> Mode triche</p>`}
-      ${continuous && html`<${Feed} adv=${adv} source=${source} state=${state} numbers=${numbers} onImage=${setLightbox} />`}
+      ${continuous && !focus && html`<${Feed} adv=${adv} source=${source} state=${state} numbers=${numbers} onImage=${setLightbox} />`}
       <div class="feed-current ink" key=${'p' + state.section + '-' + (state.trail?.length || 0)} ref=${curRef} aria-live=${continuous ? 'polite' : null}>
       <${SecHead} adv=${adv} id=${state.section} sec=${sec} numbers=${numbers} />
-      ${ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
+      ${grouped && !state.ended && html`<div class="focus-bar"><button type="button" role="switch" aria-checked=${focus ? 'true' : 'false'}
+        class=${'focus-toggle' + (focus ? ' on' : '')} onClick=${toggleFocus} title=${focus ? 'Revenir au paragraphe complet' : 'Ne garder que la saisie : un élève à la fois, de grands boutons'}>
+        <${Icon} name="grid" />${adv.rules.focusLabel || 'Mode saisie'}<span class="focus-state">${focus ? 'activé' : 'désactivé'}</span></button></div>`}
+      ${!focus && ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
         ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
           : html`<button class="btn small" onClick=${readAloud}><${Icon} name="speaker" />Écouter</button>`}
       </div>`}
-      ${sec.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${sec.image} alt=${sec.alt || sec.title || `Illustration du paragraphe ${state.section}`} onClick=${e => setLightbox(e.target.src)} /></figure>`}
-      <${Prose} text=${sec.text} />
-      ${messages?.length > 0 && html`<div class="msgs">${messages.map(m => html`<div class=${'msg ' + m.kind + (m.alert ? ' alert' : '')} role=${m.alert ? 'alert' : null}><${Icon} name=${m.alert ? 'flag' : m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`}
-      ${!state.ended && (sec.blocks || []).map((b, i) => html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`)}
-      ${!state.ended && !state.combat?.over && choices.length > 0 && (grouped
+      ${!focus && sec.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${sec.image} alt=${sec.alt || sec.title || `Illustration du paragraphe ${state.section}`} onClick=${e => setLightbox(e.target.src)} /></figure>`}
+      ${!focus && html`<${Prose} text=${sec.text} />`}
+      ${!focus && msgsView}
+      ${!state.ended && (sec.blocks || []).map((b, i) => (focus && !ui.blocks.get(b.type)?.keepInFocus ? null : html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`))}
+      ${!state.ended && !state.combat?.over && choices.length > 0 && tabbed && html`<nav ref=${navRef} class=${'choices capture' + (focus ? ' focus' : '')} aria-label="Saisie">
+          <div class="capture-tabs" role="tablist" aria-label=${adv.rules.groupsLabel || 'Groupes'}>
+            ${groupNames.map(g => html`<button type="button" role="tab" key=${g} aria-selected=${g === current ? 'true' : 'false'} class="capture-tab" onClick=${() => setTab(g)}>${g}</button>`)}
+          </div>
+          ${sorted(ui.groupPanels).map(p => html`<${p.Panel} key=${p.id} adv=${adv} state=${state} group=${current} />`)}
+          ${focus && msgsView}
+          <div class="capture-grid" role="tabpanel" aria-label=${current} onPointerDown=${swipeStart} onPointerUp=${swipeEnd} onClickCapture=${swipeClick}>
+            ${(blocks.find(b => b.group === current)?.choices || []).map(choiceButton)}
+          </div>
+          ${blocks.filter(b => !b.group).map((b, k) => html`<div class="choice-group free" key=${'f' + k}>${b.choices.map(choiceButton)}</div>`)}
+        </nav>`}
+      ${!state.ended && !state.combat?.over && choices.length > 0 && !tabbed && (grouped
         ? html`<nav ref=${navRef} class=${'choices grouped' + (sec.choiceLayout === 'columns' ? ' cols' : '')} aria-label="Choix">
             ${blocks.map((b, k) => b.group
               ? html`<section class="choice-group" key=${'g' + k} aria-label=${b.group}><h3 class="choice-group-title">${b.group}</h3>${b.choices.map(choiceButton)}</section>`
