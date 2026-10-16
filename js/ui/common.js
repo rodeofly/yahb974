@@ -19,6 +19,7 @@ const P = {
   back: '<path d="M10 5l-7 7 7 7M3 12h18"/>',
   map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>',
   save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>',
+  exit: '<path d="M10 4H5v16h5"/><path d="M15 8l4 4-4 4M19 12H9"/>',
   sheet: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
@@ -51,7 +52,11 @@ export const Icon = ({ name, title }) => html`<svg class="ico" viewBox="0 0 24 2
 
 /* ---------- dés ---------- */
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-export function Die({ value, rolling }) {
+export function Die({ value, rolling, sides = 6 }) {
+  // Dé à 6 faces : des points ; les autres (d4, d10, d12, d20…) : le chiffre, sur une face à pans.
+  if (sides !== 6 || !PIPS[value]) {
+    return html`<span class=${'die num' + (sides >= 12 ? ' poly' : '') + (rolling ? ' rolling' : '')} role="img" aria-label=${`dé à ${sides} faces : ${value}`}><b>${value}</b></span>`;
+  }
   const on = PIPS[value] || [];
   return html`<span class=${'die' + (rolling ? ' rolling' : '')} role="img" aria-label=${`dé : ${value}`}>
     ${Array.from({ length: 9 }, (_, i) => html`<i style=${on.includes(i) ? 'visibility:visible' : ''}></i>`)}
@@ -63,7 +68,7 @@ export function Dice({ result, stamp, showTotal = true }) {
   useEffect(() => { if (!result) return; sfx.dice(); setRolling(true); const t = setTimeout(() => setRolling(false), 650); return () => clearTimeout(t); }, [stamp]);
   if (!result) return null;
   return html`<span class="dice">
-    ${result.dice.map(v => html`<${Die} value=${v} rolling=${rolling} />`)}
+    ${result.dice.map(v => html`<${Die} value=${v} rolling=${rolling} sides=${result.sides || 6} />`)}
     ${showTotal && html`<span class="dice-total" aria-live="polite">${result.mod ? `${result.dice.reduce((a, b) => a + b, 0)} ${result.mod > 0 ? '+' : '−'} ${Math.abs(result.mod)} = ` : '= '}${result.total}</span>`}
   </span>`;
 }

@@ -110,6 +110,8 @@ function Creator({ adv: loaded, source, query = {}, onStart }) {
   const classes = adv.rules.classes || [];
   const [classId, setClassId] = useState(classes[0]?.id || null);
   const [name, setName] = useState('');
+  const avatars = R.avatarGroups(adv);
+  const [avatar, setAvatar] = useState(() => avatars[0]?.list[0] || null);
   const [hero, setHero] = useState(null);
   const [stamp, setStamp] = useState(0);
   const rollAll = () => { setHero(R.createHero(adv, { classId, name: name.trim() || 'Héros' })); setStamp(s => s + 1); };
@@ -132,6 +134,8 @@ function Creator({ adv: loaded, source, query = {}, onStart }) {
     ${adv.meta.cover && html`<div class="illus"><${AssetImg} adv=${adv} source=${source} path=${adv.meta.cover} alt="" /></div>`}
     ${sorted(ui.creatorPanels).filter(p => p.place === 'top').map(panel)}
     <label class="field">Nom du héros<input type="text" id="hero-name" value=${name} onInput=${e => setName(e.target.value)} placeholder="Héros" /></label>
+    ${avatars.length > 0 && html`<div class="stack" style="gap:8px"><span class="eyebrow">Avatar</span>
+      <${AvatarPicker} groups=${avatars} value=${avatar} onPick=${setAvatar} /></div>`}
     ${classes.length > 1 && html`<div class="stack" style="gap:8px"><span class="eyebrow">Classe</span>
       <div class="classes">${classes.map(c => html`<button class="class-opt" aria-pressed=${c.id === classId} onClick=${() => setClassId(c.id)}><b>${c.label}</b><span class="subtle">${c.description || ''}</span></button>`)}</div></div>`}
     ${(rows.length > 0 || economy) && html`<div class="rolls">
@@ -145,7 +149,7 @@ function Creator({ adv: loaded, source, query = {}, onStart }) {
     ${sorted(ui.creatorPanels).filter(p => p.place !== 'top').map(panel)}
     <div class="row">
       ${roll && html`<button class="btn ${hero ? '' : 'primary'}" onClick=${rollAll}><${Icon} name="dice" />${hero ? 'Relancer les dés' : 'Lancer les dés'}</button>`}
-      <button class="btn primary" disabled=${!hero} onClick=${() => { const s = structuredClone(hero.state); s.hero.name = name.trim() || 'Héros'; prepareHero(s, loaded, choices, { test: false, query }); onStart(s); }}><${Icon} name="play" />Commencer l'aventure</button>
+      <button class="btn primary" disabled=${!hero} onClick=${() => { const s = structuredClone(hero.state); s.hero.name = name.trim() || 'Héros'; if (avatar) s.hero.avatar = avatar; prepareHero(s, loaded, choices, { test: false, query }); onStart(s); }}><${Icon} name="play" />Commencer l'aventure</button>
     </div>
   </main>`;
 }
@@ -517,20 +521,24 @@ const newCount = state => Object.entries(state.inventory || {}).filter(([id, q])
 const editable = (adv, state) => !adv.rules.sheet?.locked || !!state.cheat;
 
 function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSave, onBag }) {
-  const [free, setFree] = useState(null);
   const [book, setBook] = useState(false);
-  const [expr, setExpr] = useState('2d6');
+  const [pickAvatar, setPickAvatar] = useState(false);
+  const avatars = R.avatarGroups(adv);
   const prev = useRef(state.stats);
   const changed = useMemo(() => { const c = {}; for (const k in state.stats) c[k] = prev.current[k]?.cur !== state.stats[k].cur; prev.current = state.stats; return c; }, [state.stats]);
-  const freeRoll = () => { try { const r = R.freeRoll(state, expr); update(r.state, []); setFree({ ...r.result, stamp: Date.now() }); } catch (e) { toast(e.message); } };
-  const luck = () => { const r = R.testLuck(state, adv); setTimeout(() => sfx.luck(r.result.success), 650); update(r.state, [{ kind: r.result.success ? 'gain' : 'loss', text: `Test de Chance : ${r.result.roll.total} — ${r.result.success ? 'Chanceux' : 'Malchanceux'}` }]); setFree({ ...r.result.roll, stamp: Date.now() }); };
-  const inv = Object.entries(state.inventory).filter(([, q]) => q > 0);
+  // Notes et dés : repliables ; l'appareil se souvient de ce qui était ouvert.
+  const [fold] = useState(() => ({ notes: prefs.get('sheet.notes', !!state.notes), dice: prefs.get('sheet.dice', false) }));
+  const noteLines = String(state.notes || '').split('\n').filter(l => l.trim()).length;
+  // Les badges (collections `board` du greffon inventaire) ont leur propre bande : pas dans celle du sac.
+  const onBoard = new Set((adv.rules.inventory?.collections || []).filter(c => c?.board).flatMap(c => c.items || []));
+  const inv = Object.entries(state.inventory).filter(([id, q]) => q > 0 && !onBoard.has(id));
   // Sur téléphone, la feuille fermée est hors de l'écran : inerte (ni Tab, ni lecteur d'écran) tant qu'elle est fermée.
   const narrow = useMedia('(max-width: 900px)');
   const asideRef = useRef();
   useEffect(() => { if (open && narrow) asideRef.current?.querySelector('.sheet-toggle')?.focus(); }, [open, narrow]);
   return html`<aside id="feuille-aventure" ref=${asideRef} class=${'sheet' + (open ? ' open' : '')} aria-label="Feuille d'aventure" inert=${narrow && !open}>
-    <h2><span>${state.hero.name}</span>${state.hero.classId && html`<span class="badge">${adv.rules.classes.find(c => c.id === state.hero.classId)?.label}</span>`}${state.cheat && html`<span class="badge" title="Partie en mode triche">🃏 triche</span>`}</h2>
+    <h2>${avatars.length > 0 && html`<button class=${'avatar' + (state.hero.avatar ? '' : ' empty')} onClick=${() => setPickAvatar(true)}
+        title="Changer d'avatar" aria-label=${state.hero.avatar ? `Avatar ${state.hero.avatar} : changer` : 'Choisir un avatar'}>${state.hero.avatar || '+'}</button>`}<span class="hero-name">${state.hero.name}</span>${state.hero.classId && html`<span class="badge">${adv.rules.classes.find(c => c.id === state.hero.classId)?.label}</span>`}${state.cheat && html`<span class="badge" title="Partie en mode triche">🃏 triche</span>`}</h2>
     <button class="btn small sheet-toggle" onClick=${onClose}>Fermer la feuille</button>
     <div class="stats">${adv.rules.stats.map(s => { const v = state.stats[s.id]; return html`<div class=${'stat' + (changed[s.id] ? ' flash' : '')} key=${s.id + v.cur}>
       <span class="label">${s.label}</span><span class="val">${v.cur}<small> / ${v.init}</small></span>
@@ -573,23 +581,80 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
         <button class="btn small" type="submit" title="Ajouter un objet que le texte vous donne"><${Icon} name="plus" />Ajouter</button>
       </form>`}
     </div>`}
-    ${sorted(ui.sheetPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} />`)}
-    <label class="field">Notes<textarea id="sheet-notes" rows="3" value=${state.notes} onChange=${e => update({ ...state, notes: e.target.value }, [])}></textarea></label>
-    <div class="stack" style="gap:8px"><span class="eyebrow">Dés</span>
-      <div class="row"><input type="text" id="free-dice" value=${expr} onInput=${e => setExpr(e.target.value)} style="width:90px" aria-label="Formule de dés" />
-        <button class="btn small" onClick=${freeRoll}><${Icon} name="dice" />Lancer</button>
-        <button class="btn small" onClick=${luck} disabled=${state.ended}><${Icon} name="clover" />Tester ma Chance</button></div>
-      ${free && html`<${Dice} result=${free} stamp=${free.stamp} />`}
-    </div>
-    <div class="row">
+    ${sorted(ui.sheetPanels).map(p => html`<${p.Panel} adv=${adv} source=${source} state=${state} update=${update} onBag=${onBag} />`)}
+    <details class="sheet-fold" open=${fold.notes} onToggle=${e => prefs.set('sheet.notes', e.currentTarget.open)}>
+      <summary><span class="eyebrow">Notes</span>${noteLines > 0 && html`<span class="subtle">${noteLines} ligne${noteLines > 1 ? 's' : ''}</span>`}</summary>
+      <textarea id="sheet-notes" rows="4" aria-label="Notes" value=${state.notes} onChange=${e => update({ ...state, notes: e.target.value }, [])}></textarea>
+    </details>
+    <details class="sheet-fold dice-fold" open=${fold.dice} onToggle=${e => prefs.set('sheet.dice', e.currentTarget.open)}>
+      <summary><span class="eyebrow"><span aria-hidden="true">🎲</span> Dés</span><span class="subtle">lancer pour de vrai</span></summary>
+      <${DiceBox} adv=${adv} state=${state} update=${update} />
+    </details>
+    <div class="sheet-tools">
       ${onBack && html`<button class="btn small" onClick=${onBack}><${Icon} name="back" />Revenir</button>`}
-      <button class="btn small" onClick=${onMap}><${Icon} name="route" />Paragraphes visités</button>
-      ${adv.rules.spells?.enabled && html`<button class="btn small" onClick=${() => setBook(true)}><${Icon} name="book" />Formules</button>`}
-      ${onSave && html`<button class="btn small" onClick=${onSave}><${Icon} name="save" />Sauvegarder</button>`}
-      <a class="btn small" href="#/">Quitter</a>
+      <span class="sheet-icons">
+        <button class="btn small" onClick=${onMap} title="Paragraphes visités" aria-label="Paragraphes visités"><${Icon} name="route" /></button>
+        ${adv.rules.spells?.enabled && html`<button class="btn small" onClick=${() => setBook(true)} title="Formules" aria-label="Formules"><${Icon} name="book" /></button>`}
+        ${onSave && html`<button class="btn small" onClick=${onSave} title="Sauvegarder" aria-label="Sauvegarder"><${Icon} name="save" /></button>`}
+        <a class="btn small" href="#/" title="Quitter" aria-label="Quitter"><${Icon} name="exit" /></a>
+      </span>
     </div>
     ${book && html`<${SpellBook} adv=${adv} state=${state} onClose=${() => setBook(false)} />`}
+    ${pickAvatar && html`<${Modal} title="Ton avatar" onClose=${() => setPickAvatar(false)}>
+      <${AvatarPicker} groups=${avatars} value=${state.hero.avatar} onPick=${v => { update({ ...state, hero: { ...state.hero, avatar: v } }, null); setPickAvatar(false); }} />
+    <//>`}
   </aside>`;
+}
+
+/* ---------- avatar ---------- */
+/** Choix de l'avatar : un groupe par ligne (personnages féminin, masculin, neutre ; émojis sobres). */
+function AvatarPicker({ groups, value, onPick }) {
+  return html`<div class="avatar-pick">${groups.map(g => html`<div class="avatar-group" role="radiogroup" aria-label=${g.label || 'Avatars'}>
+    ${g.label && html`<span class="subtle">${g.label}</span>`}
+    <div class="avatar-row">${g.list.map(a => html`<button type="button" role="radio" aria-checked=${a === value ? 'true' : 'false'}
+      class=${'avatar' + (a === value ? ' on' : '')} onClick=${() => onPick(a)}>${a}</button>`)}</div>
+  </div>`)}</div>`;
+}
+
+/* ---------- les dés de la feuille ---------- */
+const QUICK_DICE = ['1d6', '2d6', '3d6', '1d10', '1d12', '1d20'];
+/** Ce que le résultat a de remarquable : tous au maximum, que des 1, un double. */
+function diceHype(r) {
+  const n = r.dice.length, sides = r.sides || 6;
+  if (!n) return null;
+  if (r.dice.every(v => v === sides)) return { text: n > 1 ? 'Que des maximums !' : 'Maximum !', icon: '🎉', kind: 'top' };
+  if (n > 1 && r.dice.every(v => v === 1)) return { text: 'Que des 1…', icon: '😬', kind: 'low' };
+  if (n === 2 && r.dice[0] === r.dice[1]) return { text: 'Double !', icon: '✨', kind: 'top' };
+  if (n === 3 && r.dice[0] === r.dice[1] && r.dice[1] === r.dice[2]) return { text: 'Triple !', icon: '✨', kind: 'top' };
+  return null;
+}
+/** Lanceur de dés : formules courantes en un toucher, gros bouton, dés colorés, total qui saute, derniers lancers. */
+function DiceBox({ adv, state, update }) {
+  const [expr, setExpr] = useState(() => prefs.get('sheet.diceExpr', '2d6'));
+  const [free, setFree] = useState(null);
+  const [hist, setHist] = useState([]);
+  const show = res => { const r = { ...res, stamp: Date.now() }; setFree(r); setHist(h => [r, ...h].slice(0, 6)); };
+  const go = (e = expr) => {
+    try { const r = R.freeRoll(state, e); update(r.state, null); setExpr(e); prefs.set('sheet.diceExpr', e); show(r.result); } catch (err) { toast(err.message); }
+  };
+  const hasLuck = !!state.stats?.[adv.rules.combat?.luck];
+  const luck = () => { const r = R.testLuck(state, adv); setTimeout(() => sfx.luck(r.result.success), 650); update(r.state, [{ kind: r.result.success ? 'gain' : 'loss', text: `Test de Chance : ${r.result.roll.total} — ${r.result.success ? 'Chanceux' : 'Malchanceux'}` }]); show(r.result.roll); };
+  const hype = free && diceHype(free);
+  return html`<div class="dicebox">
+    <div class="dice-chips" role="group" aria-label="Formules courantes">
+      ${QUICK_DICE.map(q => html`<button type="button" class="dice-chip" aria-pressed=${q === expr ? 'true' : 'false'} onClick=${() => go(q)}>${q.toUpperCase()}</button>`)}
+    </div>
+    <div class="row" style="gap:6px">
+      <input type="text" id="free-dice" value=${expr} onInput=${e => setExpr(e.target.value)} onKeyDown=${e => { if (e.key === 'Enter') go(); }} aria-label="Formule de dés" placeholder="2d6+1" />
+      <button class="btn primary dice-go" onClick=${() => go()}><${Icon} name="dice" />Lancer !</button>
+    </div>
+    ${hasLuck && html`<button class="btn small" onClick=${luck} disabled=${state.ended}><${Icon} name="clover" />Tester ma Chance</button>`}
+    <div class="dice-stage" aria-live="polite">
+      ${free ? html`<${Dice} result=${free} stamp=${free.stamp} />` : html`<span class="subtle">Touche une formule ou « Lancer ! »</span>`}
+      ${hype && html`<span class=${'dice-hype ' + hype.kind} key=${free.stamp}><span aria-hidden="true">${hype.icon}</span> ${hype.text}</span>`}
+    </div>
+    ${hist.length > 1 && html`<p class="dice-hist" aria-label="Derniers lancers">${hist.slice(1).map(h => html`<span class="mono" key=${h.stamp}>${String(h.expr).toUpperCase()} → ${h.total}</span>`)}</p>`}
+  </div>`;
 }
 
 /* ---------- carte des paragraphes visités ---------- */

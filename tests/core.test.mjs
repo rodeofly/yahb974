@@ -277,3 +277,19 @@ test('choix regroupés : ordre des groupes, bloc sans intitulé, sans groupe = u
   assert.equal(one.length, 1);
   assert.equal(one[0].group, null);
 });
+
+test('avatars : par défaut, liste simple, groupes, désactivés', async () => {
+  const { avatarGroups, DEFAULT_AVATARS } = await import('../js/core/rules.js');
+  const base = newAdventure('Avatars');
+  assert.equal(avatarGroups(normalizeAdventure(base)), DEFAULT_AVATARS);
+  assert.deepEqual(avatarGroups({ rules: { avatars: ['👩‍🏫', '👨‍🏫'] } }), [{ label: 'Avatars', list: ['👩‍🏫', '👨‍🏫'] }]);
+  assert.deepEqual(avatarGroups({ rules: { avatars: [{ label: 'Sobres', list: ['🎓'] }, { label: 'Vide', list: [] }] } }), [{ label: 'Sobres', list: ['🎓'] }]);
+  assert.deepEqual(avatarGroups({ rules: { avatars: false } }), []);
+});
+
+test('dés : le résultat donne le nombre de faces', () => {
+  const r = roll('3d12', makeRng(4));
+  assert.equal(r.sides, 12);
+  assert.equal(r.dice.length, 3);
+  assert.ok(r.dice.every(v => v >= 1 && v <= 12));
+});

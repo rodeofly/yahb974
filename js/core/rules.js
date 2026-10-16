@@ -82,6 +82,22 @@ export function de(label, apos = "'") {
 }
 /** L'aventure tutoie-t-elle le lecteur ? (`rules.tu`, ou `rules.defis.tu` pour les anciennes aventures) */
 export const tutoie = adv => !!(adv?.rules?.tu ?? adv?.rules?.defis?.tu);
+/** Avatars proposés par défaut : des personnages (féminin, masculin, neutre), puis des émojis sobres. */
+export const DEFAULT_AVATARS = [
+  { label: 'Personnages', list: ['🧝‍♀️', '🧝‍♂️', '🧝', '🧙‍♀️', '🧙‍♂️', '🧙', '🦸‍♀️', '🦸‍♂️', '🦸'] },
+  { label: 'Sobres', list: ['🛡️', '🗝️', '🧭', '🦉', '🦊', '🐺', '⭐', '🌙', '🔥'] },
+];
+/**
+ * Avatars du héros : `rules.avatars` = [{ label, list: [émojis] }] ou une simple liste d'émojis ; `false` : pas d'avatar.
+ * Absent : DEFAULT_AVATARS. Renvoie toujours une liste de groupes non vides.
+ */
+export function avatarGroups(adv) {
+  const a = adv?.rules?.avatars;
+  if (a === false) return [];
+  if (!Array.isArray(a) || !a.length) return DEFAULT_AVATARS;
+  if (a.every(x => typeof x === 'string')) return [{ label: 'Avatars', list: a }];
+  return a.filter(g => g && Array.isArray(g.list) && g.list.length).map(g => ({ label: String(g.label || ''), list: g.list.map(String) }));
+}
 /** Faut-il lancer des dés à la création ? Non si aucune caractéristique et une bourse de départ fixe. */
 export function needsRoll(adv, classId) {
   const cls = adv.rules.classes?.find(c => c.id === classId) || adv.rules.classes?.[0] || null;
@@ -237,7 +253,9 @@ export function applyEffects(state, adv, effects = []) {
       case 'give': {
         const q = Number(e.qty || 1);
         s.inventory[e.item] = (s.inventory[e.item] || 0) + q;
-        messages.push({ kind: 'gain', text: `Objet obtenu : ${itemName(adv, e.item)}${q > 1 ? ` ×${q}` : ''}` });
+        const it = adv.items[e.item];
+        // `gain` (greffon inventaire, badges) : « Badge gagné : 🙋 Joker ! » au lieu de « Objet obtenu : … ».
+        messages.push({ kind: 'gain', text: it?.gain ? `${it.gain} : ${it.icon ? it.icon + ' ' : ''}${itemName(adv, e.item)}` : `Objet obtenu : ${itemName(adv, e.item)}${q > 1 ? ` ×${q}` : ''}` });
         break;
       }
       case 'take': {

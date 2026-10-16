@@ -141,3 +141,27 @@ test('carte du monde : des lieux connus dès le départ', () => {
   assert.equal(m.Brumeval, 'known');
   assert.equal(m.Marais, 'here');
 });
+
+test('tableau des badges : vue, objets hors bande du sac, « comment le gagner » vérifié, message d’obtention', () => {
+  const a = newAdventure('Badges');
+  a.items = {
+    plateau: { name: 'Plateau', icon: '🗺️' },
+    joker: { name: 'Joker !', icon: '🙋', earn: 'Note un joker demandé.', gain: 'Badge gagné' },
+    miroir: { name: 'Le miroir', icon: '🪞' },
+  };
+  a.rules.inventory = { collections: [{ id: 'badges', label: 'Badges', icon: '🏅', items: ['joker', 'miroir'], board: true, columns: 3 }] };
+  const adv = normalizeAdventure(a);
+  let s = createHero(adv, { seed: 1 }).state;
+  const r = applyEffects(s, adv, [{ op: 'give', item: 'plateau' }, { op: 'give', item: 'joker', if: { not: { has: 'joker' } } }]);
+  assert.deepEqual(r.messages.map(m => m.text), ['Objet obtenu : Plateau', 'Badge gagné : 🙋 Joker !']);
+  s = r.state;
+  assert.equal(applyEffects(s, adv, [{ op: 'give', item: 'joker', if: { not: { has: 'joker' } } }]).state.inventory.joker, 1);
+  const [b] = I.boardsOf(adv, s);
+  assert.equal(b.board, true);
+  assert.equal(b.columns, 3);
+  assert.equal(b.found, 1);
+  assert.equal(b.total, 2);
+  assert.deepEqual([...I.boardItems(adv)], ['joker', 'miroir']);
+  const p = I.inventoryProblems(adv);
+  assert.ok(p.some(x => /comment le gagner/.test(x.message) && /Le miroir/.test(x.message)), JSON.stringify(p));
+});

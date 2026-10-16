@@ -27,11 +27,11 @@ export function isDice(expr) {
   try { parseDice(expr); return true; } catch { return false; }
 }
 
-/** Lance une formule. Renvoie { total, dice: [valeurs], mod, expr }. */
+/** Lance une formule. Renvoie { total, dice: [valeurs], mod, sides, expr }. */
 export function roll(expr, rng) {
   const { count, sides, mod } = parseDice(expr);
   const dice = Array.from({ length: count }, () => 1 + Math.floor(rng() * sides));
-  return { total: dice.reduce((a, b) => a + b, 0) + mod, dice, mod, expr: String(expr) };
+  return { total: dice.reduce((a, b) => a + b, 0) + mod, dice, mod, sides, expr: String(expr) };
 }
 
 /** Bornes d'une formule, utile pour l'éditeur et la validation. */

@@ -9,7 +9,7 @@
 
 import { html, useState, useRef, useMemo } from '../../lib/preact-htm.js';
 import { Icon, Modal, Prose, toast, confirmBox, loadCSS } from '../../ui/common.js';
-import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection } from '../../ui/registry.js';
+import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel } from '../../ui/registry.js';
 import { Text, Num, Select } from '../../ui/editor.js';
 import * as R from '../../core/rules.js';
 import * as I from './core.js';
@@ -59,7 +59,9 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
     gridRef.current.querySelectorAll('.inv-slot:not(.filler)')[j]?.focus();
   };
 
-  const count = Object.values(state.inventory || {}).filter(q => q > 0).length;
+  const onBoard = I.boardItems(adv);
+  const count = Object.entries(state.inventory || {}).filter(([id, q]) => q > 0 && !onBoard.has(id)).length;
+  const board = tab?.kind === 'collection' && tab.board;
   return html`<${Modal} title=${`Ton sac · ${plural(count, 'objet', 'objets')}`} onClose=${close} wide>
     <div class="inv-sac" lang="fr">
       ${state.cheat && html`<p class="inv-cheat-banner" role="status"><span aria-hidden="true">🃏</span> Partie en mode triche : elle ne compte pas pour les succès.</p>`}
@@ -75,12 +77,16 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
       ${tab?.kind === 'extra' ? html`<div class="inv-panel" role="tabpanel" aria-label=${tab.label}>
           <${tab.def.Tab} adv=${adv} source=${source} state=${state} update=${update} />
         </div>`
-      : html`<div class="inv-panel inv-layout" role="tabpanel" aria-label=${tab?.label}>
+      : html`<div class=${'inv-panel inv-layout' + (board ? ' board' : '')} role="tabpanel" aria-label=${tab?.label}>
           <div class="stack" style="gap:10px;min-width:0">
+            ${board && html`<${BoardProgress} tab=${tab} />`}
             ${tab?.message && html`<p class="inv-message" aria-label=${`Message : ${tab.message.map(m => (m.shown ? m.char : ' ')).join('')}`}>
               ${tab.message.map((m, k) => html`<span key=${k} class=${m.letter ? (m.shown ? 'on' : 'off') : 'gap'} aria-hidden="true">${m.letter ? (m.shown ? m.char : '·') : m.char}</span>`)}
             </p>`}
-            ${slots.length || tab?.kind === 'category' ? html`<div class=${'inv-grid' + (tab?.kind === 'collection' ? ' coll' : '')} role="listbox" aria-label=${tab?.label} ref=${gridRef} onKeyDown=${onKey}>
+            ${board ? html`<div class="inv-board" style=${`--cols:${tab.columns}`} role="listbox" aria-label=${tab.label} ref=${gridRef} onKeyDown=${onKey}>
+              ${slots.map(s => html`<${BadgeCard} key=${s.id} adv=${adv} slot=${s} on=${s.id === current?.id} isNew=${s.owned && fresh.has(s.id)} pick=${() => setSel(s.id)} />`)}
+            </div>`
+            : slots.length || tab?.kind === 'category' ? html`<div class=${'inv-grid' + (tab?.kind === 'collection' ? ' coll' : '')} role="listbox" aria-label=${tab?.label} ref=${gridRef} onKeyDown=${onKey}>
               ${slots.map(s => { const it = adv.items[s.id] || { name: s.id }; const on = s.id === current?.id; return html`<button key=${s.id} role="option" aria-selected=${on ? 'true' : 'false'} tabindex=${on ? 0 : -1}
                   class=${'inv-slot' + (s.owned ? '' : ' missing') + (on ? ' sel' : '')} onClick=${() => setSel(s.id)}
                   aria-label=${s.owned ? `${it.name}${s.qty > 1 ? `, ${s.qty} exemplaires` : ''}${fresh.has(s.id) ? ', nouveau' : ''}` : `Case ${s.index + 1} : pas encore trouvé`}>
@@ -95,7 +101,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
             ${tab?.kind === 'category' && !slots.length && html`<p class="subtle" style="margin:0">Rien ici pour l'instant.</p>`}
             ${edit && html`<${AddItem} adv=${adv} state=${state} act=${act} />`}
           </div>
-          <${Detail} key=${current?.id || 'vide'} adv=${adv} state=${state} slot=${current} kind=${tab?.kind} edit=${edit} act=${act} isNew=${current && fresh.has(current.id)} />
+          <${Detail} key=${current?.id || 'vide'} adv=${adv} state=${state} slot=${current} kind=${board ? 'board' : tab?.kind} edit=${edit} act=${act} isNew=${current && fresh.has(current.id)} />
         </div>`}
 
       <${CheatPanel} adv=${adv} state=${state} act=${act} />
@@ -108,6 +114,14 @@ function Detail({ adv, state, slot, kind, edit, act, isNew }) {
   const [hintOpen, setHintOpen] = useState(false);
   if (!slot) return html`<aside class="inv-detail empty"><p class="subtle" style="margin:0">Choisis une case pour regarder l'objet de plus près.</p></aside>`;
   const it = adv.items[slot.id] || { name: slot.id };
+  const earn = String(it.earn || '').trim();
+  if (!slot.owned && kind === 'board') {
+    return html`<aside class="inv-detail" aria-live="polite">
+      <span class="inv-big off" aria-hidden="true">${it.icon || '•'}</span>
+      <h3>${it.name}</h3>
+      <p class="inv-earn"><span class="eyebrow"><span aria-hidden="true">🔒</span> Pas encore gagné</span>${earn ? html`<span>Pour le gagner : ${earn}</span>` : null}</p>
+    </aside>`;
+  }
   if (!slot.owned) {
     return html`<aside class="inv-detail" aria-live="polite">
       <span class="inv-big missing" aria-hidden="true">?</span>
@@ -121,6 +135,7 @@ function Detail({ adv, state, slot, kind, edit, act, isNew }) {
   return html`<aside class="inv-detail" aria-live="polite">
     <span class="inv-big" aria-hidden="true">${it.icon || '•'}</span>
     <h3>${it.name}${slot.qty > 1 ? ` ×${slot.qty}` : ''}${isNew && html` <span class="badge">Nouveau</span>`}</h3>
+    ${kind === 'board' && html`<p class="inv-earn won"><span class="eyebrow"><span aria-hidden="true">✓</span> Badge gagné</span>${earn ? html`<span>${earn}</span>` : null}</p>`}
     ${it.description ? html`<${Prose} text=${it.description} />` : html`<p class="subtle" style="margin:0">Pas de description.</p>`}
     ${hint && (hintOpen
       ? html`<div class="inv-hint" role="note"><span class="eyebrow"><span aria-hidden="true">💡</span> Indice${mode ? ` · ${mode}` : ''}</span><${Prose} text=${hint} /></div>`
@@ -132,6 +147,65 @@ function Detail({ adv, state, slot, kind, edit, act, isNew }) {
     </div>` : null}
   </aside>`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Tableau des badges (collection `board`)                             */
+/* ------------------------------------------------------------------ */
+
+/** « 3 badges sur 9 » et une jauge à cases (une case par badge, pleine quand il est gagné). */
+function BoardProgress({ tab, compact }) {
+  return html`<p class=${'inv-progress' + (compact ? ' compact' : '')}>
+    <span><b class="mono">${tab.found}</b> sur ${tab.total} ${compact ? '' : `· ${tab.found === tab.total ? 'tout est gagné !' : `encore ${tab.total - tab.found} à gagner`}`}</span>
+    <span class="inv-gauge" aria-hidden="true">${tab.slots.map(s => html`<i class=${s.owned ? 'on' : ''}></i>`)}</span>
+  </p>`;
+}
+
+/** Une case du tableau : l'icône (grisée tant que le badge n'est pas gagné), son nom, et comment le gagner. */
+function BadgeCard({ adv, slot, on, isNew, pick }) {
+  const it = adv.items[slot.id] || { name: slot.id };
+  const earn = String(it.earn || '').trim();
+  return html`<button role="option" aria-selected=${on ? 'true' : 'false'} tabindex=${on ? 0 : -1} onClick=${pick}
+    class=${'inv-slot inv-badge' + (slot.owned ? ' won' : ' missing') + (on ? ' sel' : '')}
+    aria-label=${slot.owned ? `${it.name} : gagné${isNew ? ', nouveau' : ''}` : `${it.name} : pas encore gagné.${earn ? ` Pour le gagner : ${earn}` : ''}`}>
+    <span class="inv-ico" aria-hidden="true">${it.icon || '•'}</span>
+    <span class="inv-badge-name" aria-hidden="true">${it.name}</span>
+    <span class="inv-badge-how" aria-hidden="true">${slot.owned ? '✓ Gagné' : earn || '?'}</span>
+    ${!slot.owned && html`<span class="inv-lock" aria-hidden="true">🔒</span>`}
+    ${isNew && html`<span class="inv-new" aria-hidden="true">Nouveau</span>`}
+  </button>`;
+}
+
+/** Les badges sur la Feuille d'Aventure : une petite grille (gagnés en couleur, les autres grisés), qui ouvre le tableau. */
+function SheetBoards({ adv, state, onBag }) {
+  const boards = I.boardsOf(adv, state);
+  if (!boards.length) return null;
+  return boards.map(b => html`<div class="stack" style="gap:6px" key=${b.id}>
+    <span class="eyebrow">${b.label} · ${b.found} sur ${b.total}</span>
+    <button class="inv-strip inv-board-strip" onClick=${() => onBag?.(b.id)} disabled=${!onBag}
+      aria-label=${`${b.label} : ${b.found} sur ${b.total}. Ouvrir le tableau pour voir comment gagner les autres.`}>
+      <span class="inv-mini" style=${`--cols:${b.columns}`} aria-hidden="true">
+        ${b.slots.map(s => html`<span class=${'inv-chip' + (s.owned ? '' : ' off')} key=${s.id} title=${adv.items[s.id]?.name || s.id}>${adv.items[s.id]?.icon || '•'}</span>`)}
+      </span>
+      <span class="inv-strip-open"><${TabIcon} icon=${b.icon} />Voir</span>
+    </button>
+  </div>`);
+}
+
+/** En fin de partie : le tableau des badges, gagnés ou non. */
+function EndingBoards({ adv, state }) {
+  const boards = I.boardsOf(adv, state);
+  if (!boards.length) return null;
+  return boards.map(b => html`<section class="inv-end" key=${b.id} aria-label=${b.label}>
+    <h3><${TabIcon} icon=${b.icon} /> ${b.label}</h3>
+    <${BoardProgress} tab=${b} />
+    <div class="inv-board" style=${`--cols:${b.columns}`}>
+      ${b.slots.map(s => html`<${BadgeCard} key=${s.id} adv=${adv} slot=${s} on=${false} isNew=${false} pick=${() => {}} />`)}
+    </div>
+  </section>`);
+}
+
+registerSheetPanel({ id: 'badges', order: 5, Panel: SheetBoards });
+registerEndingPanel({ id: 'badges', order: 15, Panel: EndingBoards });
 
 /** Ajouter un objet soi-même : feuille libre, ou partie en mode triche. */
 function AddItem({ adv, state, act }) {
@@ -194,6 +268,9 @@ registerItemFields({
           options=${[['', `Par défaut (${cats[0].label})`], ...cats.map(c => [c.id, c.label])]} />`}
         <${Text} label="Étiquette sur la case (une lettre, un numéro : facultatif)" value=${it.tag} onChange=${v => set({ tag: v.trim() || undefined })} placeholder="A" />
         <${Text} area rows="2" label="Indice : à quoi l'objet peut-il servir, sans tout dévoiler ?" value=${it.hint} onChange=${v => set({ hint: v || undefined })} placeholder="Ce que la nuit cache, elle le montre." />
+        ${it.earn !== undefined || I.collectionsOf(adv).some(c => c.board) ? html`
+          <${Text} label="Badge : comment le gagner (affiché dans le tableau des badges avant de l'obtenir)" value=${it.earn} onChange=${v => set({ earn: v.trim() ? v : undefined })} placeholder="Note un joker demandé par un élève." />
+          <${Text} label="Badge : message à l'obtention (vide : « Objet obtenu »)" value=${it.gain} onChange=${v => set({ gain: v.trim() || undefined })} placeholder="Badge gagné" />` : null}
         ${modes.map(m => html`<${Text} area rows="2" label=${`Indice pour le mode « ${m.label || m.id} » (vide = l'indice ci-dessus)`} value=${it.hints?.[m.id]}
           onChange=${v => { const h = { ...(it.hints || {}), [m.id]: v || undefined }; set({ hints: Object.values(h).some(Boolean) ? h : undefined }); }} />`)}
       </div>

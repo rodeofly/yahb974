@@ -15,6 +15,10 @@ Une aventure sans réglage garde son sac habituel : un seul onglet « Objets »,
   ajoutés par d'autres greffons (la **Carte** du monde, le **Carnet** de notes de la partie).
 - **Une collection** montre toutes ses cases, trouvées ou non (« ? » pour une case vide, avec son numéro), et
   le compte (« 8/33 »). Si elle porte un **message**, chaque objet trouvé dévoile une lettre.
+- **Un tableau des badges** (collection `board`) : chaque badge garde son icône (grisée et 🔒 tant qu'il n'est
+  pas gagné), son nom et **comment le gagner** ; une jauge « 3 sur 9 ». La Feuille d'Aventure en montre une
+  petite grille (3 × 3 par défaut) qui ouvre le tableau, et l'écran de fin le bilan des badges. Un badge gagné
+  s'annonce « Badge gagné : 🙋 Joker ! » et sa fiche s'ouvre comme celle d'un objet.
 - **La fiche** d'un objet : description, bouton **« Un indice : à quoi peut-il servir ? »** (l'indice dépend
   du mode de jeu : plus direct pour les petits, plus allusif pour les grands), et les actions de l'objet
   (Utiliser, Boire…).
@@ -59,7 +63,10 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
       "hint": "Elle éclaire les grottes.",        // indice général
       "hints": { "petit": "…", "gardien": "…" }  // indice par mode (sinon l'indice général)
     },
-    "piece-01": { "name": "Pièce n° 1", "icon": "🪙", "tag": "L" }   // tag : texte très court sur la case
+    "piece-01": { "name": "Pièce n° 1", "icon": "🪙", "tag": "L" },  // tag : texte très court sur la case
+    "badge-joker": { "name": "Joker !", "icon": "🙋", "description": "…",
+      "earn": "Note un joker demandé par un élève.",   // badge : comment le gagner (visible avant)
+      "gain": "Badge gagné" }                           // message à l'obtention (sinon « Objet obtenu »)
   },
   "rules": {
     "inventory": {
@@ -70,7 +77,10 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
       "collections": [
         { "id": "pieces", "label": "Pièces", "icon": "🪙",
           "items": ["piece-01", "piece-02", "piece-03"],
-          "message": "LE…" }                      // une lettre par objet, dans l'ordre ; espaces et ponctuation libres
+          "message": "LE…" },                     // une lettre par objet, dans l'ordre ; espaces et ponctuation libres
+        { "id": "badges", "label": "Badges", "icon": "🏅",
+          "items": ["badge-joker", "badge-miroir"],
+          "board": true, "columns": 3 }           // tableau des badges : 3 colonnes par défaut (1 à 6)
       ]
     },
     "sheet": {
@@ -82,7 +92,10 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
 }
 ```
 
-- Un objet d'une collection n'apparaît que dans sa collection.
+- Un objet d'une collection n'apparaît que dans sa collection ; un badge (collection `board`) n'apparaît ni dans
+  la bande du sac ni dans son compte.
+- Pour donner un badge une seule fois : `{ "op": "give", "item": "badge-joker", "if": { "not": { "has": "badge-joker" } } }`.
+- La vérification signale un badge sans « comment le gagner ».
 - Le message doit avoir **autant de lettres** que la collection a d'objets (les lettres accentuées comptent ;
   espaces, apostrophes et ponctuation ne comptent pas).
 - État de la partie : `state.cheat = null | { turn, unlocked, passport? }`, `state.seenItems = { id: true }`.

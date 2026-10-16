@@ -4,11 +4,14 @@
 //    une grille de cases, et pour chaque objet sa fiche (description, indice selon le mode de jeu).
 //      adv.rules.inventory = {
 //        categories:  [{ id, label, icon? }]           ordre des onglets ; la première reçoit les objets sans catégorie
-//        collections: [{ id, label, icon?, items: [ids], message? }]
+//        collections: [{ id, label, icon?, items: [ids], message?, board?, columns? }]
 //                     toutes les cases sont montrées, trouvées ou non ; `message` : phrase dont chaque lettre se dévoile
 //                     quand l'objet de même rang est trouvé (« UN SECRET BIEN GARDÉ », les espaces et la ponctuation restent)
+//                     `board: true` : tableau des badges (icône grisée, nom et « comment le gagner » visibles avant d'être
+//                     gagnés ; `columns` colonnes, 3 par défaut), avec sa bande sur la feuille et son bilan en fin de partie
 //      }
-//      adv.items[id] : category?, tag? (texte très court affiché sur la case), hint? (indice), hints? ({ [mode]: indice })
+//      adv.items[id] : category?, tag? (texte très court affiché sur la case), hint? (indice), hints? ({ [mode]: indice }),
+//                      earn? (badge : comment le gagner), gain? (texte du message d'obtention : « Badge gagné »)
 // 2. La feuille tenue par le livre, et le mode triche :
 //      adv.rules.sheet = { locked: bool, cheat: bool, unlock?: { gold?, counters?: { [id]: n } } }
 //      locked : le joueur n'ajoute ni ne retire d'objet lui-même (c'est l'aventure qui donne et qui prend) ;
@@ -87,10 +90,17 @@ export function inventoryView(adv, state) {
   for (const c of cols) {
     const slots = c.items.map((id, index) => ({ id, qty: Number(state?.inventory?.[id]) || 0, owned: owned(state, id), index }));
     tabs.push({ id: c.id, kind: 'collection', label: c.label, icon: c.icon, slots, found: slots.filter(s => s.owned).length, total: slots.length,
-      message: typeof c.message === 'string' && c.message ? messageOf(c.message, slots) : null });
+      message: typeof c.message === 'string' && c.message ? messageOf(c.message, slots) : null,
+      board: !!c.board, columns: Math.max(1, Math.min(6, Number(c.columns) || 3)) });
   }
   return tabs;
 }
+
+/** Tableaux des badges (collections `board`), tels que les montre le sac. */
+export const boardsOf = (adv, state) => inventoryView(adv, state).filter(t => t.kind === 'collection' && t.board);
+
+/** Objets rangés dans un tableau des badges : ils ne vont pas dans la bande du sac ni dans son compte. */
+export const boardItems = adv => new Set(collectionsOf(adv).filter(c => c.board).flatMap(c => c.items));
 
 /**
  * Message d'une collection : chaque lettre du modèle se dévoile quand l'objet de même rang est trouvé.
@@ -167,6 +177,10 @@ export function inventoryProblems(adv) {
     const missing = c.items.filter(id => !adv?.items?.[id]);
     if (missing.length) out.push({ level: 'warning', message: `Collection « ${c.label} » : objets absents de la liste des objets (${missing.join(', ')}).` });
     if (typeof c.message === 'string' && c.message && messageLetters(c.message) !== c.items.length) out.push({ level: 'error', message: `Collection « ${c.label} » : le message a ${messageLetters(c.message)} lettres pour ${c.items.length} objets.` });
+    if (c.board) {
+      const silent = c.items.filter(id => adv?.items?.[id] && !String(adv.items[id].earn || '').trim());
+      if (silent.length) out.push({ level: 'warning', message: `Tableau « ${c.label} » : sans « comment le gagner » pour ${silent.map(id => adv.items[id].name || id).join(', ')}.` });
+    }
   }
   for (const [id, it] of Object.entries(adv?.items || {})) {
     if (it?.category && cats.size && !cats.has(it.category)) out.push({ level: 'warning', message: `Objet « ${it.name || id} » : catégorie inconnue « ${it.category} ».` });
