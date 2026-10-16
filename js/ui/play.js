@@ -1,6 +1,6 @@
 // Écran de jeu : création du héros, lecture, blocs interactifs, feuille d'aventure, fins.
 
-import { html, useState, useEffect, useRef, useMemo } from '../lib/preact-htm.js';
+import { html, useState, useEffect, useLayoutEffect, useRef, useMemo } from '../lib/preact-htm.js';
 import { Icon, Dice, Prose, AssetImg, Modal, toast, confirmBox, InlineText, loadGraphLibs } from './common.js';
 import { loadAdventure, assetUrl } from '../store/library.js';
 import { sfx, ambience, speak, stopSpeaking, ttsAvailable } from './audio.js';
@@ -114,10 +114,13 @@ function Creator({ adv: loaded, source, query = {}, onStart }) {
   const [stamp, setStamp] = useState(0);
   const rollAll = () => { setHero(R.createHero(adv, { classId, name: name.trim() || 'Héros' })); setStamp(s => s + 1); };
   const rulesSig = JSON.stringify(adv.rules);
-  useEffect(() => { setHero(null); }, [classId, rulesSig]);
+  // Rien à tirer (aucune caractéristique, bourse fixe) : le héros est prêt d'emblée, sans bouton « Lancer les dés ».
+  const roll = R.needsRoll(adv, classId);
+  const economy = adv.rules.economy !== false;
+  useEffect(() => { setHero(roll ? null : R.createHero(adv, { classId, name: 'Héros' })); }, [classId, rulesSig]);
   const cls = classes.find(c => c.id === classId);
   const rows = [...adv.rules.stats.map(s => ({ id: s.id, label: s.label, expr: cls?.rolls?.[s.id] || s.roll })),
-    { id: 'gold', label: 'Pièces d’or', expr: cls?.gold || adv.rules.gold || '0' }].filter(r => r.id !== 'gold' || r.expr !== '0');
+    { id: 'gold', label: 'Pièces d’or', expr: cls?.gold || adv.rules.gold || '0' }].filter(r => r.id !== 'gold' || (economy && r.expr !== '0'));
   const panel = p => html`<${p.Panel} key=${p.id} adv=${adv} classId=${classId} hero=${hero} query=${query} choice=${choices[p.id]} setChoice=${v => setChoices(c => ({ ...c, [p.id]: v }))} />`;
 
   return html`<main class="creator">
@@ -131,17 +134,17 @@ function Creator({ adv: loaded, source, query = {}, onStart }) {
     <label class="field">Nom du héros<input type="text" id="hero-name" value=${name} onInput=${e => setName(e.target.value)} placeholder="Héros" /></label>
     ${classes.length > 1 && html`<div class="stack" style="gap:8px"><span class="eyebrow">Classe</span>
       <div class="classes">${classes.map(c => html`<button class="class-opt" aria-pressed=${c.id === classId} onClick=${() => setClassId(c.id)}><b>${c.label}</b><span class="subtle">${c.description || ''}</span></button>`)}</div></div>`}
-    <div class="rolls">
+    ${(rows.length > 0 || economy) && html`<div class="rolls">
       ${rows.map(r => html`<div class="rollrow" key=${r.id}>
         <b>${r.label}</b>
         <span class="formula">${r.expr}</span>
         ${hero ? html`<${Dice} result=${hero.rolls[r.id]} stamp=${stamp} />` : html`<span class="muted">—</span>`}
       </div>`)}
-      <div class="rollrow"><b>Repas</b><span class="formula">${cls?.provisions ?? adv.rules.provisions ?? 0}</span><span class="dice-total">${cls?.provisions ?? adv.rules.provisions ?? 0}</span></div>
-    </div>
+      ${economy && html`<div class="rollrow"><b>Repas</b><span class="formula">${cls?.provisions ?? adv.rules.provisions ?? 0}</span><span class="dice-total">${cls?.provisions ?? adv.rules.provisions ?? 0}</span></div>`}
+    </div>`}
     ${sorted(ui.creatorPanels).filter(p => p.place !== 'top').map(panel)}
     <div class="row">
-      <button class="btn ${hero ? '' : 'primary'}" onClick=${rollAll}><${Icon} name="dice" />${hero ? 'Relancer les dés' : 'Lancer les dés'}</button>
+      ${roll && html`<button class="btn ${hero ? '' : 'primary'}" onClick=${rollAll}><${Icon} name="dice" />${hero ? 'Relancer les dés' : 'Lancer les dés'}</button>`}
       <button class="btn primary" disabled=${!hero} onClick=${() => { const s = structuredClone(hero.state); s.hero.name = name.trim() || 'Héros'; prepareHero(s, loaded, choices, { test: false, query }); onStart(s); }}><${Icon} name="play" />Commencer l'aventure</button>
     </div>
   </main>`;
@@ -169,7 +172,13 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     setTalking(true);
     speak(lines.filter(Boolean).join('. '), { onEnd: () => setTalking(false) });
   };
+  const lastSection = useRef(null);
   useEffect(() => {
+    // Choix « ↺ » (on reste sur le paragraphe : une observation notée, par exemple) : pas de défilement ni de son de page ;
+    // le message de l'effet s'affiche juste au-dessus des choix.
+    const stay = lastSection.current === state.section;
+    lastSection.current = state.section;
+    if (stay) return;
     topRef.current?.scrollIntoView({ block: 'start' });
     sfx.page();
     const path = sec.sound || adv.meta.sound;
@@ -192,9 +201,30 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   }, []);
 
   const go = (to, extra = []) => { const r = R.enter(state, adv, to); update(r.state, [...extra, ...r.messages]); };
-  const choose = i => { const r = R.choose(state, adv, i); update(r.state, r.messages); };
-  const goBack = () => { if (state.history.length) update(R.back(state), [{ kind: 'info', text: 'Vous revenez au paragraphe précédent.' }]); };
+  // Choix « ↺ » : les messages s'insèrent au-dessus des choix ; on fait défiler d'autant pour que les boutons
+  // ne bougent pas sous le doigt (une observation par toucher, sans viser de nouveau).
+  const navRef = useRef(null);
+  const anchor = useRef(null);
+  const choose = i => {
+    const c = choices.find(x => x.index === i);
+    anchor.current = c && String(c.to) === String(state.section) && navRef.current ? navRef.current.getBoundingClientRect().top : null;
+    const r = R.choose(state, adv, i); update(r.state, r.messages);
+  };
+  useLayoutEffect(() => {
+    if (anchor.current === null || !navRef.current) return;
+    const d = navRef.current.getBoundingClientRect().top - anchor.current;
+    anchor.current = null;
+    if (d) window.scrollBy(0, d);
+  }, [stamp]);
+  const goBack = () => { if (state.history.length) update(R.back(state), [{ kind: 'info', text: R.tutoie(adv) ? 'Tu reviens au paragraphe précédent.' : 'Vous revenez au paragraphe précédent.' }]); };
   const choices = R.choicesFor(state, adv);
+  const blocks = R.groupChoices(choices);
+  const grouped = blocks.some(b => b.group);
+  const choiceButton = c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
+    <${InlineText} text=${c.text || 'Continuer'} />${String(c.to) === String(state.section)
+      ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : html`<span class="go">${c.to}</span>`}
+    ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
+  </button>`;
 
   return html`<div class="play">
     <article class="reader" ref=${topRef} aria-live="polite">
@@ -207,14 +237,15 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
       </div>`}
       ${sec.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${sec.image} alt=${sec.alt || sec.title || `Illustration du paragraphe ${state.section}`} onClick=${e => setLightbox(e.target.src)} /></figure>`}
       <${Prose} text=${sec.text} />
-      ${messages?.length > 0 && html`<div class="msgs">${messages.map(m => html`<div class=${'msg ' + m.kind}><${Icon} name=${m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`}
+      ${messages?.length > 0 && html`<div class="msgs">${messages.map(m => html`<div class=${'msg ' + m.kind + (m.alert ? ' alert' : '')} role=${m.alert ? 'alert' : null}><${Icon} name=${m.alert ? 'flag' : m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`}
       ${!state.ended && (sec.blocks || []).map((b, i) => html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`)}
-      ${!state.ended && !state.combat?.over && choices.length > 0 && html`<nav class="choices" aria-label="Choix">
-        ${choices.map(c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
-          <${InlineText} text=${c.text || 'Continuer'} /><span class="go">${c.to}</span>
-          ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
-        </button>`)}
-      </nav>`}
+      ${!state.ended && !state.combat?.over && choices.length > 0 && (grouped
+        ? html`<nav ref=${navRef} class=${'choices grouped' + (sec.choiceLayout === 'columns' ? ' cols' : '')} aria-label="Choix">
+            ${blocks.map((b, k) => b.group
+              ? html`<section class="choice-group" key=${'g' + k} aria-label=${b.group}><h3 class="choice-group-title">${b.group}</h3>${b.choices.map(choiceButton)}</section>`
+              : html`<div class="choice-group free" key=${'g' + k}>${b.choices.map(choiceButton)}</div>`)}
+          </nav>`
+        : html`<nav ref=${navRef} class="choices" aria-label="Choix">${choices.map(choiceButton)}</nav>`)}
       ${!state.ended && adv.rules.freeJump && html`<form class="jump row" style="justify-content:center;gap:8px;margin-top:16px" onSubmit=${e => {
         e.preventDefault(); const v = String(new FormData(e.target).get('n') || '').trim();
         if (adv.sections[v]) go(v); else update(state, [{ kind: 'info', text: `Il n'y a pas de paragraphe ${v || '?'}.` }]);
@@ -230,7 +261,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     <div class="play-fab">
       ${ui.inventory && html`<button class="btn sheet-toggle" onClick=${() => setBag('')} aria-label="Ouvrir le sac (touche I)"><${Icon} name="bag" />Sac${newCount(state) ? html` <span class="badge">${newCount(state)}</span>` : null}</button>`}
       <button class="btn primary sheet-toggle" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen} aria-controls="feuille-aventure">
-        <${Icon} name="sheet" />Feuille · ${state.stats[adv.rules.combat.health]?.cur ?? ''}
+        <${Icon} name="sheet" />Feuille${state.stats[adv.rules.combat.health] ? ` · ${state.stats[adv.rules.combat.health].cur}` : ''}
       </button>
     </div>
     ${bag !== null && ui.inventory && html`<${ui.inventory} adv=${adv} source=${source} state=${state} update=${update} tab=${bag} onClose=${() => setBag(null)} />`}
@@ -252,10 +283,10 @@ function Ending({ adv, state, onRestart, onBack }) {
   // Une fin peut avoir son propre titre et sa propre icône (ex. « Le groupe se replie », icône lune pour les petits).
   const sec = adv.sections[state.section] || {};
   const icon = sec.endingIcon || (win ? 'crown' : 'skull');
-  const title = sec.endingTitle || (win ? 'Victoire !' : 'Votre aventure s’achève ici');
+  const title = sec.endingTitle || (win ? 'Victoire !' : R.tutoie(adv) ? 'Ton aventure s’achève ici' : 'Votre aventure s’achève ici');
   // Fin personnalisée (titre ou icône propres, ex. un repli) : ni son funèbre, ni phrase générique « Votre aventure s’achève ici. ».
   const custom = !win && !!(sec.endingTitle || sec.endingIcon);
-  const reason = custom && state.endReason === R.GENERIC_END ? '' : state.endReason || '';
+  const reason = custom && (state.endReason === R.GENERIC_END || state.endReason === R.GENERIC_END_TU) ? '' : state.endReason || '';
   const visited = Object.keys(state.visited).length;
   const total = Object.keys(adv.sections).length;
   useEffect(() => { win ? sfx.win() : custom ? sfx.page() : sfx.death(); }, []);
@@ -288,7 +319,7 @@ function testRule(adv, state, block) {
   const stat = R.statLabel(adv, block.stat);
   const target = `${state.stats[block.stat]?.cur}${block.mod ? ` ${block.mod > 0 ? '+' : ''}${block.mod}` : ''}`;
   const cost = block.cost ?? (block.stat === adv.rules.combat.luck ? 1 : 0);
-  if (adv.rules.tu ?? adv.rules.defis?.tu) return `Lance ${block.dice || '2d6'} : tu réussis si le total ne dépasse pas ${target} (${stat}).${cost ? ` Le test te coûte 1 point de ${stat}.` : ''}`;
+  if (R.tutoie(adv)) return `Lance ${block.dice || '2d6'} : tu réussis si le total ne dépasse pas ${target} (${stat}).${cost ? ` Le test te coûte 1 point de ${stat}.` : ''}`;
   return `Lancez ${block.dice || '2d6'} : réussite si le total est inférieur ou égal à votre ${stat} (${target}).${cost ? ` Le test vous coûte 1 point de ${stat}.` : ''}`;
 }
 
@@ -509,11 +540,11 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
       <span class="row" style="gap:6px"><${Icon} name="sun" />Jour <b class="mono">${state.day || 1}</b></span>
       <span class="row" style="gap:6px">${state.ate ? html`<${Icon} name="check" />A mangé aujourd’hui` : html`<${Icon} name="x" />Pas encore mangé`}</span>
     </div>`}
-    <div class="row" style="justify-content:space-between">
+    ${adv.rules.economy !== false && html`<div class="row" style="justify-content:space-between">
       <span class="row" style="gap:6px"><span class="emoji" aria-hidden="true">💰</span><b class="mono">${state.gold}</b> pièces d’or</span>
       <span class="row" style="gap:6px"><span class="emoji" aria-hidden="true">🍞</span><b class="mono">${state.provisions}</b> repas</span>
-    </div>
-    ${(() => {
+    </div>`}
+    ${adv.rules.economy !== false && (() => {
       // Inutile de manger quand la caractéristique soignée est au maximum (sauf si les journées exigent un repas).
       const st = state.stats[adv.rules.meal.stat];
       const full = !!st && st.cur >= st.init && !(adv.rules.time?.enabled && adv.rules.time.mealRequired !== false);

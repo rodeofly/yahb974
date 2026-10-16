@@ -13,6 +13,23 @@
 .cpt-test { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; }
 .cpt-test .btn.small { min-height: 28px; padding: 2px 10px; font-family: var(--mono); }
 
+/* ---------- tableau de compteurs (row × column) ---------- */
+.cpt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cpt-table caption { text-align: left; font-weight: 700; padding-bottom: 4px; }
+.cpt-table th, .cpt-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); }
+.cpt-table thead th { font-weight: 700; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); vertical-align: bottom; text-align: center; }
+.cpt-table .cpt-th { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.cpt-table .cpt-th .ico { width: 15px; height: 15px; color: var(--ink); }
+.cpt-table tbody th { text-align: left; font-weight: 700; }
+.cpt-table td { text-align: center; font-size: 17px; font-weight: 700; }
+.cpt-table td.flash { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+.cpt-table-wrap { overflow-x: auto; max-width: 100%; }
+/* Dans la feuille (colonne étroite) : en-têtes compacts, coupés aux espaces seulement. */
+.cpt-sheet .cpt-table { font-size: 12px; }
+.cpt-sheet .cpt-table th, .cpt-sheet .cpt-table td { padding: 4px 2px; }
+.cpt-sheet .cpt-table thead th { font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; line-height: 1.15; overflow-wrap: normal; word-break: normal; }
+.cpt-sheet .cpt-table td { font-size: 15px; }
+
 /* ---------- création, fin ---------- */
 .cpt-name { display: inline-flex; align-items: center; gap: 6px; }
 .cpt-final { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
@@ -38,6 +55,14 @@
 /* ---------- version imprimable (papier : noir sur blanc, comme app.css) ---------- */
 .cpt-pr-grid .cpt-pr-box { gap: 4px; }
 .cpt-pr-box .cpt-name .ico { width: 14px; height: 14px; }
+.cpt-pr-tablebox { margin-bottom: 4mm; }
+.cpt-pr-table { width: 100%; border-collapse: collapse; margin: 2mm 0; }
+.cpt-pr-table th, .cpt-pr-table td { border: 1px solid #111; padding: 1.5mm 2mm; text-align: left; vertical-align: top; }
+.cpt-pr-table thead th { font-size: 9pt; }
+.cpt-pr-table thead .ico { width: 12px; height: 12px; vertical-align: -2px; }
+.cpt-pr-table td { height: 11mm; }
+.cpt-pr-table td.cpt-pr-none { background: repeating-linear-gradient(45deg, transparent 0 3mm, #ccc 3mm 3.3mm); }
+.cpt-pr-table thead td { border: none; }
 .cpt-track { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; }
 .cpt-cell { min-width: 20px; height: 24px; padding: 0 2px; border: 1px solid #111; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; gap: 1px; font-family: var(--mono); font-size: 10.5px; color: #111; }
 .cpt-cell b { font-weight: 500; }

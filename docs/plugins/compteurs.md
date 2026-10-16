@@ -19,9 +19,17 @@ certain total, et un seuil peut afficher un message, tuer le héros ou lui donne
 - **Minimum / Maximum** : le compteur ne sort jamais de ces bornes (laissez vide pour « aucune limite »).
   Avec un maximum, la Feuille d'Aventure affiche une barre.
 - **Icône** : cœur, étoile, soleil, lune, drapeau, sablier, œil, bouclier, flamme, crâne, couronne…
+- **Tableau : ligne / colonne** (facultatifs) : un compteur qui a les deux s'affiche dans un **tableau** sur
+  la Feuille d'Aventure, à la création et en fin de partie, plutôt qu'en liste. Exemple d'un livre du maître :
+  ligne = l'élève (« Enzo »), colonne = ce qu'on compte (« Aides », « Décrochages ») ; le tableau a une ligne par
+  élève et une colonne par type, l'icône du premier compteur de chaque colonne en tête. Avec le champ JSON
+  `table`, plusieurs tableaux (un par intitulé). En mode « Tester d'ici », tout revient en liste avec les
+  boutons ±1.
 - **Visible sur la Feuille d'Aventure** : décoché, le compteur est **secret** : le joueur ne le voit pas et
   aucun message n'annonce ses changements (seuls les messages de ses déclencheurs s'affichent). En mode
   « Tester d'ici », les compteurs secrets restent visibles, marqués « secret ».
+- **Discret** (compteur visible) : la valeur change sur la feuille sans message à chaque point ; seuls les
+  déclencheurs s'affichent. Pratique pour un tableau de bord qu'on consulte sans être interrompu.
 - **Déclencheurs** : « quand la valeur *atteint ou dépasse (≥)* / *descend à ou sous (≤)* tel seuil, alors
   *afficher un message* / *mort du héros* / *victoire* », avec un texte.
   Un déclencheur agit **au moment où le seuil est franchi** : le message « On chante vos exploits » s'affiche
@@ -29,7 +37,8 @@ certain total, et un seuil peut afficher un message, tuer le héros ou lui donne
   remonte, il s'affiche de nouveau. Pour la mort et la victoire, le texte devient la phrase de fin de partie.
 
 Les problèmes de réglage (identifiant en double, minimum plus grand que le maximum, seuil impossible à
-atteindre, condition déjà vraie au départ…) s'affichent sous chaque compteur.
+atteindre, condition déjà vraie au départ, ligne sans colonne, deux compteurs dans la même case…)
+s'affichent sous chaque compteur.
 
 ### 2. Faire varier un compteur : l'effet **Compteur**
 
@@ -74,8 +83,12 @@ ses seuils.
       "min": 0,                   // facultatif
       "max": 12,                  // facultatif (active la barre)
       "visible": true,            // false = compteur secret (défaut true)
+      "quiet": true,              // facultatif : visible, mais sans message à chaque changement (déclencheurs seulement)
       "icon": "hourglass",        // facultatif : tally (défaut), heart, star, sun, moon, flag, hourglass, eye,
                                   //   shield, flame, skull, crown, clover, coin, book, sword, lock
+      "row": "Enzo",              // facultatif, avec "column" : case du tableau (une ligne par valeur)
+      "column": "Aides",          // facultatif, avec "row" : une colonne par valeur
+      "table": "Élèves",          // facultatif : intitulé du tableau (un tableau par intitulé)
       "triggers": [
         { "when": "lte", "value": 0, "action": "death", "message": "Le soleil se couche : vous arrivez trop tard." }
       ]

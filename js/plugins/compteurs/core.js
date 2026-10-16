@@ -1,6 +1,8 @@
 // Greffon « compteurs » — moteur pur (aucun DOM, testable dans Node).
 // Compteurs libres définis par l'auteur : Réputation, Temps, Malédiction, Savoir…
-//   Règles : adv.rules.counters = [{ id, label, start, min?, max?, visible, icon?, triggers: [{ when, value, action, message }] }]
+//   Règles : adv.rules.counters = [{ id, label, start, min?, max?, visible, quiet?, icon?, row?, column?, table?, triggers: [{ when, value, action, message }] }]
+//            (row + column : le compteur s'affiche dans un tableau, une ligne par `row`, une colonne par `column`)
+//            (quiet : visible sur la feuille, mais sans message à chaque changement ; les déclencheurs parlent toujours)
 //   État   : state.counters = { id: valeur }
 //   Effet  : { op: 'counter', counter: id, add?: n | 'formule de dés', set?: n }
 //   Condition : { counter: id, gte?, lte?, eq? }
@@ -100,7 +102,7 @@ function fire(s, c, before, after, messages) {
       s.ended = t.action;
       s.endReason = text || `Votre ${c.label || c.id} a atteint ${after}.`;
     } else {
-      messages.push({ kind: 'info', text: text || `Votre ${c.label || c.id} atteint ${after}.` });
+      messages.push({ kind: 'info', alert: true, text: text || `Votre ${c.label || c.id} atteint ${after}.` }); // alert : mis en avant à l'écran
     }
   }
 }
@@ -139,7 +141,7 @@ function applyCounter(s, e, adv, messages) {
   v = clamp(c, v);
   s.counters[c.id] = v;
   const d = v - before;
-  if (d && isVisible(c)) {
+  if (d && isVisible(c) && !c.quiet) {
     const dice = rolled ? `${amt.dice} = ${rolled.total}, ` : '';
     messages.push({ kind: d < 0 ? 'loss' : 'gain', text: `${d > 0 ? '+' : ''}${d} ${c.label || c.id} (${dice}total : ${v})` });
   }
@@ -259,6 +261,17 @@ export function counterProblems(adv) {
       }
       if ((t.action || 'message') === 'message' && !String(t.message || '').trim()) push('warning', `${where} : message vide (un texte par défaut sera affiché).`);
     });
+    const row = String(c.row ?? '').trim(), col = String(c.column ?? '').trim();
+    if (!!row !== !!col) push('warning', `${name} : ${row ? 'une ligne sans colonne' : 'une colonne sans ligne'} ; le compteur reste hors du tableau.`);
+  }
+  // Deux compteurs dans la même case d'un tableau : seul le dernier serait affiché.
+  const cells = new Map();
+  for (const c of list) {
+    const row = String(c.row ?? '').trim(), col = String(c.column ?? '').trim();
+    if (!row || !col) continue;
+    const k = [c.table || '', row, col].join('\u0000');
+    if (cells.has(k)) out.push({ id: c.id, level: 'error', message: `${c.label || c.id} et ${cells.get(k)} occupent la même case du tableau (${row} × ${col}).` });
+    else cells.set(k, c.label || c.id);
   }
   return out;
 }
@@ -300,6 +313,31 @@ export function renameCounter(adv, from, to) {
   walk(a.sections, fix);
   walk(a.items, fix);
   return a;
+}
+
+/**
+ * Mise en tableau des compteurs : un compteur qui a une ligne (`row`) ET une colonne (`column`) va dans un tableau
+ * (`table` : intitulé facultatif, un tableau par intitulé). Lignes, colonnes et tableaux gardent l'ordre de leur
+ * premier compteur. Les autres compteurs restent en liste (`rest`), dans leur ordre.
+ * Renvoie { tables: [{ title, rows: [libellé], columns: [{ label, icon }], cell(row, column) → compteur|null }], rest }.
+ */
+export function counterTables(list) {
+  const tables = [], byTitle = new Map(), rest = [];
+  for (const c of list) {
+    const row = c.row != null && String(c.row).trim(), col = c.column != null && String(c.column).trim();
+    if (!row || !col) { rest.push(c); continue; }
+    const title = c.table ? String(c.table) : '';
+    if (!byTitle.has(title)) {
+      const tb = { title, rows: [], columns: [], cells: new Map() };
+      tb.cell = (r, k) => tb.cells.get(r + '\u0000' + k) || null;
+      byTitle.set(title, tb); tables.push(tb);
+    }
+    const tb = byTitle.get(title);
+    if (!tb.rows.includes(row)) tb.rows.push(row);
+    if (!tb.columns.some(x => x.label === col)) tb.columns.push({ label: col, icon: c.icon });
+    tb.cells.set(row + '\u0000' + col, c);
+  }
+  return { tables, rest };
 }
 
 /** Identifiant libre dérivé d'un nom (« Réputation » → « reputation », puis « reputation-2 »…). */

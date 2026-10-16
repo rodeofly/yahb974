@@ -119,6 +119,7 @@ button.badge:hover { border-color: var(--accent); }
 .msgs { display: grid; gap: 6px; margin: 16px auto 0; max-width: 66ch; }
 .msg { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 6px; font-weight: 500; border: 1px solid var(--line); background: var(--surface); }
 .msg.loss { color: var(--loss); } .msg.gain { color: var(--gain); }
+.msg.alert { border: 2px solid var(--accent); font-weight: 700; }
 .msg svg { width: 16px; height: 16px; flex: none; }
 
 .choices { display: grid; gap: 8px; max-width: 66ch; margin: 24px auto 0; }
@@ -128,6 +129,14 @@ button.badge:hover { border-color: var(--accent); }
 .choice:disabled { cursor: not-allowed; opacity: .6; border-style: dashed; }
 .choice .why { grid-column: 1 / -1; font-family: var(--sans); font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
 .choice .why svg { width: 14px; height: 14px; }
+/* Choix regroupés (sections[n].choices[i].group) ; en colonnes avec sections[n].choiceLayout = "columns" */
+.choices.grouped { gap: 16px; }
+.choice-group { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.choice-group-title { margin: 0; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.choices.cols { max-width: none; grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr)); align-items: start; }
+.choices.cols .choice-group.free { grid-column: 1 / -1; }
+.choices.cols .choice { padding: 8px 10px; gap: 8px; font-size: calc(var(--read-size) - 3px); line-height: 1.25; }
+.choice .go.stay { font-size: 18px; font-weight: 400; }
 
 .block { max-width: 66ch; margin: 24px auto 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 16px; display: grid; gap: 12px; }
 .block h3 { display: flex; gap: 8px; align-items: center; font-size: 18px; }

@@ -363,6 +363,7 @@ function SectionForm({ adv, sid, change, open, addSection, problems }) {
 
     <section class="panel"><header><h3>Choix proposés au lecteur</h3>
       <button class="btn small primary" onClick=${() => setIn('choices', c => [...c, { text: '', to: '' }])}><${Icon} name="plus" />Choix</button></header>
+      ${(sec.choices || []).some(c => c.group) && html`<label class="row subtle"><input type="checkbox" checked=${sec.choiceLayout === 'columns'} onChange=${e => set({ choiceLayout: e.target.checked ? 'columns' : undefined })} /> Afficher les groupes côte à côte, en colonnes (boutons compacts : un toucher par choix)</label>`}
       ${(sec.choices || []).map((c, i) => {
         const upd = patch => setIn('choices', l => l.map((x, j) => (j === i ? { ...x, ...patch } : x)));
         const move = d => setIn('choices', l => { const k = i + d; if (k < 0 || k >= l.length) return l; [l[i], l[k]] = [l[k], l[i]]; return l; });
@@ -371,6 +372,7 @@ function SectionForm({ adv, sid, change, open, addSection, problems }) {
             <${Text} label=${`Choix ${i + 1}`} value=${c.text} onChange=${v => upd({ text: v })} placeholder="Si vous voulez ouvrir la porte…" />
             ${tgt(c.to, v => upd({ to: v }))}
           </div>
+          <${Text} label="Groupe (facultatif : les choix d'un même groupe sont réunis sous cet intitulé)" value=${c.group || ''} onChange=${v => upd({ group: v.trim() || undefined })} placeholder="Enzo" />
           <${ConditionEditor} adv=${adv} value=${c.if} onChange=${v => upd({ if: v })} />
           ${c.if && html`<label class="row subtle"><input type="checkbox" checked=${!!c.hideIfUnavailable} onChange=${e => upd({ hideIfUnavailable: e.target.checked })} /> Cacher ce choix si la condition n'est pas remplie (sinon il est grisé avec la raison)</label>`}
           <${EffectsEditor} adv=${adv} value=${c.effects || []} onChange=${v => upd({ effects: v })} title="Effets en choisissant" />
@@ -539,6 +541,8 @@ function RulesTab({ adv, change }) {
         <${Num} label="Un repas rend" value=${r.meal.heal} onChange=${v => set({ meal: { ...r.meal, heal: v } })} />
       </div>
       <label class="row"><input type="checkbox" checked=${r.allowBack !== false} onChange=${e => set({ allowBack: e.target.checked })} /> Autoriser le retour en arrière (« doigt dans la page »)</label>
+      <label class="row"><input type="checkbox" checked=${r.economy !== false} onChange=${e => set({ economy: e.target.checked })} /> Or et repas sur la feuille d'aventure (décocher pour un livre sans économie)</label>
+      <label class="row"><input type="checkbox" checked=${!!r.tu} onChange=${e => set({ tu: e.target.checked || undefined })} /> Le moteur tutoie le lecteur (« Noté sur ta feuille »)</label>
     </section>
     <section class="panel"><header><h3>Journées et repas</h3></header>
       <label class="row"><input type="checkbox" checked=${!!r.time?.enabled} onChange=${e => set({ time: { ...r.time, enabled: e.target.checked } })} /> Compter les jours</label>

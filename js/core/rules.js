@@ -21,6 +21,8 @@ export const DEFAULT_RULES = {
   combat: { skill: 'habilete', health: 'endurance', damage: 2, luck: 'chance', fleeDamage: 2 },
   startItems: [],
   allowBack: true,
+  // false : ni pièces d'or ni repas (feuille, création, version imprimable) — livres sans économie, livre du maître…
+  economy: true,
   // Formules magiques façon Sorcellerie ! : un code de trois lettres, un coût, parfois un objet requis.
   spells: { enabled: false, stat: 'endurance', casters: [], typeCode: false, unknownCost: 0, book: [] },
   // Journées : chaque nuit, le héros doit avoir mangé la veille, sinon il perd des points.
@@ -68,6 +70,7 @@ export function normalizeAdventure(adv) {
 
 /** Raison affichée par défaut sous une fin « death » (l'écran de fin la masque quand la fin a son propre titre). */
 export const GENERIC_END = 'Votre aventure s’achève ici.';
+export const GENERIC_END_TU = 'Ton aventure s’achève ici.';
 
 export const statLabel = (adv, id) => adv.rules.stats.find(s => s.id === id)?.label || id;
 export const itemName = (adv, id) => adv.items[id]?.name || id;
@@ -76,6 +79,13 @@ export const itemName = (adv, id) => adv.items[id]?.name || id;
 export function de(label, apos = "'") {
   const l = String(label ?? '');
   return /^([aeiouyàâäéèêëîïôöùûüœ]|h(onneur|éro(?!s)|umani|abilet|armoni|istoir|ospital|umilit|orreur|ygi|abitu|erb))/iu.test(l) ? `d${apos}${l}` : `de ${l}`;
+}
+/** L'aventure tutoie-t-elle le lecteur ? (`rules.tu`, ou `rules.defis.tu` pour les anciennes aventures) */
+export const tutoie = adv => !!(adv?.rules?.tu ?? adv?.rules?.defis?.tu);
+/** Faut-il lancer des dés à la création ? Non si aucune caractéristique et une bourse de départ fixe. */
+export function needsRoll(adv, classId) {
+  const cls = adv.rules.classes?.find(c => c.id === classId) || adv.rules.classes?.[0] || null;
+  return (adv.rules.stats || []).length > 0 || /d/i.test(String(cls?.gold || adv.rules.gold || '0'));
 }
 /** Nombre signé avec le vrai signe moins (U+2212) : « +2 », « −1 ». */
 export const signed = n => (Number(n) > 0 ? `+${n}` : Number(n) < 0 ? `\u2212${Math.abs(Number(n))}` : String(n));
@@ -270,7 +280,7 @@ export function applyEffects(state, adv, effects = []) {
       }
       case 'note':
         s.notes = (s.notes ? s.notes + '\n' : '') + e.text;
-        messages.push({ kind: 'info', text: `Noté sur votre feuille : ${e.text}` });
+        messages.push({ kind: 'info', text: `${tutoie(adv) ? 'Noté sur ta feuille' : 'Noté sur votre feuille'} : ${e.text}` });
         break;
       default: {
         const plug = ext.effects.get(e.op);
@@ -343,7 +353,7 @@ export function enter(state, adv, sectionId, { viaEffects = [] } = {}) {
   }
   if (sec.ending && !s.ended) {
     s.ended = sec.ending;
-    s.endReason = sec.ending === 'victory' ? 'Vous avez réussi votre quête.' : GENERIC_END;
+    s.endReason = sec.ending === 'victory' ? (tutoie(adv) ? 'Tu as réussi ta quête.' : 'Vous avez réussi votre quête.') : tutoie(adv) ? GENERIC_END_TU : GENERIC_END;
   }
   s.log = [...s.log, { turn: s.turn, section: s.section, messages: messages.map(m => m.text) }].slice(-200);
   return { state: s, messages };
@@ -364,6 +374,23 @@ export function choicesFor(state, adv) {
     if (guard) return { ...c, index: i, available: false, hidden, reason: guard };
     return { ...c, index: i, available: ok, hidden, reason: ok ? '' : `Il faut ${describeCondition(c.if, adv)}.` };
   }).filter(c => !c.hidden);
+}
+
+/**
+ * Choix regroupés pour l'affichage : `choices[i].group` (texte libre) range les choix sous un intitulé.
+ * Les groupes gardent l'ordre de leur premier choix ; les choix sans groupe forment un bloc sans intitulé,
+ * placé là où apparaît le premier d'entre eux. Sans aucun groupe : un seul bloc (affichage habituel).
+ * Renvoie [{ group: string|null, choices: [...] }].
+ */
+export function groupChoices(choices) {
+  const blocks = [];
+  const byKey = new Map();
+  for (const c of choices) {
+    const key = c.group ? String(c.group) : null;
+    if (!byKey.has(key)) { const b = { group: key, choices: [] }; byKey.set(key, b); blocks.push(b); }
+    byKey.get(key).choices.push(c);
+  }
+  return blocks;
 }
 
 /** Raison qui bloque tous les choix (fournie par un greffon), ou null. */

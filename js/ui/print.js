@@ -144,13 +144,15 @@ export function sectionHtml(sec, adv) {
 function Rules({ adv }) {
   const r = adv.rules, C = r.combat;
   const classes = r.classes || [];
+  // Sans caractéristiques (livre sans dés), ni caractéristiques, ni combats, ni Chance ; sans économie, ni or ni repas.
+  const stats = r.stats.length > 0, economy = r.economy !== false;
   return html`<section class="pr-page pr-rules">
     <h2>Comment jouer</h2>
-    <p>Pour ce voyage, il vous faut deux dés, un crayon et une gomme. Notez tout sur votre Feuille d'Aventure.</p>
-    <h3>Vos caractéristiques</h3>
+    <p>Pour ce voyage, il vous faut ${stats ? 'deux dés, ' : ''}un crayon et une gomme. Notez tout sur votre Feuille d'Aventure.</p>
+    ${stats && html`<h3>Vos caractéristiques</h3>
     <ul>${r.stats.map(s => html`<li><b>${s.label.toUpperCase()}</b> : lancez ${s.roll.replace('1d6', 'un dé').replace('2d6', 'deux dés').replace('+', ' et ajoutez ')} (de ${range(s.roll).min} à ${range(s.roll).max}).</li>`)}</ul>
     ${classes.length > 1 && html`<p>Choisissez votre classe : ${classes.map(c => html`<span><b>${c.label}</b>${c.description ? ` (${c.description})` : ''}${Object.entries(c.rolls || {}).filter(([, v]) => v).map(([k, v]) => ` ; ${statLabel(adv, k)} : ${v}`).join('')}. </span>`)}</p>`}
-    <p>Ces totaux de départ ne peuvent pas être dépassés, sauf si le texte vous le dit. ${r.gold && r.gold !== '0' ? `Vous partez avec ${r.gold.replace('1d6', 'un dé').replace('2d6', 'deux dés').replace('+', ' + ')} Pièces d'Or.` : ''} Vous emportez ${plural(r.provisions, 'repas', 'repas')} : manger un repas rend ${r.meal.heal} points d'${UP(adv, r.meal.stat)}.</p>
+    <p>Ces totaux de départ ne peuvent pas être dépassés, sauf si le texte vous le dit. ${economy && r.gold && r.gold !== '0' ? `Vous partez avec ${r.gold.replace('1d6', 'un dé').replace('2d6', 'deux dés').replace('+', ' + ')} Pièces d'Or.` : ''} ${economy ? `Vous emportez ${plural(r.provisions, 'repas', 'repas')} : manger un repas rend ${r.meal.heal} points d'${UP(adv, r.meal.stat)}.` : ''}</p>
     <h3>Les combats</h3>
     <ol>
       <li>Lancez deux dés pour votre adversaire et ajoutez son ${UP(adv, C.skill)} : c'est sa Force d'Attaque.</li>
@@ -161,7 +163,7 @@ function Rules({ adv }) {
     <p>Fuir un combat, quand le texte le permet, coûte ${C.fleeDamage} points d'${UP(adv, C.health)}.</p>
     <h3>La ${statLabel(adv, C.luck)}</h3>
     <p>Pour Tenter votre Chance, lancez deux dés : si le total est inférieur ou égal à votre ${UP(adv, C.luck)}, vous êtes Chanceux, sinon Malchanceux. Retirez 1 point de ${UP(adv, C.luck)} à chaque fois.
-      En combat, après avoir blessé votre adversaire : Chanceux, il perd 2 points de plus ; Malchanceux, il en récupère 1. Après avoir été blessé : Chanceux, vous récupérez 1 point ; Malchanceux, vous en perdez 1 de plus.</p>
+      En combat, après avoir blessé votre adversaire : Chanceux, il perd 2 points de plus ; Malchanceux, il en récupère 1. Après avoir été blessé : Chanceux, vous récupérez 1 point ; Malchanceux, vous en perdez 1 de plus.</p>`}
     ${r.time?.enabled && html`<h3>Les journées</h3><p>Quand le texte annonce un nouveau jour, cochez une case Jour. ${r.time.mealRequired !== false ? `Vous devez manger au moins un repas par jour : sinon, vous perdez ${r.time.penalty} points d'${UP(adv, r.time.stat)} le lendemain matin. Cochez la case « a mangé » quand vous mangez.` : ''}</p>`}
     ${r.spells?.enabled && html`<h3>La magie</h3><p>${r.spells.casters?.length ? `Seul${r.spells.casters.length > 1 ? 's' : ''} ${r.spells.casters.map(c => classes.find(x => x.id === c)?.label || c).join(' et ')} peu${r.spells.casters.length > 1 ? 'vent' : 't'} lancer des formules.` : ''} Chaque formule a un code de trois lettres et un coût en ${UP(adv, r.spells.stat)}. Le Livre des formules, à la fin de ce volume, les décrit toutes. Apprenez-les : pendant l'aventure, on ne vous rappellera que les codes, et certains sont des pièges.</p>`}
     ${r.allowBack === false && html`<p><b>Pas de retour en arrière :</b> ne gardez pas le doigt dans les pages !</p>`}
@@ -178,8 +180,8 @@ function Sheet({ adv }) {
       <div class="pr-box"><b>Nom</b></div>
       ${(r.classes || []).length > 1 && html`<div class="pr-box"><b>Classe</b></div>`}
       ${r.stats.map(s => html`<div class="pr-box"><b>${s.label.toUpperCase()}</b><span class="pr-small">total de départ :</span></div>`)}
-      <div class="pr-box"><b>PIÈCES D'OR</b></div>
-      <div class="pr-box"><b>PROVISIONS</b><span class="pr-small">repas restants</span></div>
+      ${r.economy !== false && html`<div class="pr-box"><b>PIÈCES D'OR</b></div>
+      <div class="pr-box"><b>PROVISIONS</b><span class="pr-small">repas restants</span></div>`}
     </div>
     ${r.time?.enabled && html`<div class="pr-box pr-wide"><b>JOURS</b> ${boxes(10)} ${r.time.mealRequired !== false && html`<span style="margin-left:16px"><b>A MANGÉ</b> ${boxes(10)}</span>`}</div>`}
     <div class="pr-box pr-wide pr-tall"><b>ÉQUIPEMENT ET OBJETS</b></div>
@@ -187,8 +189,8 @@ function Sheet({ adv }) {
       <div class="pr-box pr-tall"><b>MOTS-CLÉS</b></div>
       <div class="pr-box pr-tall"><b>NOTES</b></div>
     </div>
-    <div class="pr-box pr-wide"><b>RENCONTRES AVEC DES ADVERSAIRES</b>
-      <div class="pr-foes-grid">${Array.from({ length: 8 }, () => html`<div class="pr-foe">${statLabel(adv, r.combat.skill)} :<br/>${statLabel(adv, r.combat.health)} :</div>`)}</div></div>
+    ${r.stats.length > 0 && html`<div class="pr-box pr-wide"><b>RENCONTRES AVEC DES ADVERSAIRES</b>
+      <div class="pr-foes-grid">${Array.from({ length: 8 }, () => html`<div class="pr-foe">${statLabel(adv, r.combat.skill)} :<br/>${statLabel(adv, r.combat.health)} :</div>`)}</div></div>`}
     ${sorted(ui.printSections.filter(x => x.where === 'sheet')).map(x => html`<${x.Section} adv=${adv} />`)}
   </section>`;
 }

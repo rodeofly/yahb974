@@ -246,3 +246,34 @@ test('formules : l’objet requis est exigé', () => {
   state = { ...state, inventory: { ...state.inventory, baguette: 1 } };
   assert.equal(castSpell(state, adv, 0, 'ZAP').state.section, '2');
 });
+
+test('livre sans dés : pas de lancer si aucune caractéristique et une bourse fixe', async () => {
+  const { needsRoll } = await import('../js/core/rules.js');
+  const a = normalizeAdventure(newAdventure('Dés'));
+  assert.equal(needsRoll(a), true);
+  const b = normalizeAdventure({ ...newAdventure('Sans dés'), rules: { ...newAdventure('x').rules, stats: [], gold: '0' } });
+  assert.equal(needsRoll(b), false);
+  const c = normalizeAdventure({ ...newAdventure('Bourse'), rules: { ...newAdventure('x').rules, stats: [], gold: '2d6' } });
+  assert.equal(needsRoll(c), true);
+  assert.equal(normalizeAdventure(newAdventure('Éco')).rules.economy, true);
+});
+
+test('tutoiement : le message « noté » suit rules.tu', () => {
+  const a = sample();
+  const s = createHero(a, { seed: 1 }).state;
+  assert.match(applyEffects(s, a, [{ op: 'note', text: 'X' }]).messages[0].text, /votre feuille/);
+  const t = normalizeAdventure({ ...a, rules: { ...a.rules, tu: true } });
+  assert.match(applyEffects(s, t, [{ op: 'note', text: 'X' }]).messages[0].text, /ta feuille/);
+});
+
+test('choix regroupés : ordre des groupes, bloc sans intitulé, sans groupe = un seul bloc', async () => {
+  const { groupChoices } = await import('../js/core/rules.js');
+  const cs = [{ text: '1', group: 'Ana' }, { text: '2' }, { text: '3', group: 'Bob' }, { text: '4', group: 'Ana' }, { text: '5' }];
+  const b = groupChoices(cs);
+  assert.deepEqual(b.map(x => x.group), ['Ana', null, 'Bob']);
+  assert.deepEqual(b[0].choices.map(c => c.text), ['1', '4']);
+  assert.deepEqual(b[1].choices.map(c => c.text), ['2', '5']);
+  const one = groupChoices([{ text: 'a' }, { text: 'b' }]);
+  assert.equal(one.length, 1);
+  assert.equal(one[0].group, null);
+});

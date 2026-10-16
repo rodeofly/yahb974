@@ -124,6 +124,7 @@ Navigateur (hors ligne après la 1re visite)
     "gold": "2d6", "provisions": 2, "meal": { "stat": "endurance", "heal": 4 },
     "combat": { "skill": "habilete", "health": "endurance", "damage": 2, "luck": "chance", "fleeDamage": 2 },
     "allowBack": true,
+    "economy": true,    // false : ni or ni repas sur la feuille ni à la création (livre sans économie)
     "freeJump": false   // true : le joueur peut taper un numéro de paragraphe (énigmes « rendez-vous au numéro calculé » des livres papier)
   },
   "items": { "cle-argent": { "name": "Clé d'argent", "description": "Un 111 est gravé dessus." } },
@@ -135,6 +136,7 @@ Navigateur (hors ligne après la 1re visite)
       "onEnter": [ { "op": "stat", "stat": "endurance", "add": -2 } ],
       "blocks":  [ { "type": "combat", "enemies": [ { "name": "Gobelin", "skill": 7, "health": 6 } ], "win": "186", "flee": "120" } ],
       "choices": [ { "text": "Ouvrir la porte", "to": "44", "if": { "has": "cle-argent" }, "effects": [] } ],
+      // facultatif : "group" sur un choix range les choix sous un intitulé ; "choiceLayout": "columns" met les groupes côte à côte
       "ending": null
     }
   }
@@ -145,10 +147,11 @@ Navigateur (hors ligne après la 1re visite)
 **Effets** : `stat` (add / set / `"initial"` / addInitial), `gold`, `provisions`, `give`, `take`, `flag`, `note`, `newDay`, `meal`.
 **Conditions supplémentaires** : `{caster}`, `{ate}`, `{day, gte}`.
 **Blocs** : `test` (caractéristique contre 2d6), `roll` (table de dés), `combat` (`enemies`, `win`, `flee?`, `lose?`, `mode?: "together"`, `note?` : règle spéciale affichée au-dessus des combattants), `shop` (`offers: [{item, price, stock?}]` : ce que le marchand vend ; `wants: [{item, price, stock?}]` : ce qu'il rachète), `spells` (options `{code, to, cost?}`), `actions` (greffon objets : boutons en un clic).
-**Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`. `tu: true` : la règle des tests de caractéristique tutoie le joueur (« Lance 2d6 : tu réussis si… ») ; sans `tu`, `defis.tu` sert aussi.
+**Règles** : `spells: {enabled, stat, casters, typeCode, unknownCost, book: [{code, name, cost, requires, description}]}`, `time: {enabled, mealRequired, stat, penalty}`. `tu: true` : le moteur tutoie le joueur (règle des tests de caractéristique, « Lance 2d6 : tu réussis si… » ; « Noté sur ta feuille » ; retour en arrière) ; sans `tu`, `defis.tu` sert aussi. `economy: false` : ni or ni repas (création, feuille, version imprimable). Sans caractéristiques (`stats: []`) et avec une bourse fixe, la création ne demande pas de lancer les dés, et la version imprimable omet dés, combats et Chance.
 **Son** : `meta.sound` (ambiance générale), `sections[n].sound` + `soundLoop`.
 **Renvois cachés** : `sections[n].links: [{ to, label? }]` — destinations que le joueur atteint en tapant un numéro trouvé dans le texte (règle `freeJump`) ; pas de bouton en lecture, mais comptés dans le graphe (pointillés), la vérification et les paragraphes atteignables.
 **Repères** : `meta.markers: [{ id, label, icon (emoji), kind?: "item", sections: ["12", …] }]` — paragraphes mis en avant dans le graphe (badge, liste « Repères ») ; ex. les Sept Serpents d'un livre.
+**Choix regroupés** : `choices[i].group` (texte libre) range les choix sous un intitulé, dans l'ordre de leur premier choix ; les choix sans groupe forment un bloc sans intitulé. `sections[n].choiceLayout: "columns"` affiche les groupes côte à côte avec des boutons compacts (une colonne par élève, par lieu…). Un choix qui ramène au paragraphe courant porte la marque ↺.
 **Graphe** : regroupement « Par étape » (tranches de distance au départ, choisi d'office au-delà de 150 paragraphes), « Voisinage » (rayon autour du paragraphe ouvert), « Masquer les morts ».
 
 #### Champs ajoutés par les greffons
@@ -158,7 +161,7 @@ Tous sont facultatifs : une aventure qui ne les a pas s'ouvre et se joue comme a
 | Greffon | Aventure | Effets / conditions / blocs | État de la partie |
 |---|---|---|---|
 | [equipement](plugins/equipement.md) | `rules.equipment: {enabled, slots:[{id,label}], capacity, unarmedPenalty, weaponSlot}` ; objets : `slot`, `attack`, `damage`, `armor`, `small` | `{op:"equip", item}`, `{op:"unequip", slot, take?}` ; `{equipped, negate?}`, `{equippedSlot, negate?}` | `state.equipement` |
-| [compteurs](plugins/compteurs.md) | `rules.counters: [{id, label, start, min?, max?, visible, icon?, triggers:[{when:"gte"\|"lte", value, action:"message"\|"death"\|"victory", message}]}]` | `{op:"counter", counter, add\|set}` (nombre ou dés) ; `{counter, gte\|lte\|eq}` | `state.counters` |
+| [compteurs](plugins/compteurs.md) | `rules.counters: [{id, label, start, min?, max?, visible, quiet?, icon?, row?, column?, table?, triggers:[{when:"gte"\|"lte", value, action:"message"\|"death"\|"victory", message}]}]` | `{op:"counter", counter, add\|set}` (nombre ou dés) ; `{counter, gte\|lte\|eq}` | `state.counters` |
 | [compagnons](plugins/compagnons.md) | `companions: {id: {name, skill, health, damage?, image?, description?}}` | `{op:"companion", companion, action:"join"\|"leave"\|"heal"\|"hurt", amount?}` ; `{companion}`, `{not:{companion}}`, `{companions:true, gte\|lte\|eq}` | `state.companions` |
 | [campagne](plugins/campagne.md) | `rules.campaign: {id, title, book, prefix, modes, fields:{stats, counters, items, flags, companions, gold}, newcomer}` ; fin : `passport: false` | — | `state.campaign = {from, code}` |
 | [defis](plugins/defis.md) | — | bloc `{type:"challenge", kind:"text"\|"number"\|"qcm"\|"multi"\|"order", question, answers, attempts, hints:[{text, cost}], success, failure, successEffects, failureEffects, hashed?, salt?}` | `state.blocks[i]` |

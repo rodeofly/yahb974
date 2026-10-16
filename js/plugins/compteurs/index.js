@@ -62,9 +62,12 @@ function SheetPanel({ adv, state, update }) {
   useEffect(() => { prev.current = values; });
   if (!list.length) return null;
   const bump = (c, n) => { const r = applyEffects(state, adv, [{ op: 'counter', counter: c.id, add: n }]); update(r.state, r.messages); };
+  // Hors mode test, les compteurs rangés en lignes et colonnes s'affichent en tableau ; en mode test, tous en liste (boutons ±1).
+  const { tables, rest } = test ? { tables: [], rest: list } : K.counterTables(list);
   return html`<div class="stack cpt-sheet" style="gap:6px">
     <span class="eyebrow">Compteurs</span>
-    <div class="stats">${list.map(c => {
+    ${tables.map(tb => html`<${CounterTable} tb=${tb} value=${c => values[c.id]} changed=${changed} />`)}
+    ${rest.length > 0 && html`<div class="stats">${rest.map(c => {
       const v = values[c.id];
       const min = bound(c.min) ?? 0, max = bound(c.max);
       const pct = max !== null && max > min ? Math.max(0, Math.min(100, (100 * (v - min)) / (max - min))) : null;
@@ -80,8 +83,20 @@ function SheetPanel({ adv, state, update }) {
           <button class="btn small" aria-label=${`Ajouter 1 point ${K.de(c.label || c.id)} (mode test)`} onClick=${() => bump(c, 1)}>+1</button>
         </span>`}
       </div>`;
-    })}</div>
+    })}</div>`}
   </div>`;
+}
+
+/** Tableau de compteurs (lignes × colonnes) : en-têtes avec l'icône de la colonne, cellule vide s'il n'y a pas de compteur. */
+function CounterTable({ tb, value, changed = {} }) {
+  return html`<div class="cpt-table-wrap"><table class="cpt-table">
+    ${tb.title && html`<caption>${tb.title}</caption>`}
+    <thead><tr><td></td>${tb.columns.map(k => html`<th scope="col"><span class="cpt-th"><${CIcon} name=${k.icon} />${k.label}</span></th>`)}</tr></thead>
+    <tbody>${tb.rows.map(r => html`<tr><th scope="row">${r}</th>${tb.columns.map(k => {
+      const c = tb.cell(r, k.label);
+      return html`<td class=${changed[c?.id] ? 'flash' : ''} key=${c ? c.id + value(c) : k.label}>${c ? html`<span class="mono" aria-label=${`${c.label || c.id} : ${value(c)}`}>${value(c)}</span>` : html`<span class="subtle" aria-hidden="true">·</span>`}</td>`;
+    })}</tr>`)}</tbody>
+  </table></div>`;
 }
 
 registerSheetPanel({ id: 'compteurs', order: 20, Panel: SheetPanel });
@@ -93,14 +108,17 @@ registerSheetPanel({ id: 'compteurs', order: 20, Panel: SheetPanel });
 function CreatorPanel({ adv, hero }) {
   const list = K.countersOf(adv).filter(c => c.id && K.isVisible(c));
   if (!list.length) return null;
+  const { tables, rest } = K.counterTables(list);
+  const startOf = c => (hero ? hero.state.counters?.[c.id] ?? '—' : K.startIsFixed(c) ? K.clamp(c, Number(c.start ?? 0)) : '—');
   return html`<div class="stack" style="gap:8px">
     <span class="eyebrow">Compteurs</span>
-    <div class="rolls">${list.map(c => html`<div class="rollrow" key=${c.id}>
+    ${tables.map(tb => html`<${CounterTable} tb=${tb} value=${startOf} />`)}
+    ${rest.length > 0 && html`<div class="rolls">${rest.map(c => html`<div class="rollrow" key=${c.id}>
       <b class="cpt-name"><${CIcon} name=${c.icon} />${c.label || c.id}</b>
       <span class="formula">${startLabel(c)}</span>
       ${hero ? html`<span class="dice-total">${hero.state.counters?.[c.id] ?? '—'}</span>`
         : K.startIsFixed(c) ? html`<span class="dice-total">${K.clamp(c, Number(c.start ?? 0))}</span>` : html`<span class="muted">—</span>`}
-    </div>`)}</div>
+    </div>`)}</div>`}
   </div>`;
 }
 
@@ -109,8 +127,12 @@ registerCreatorPanel({ id: 'compteurs', order: 20, Panel: CreatorPanel });
 function EndingPanel({ adv, state }) {
   const list = K.countersOf(adv).filter(c => c.id && K.isVisible(c));
   if (!list.length) return null;
-  return html`<div class="cpt-final" aria-label="Compteurs en fin de partie">
-    ${list.map(c => html`<span class="pill cpt-pill"><${CIcon} name=${c.icon} />${c.label || c.id} : ${K.counterValue(state, adv, c.id)}</span>`)}
+  const { tables, rest } = K.counterTables(list);
+  return html`<div class="stack" style="gap:8px;align-items:center">
+    ${tables.map(tb => html`<${CounterTable} tb=${tb} value=${c => K.counterValue(state, adv, c.id)} />`)}
+    ${rest.length > 0 && html`<div class="cpt-final" aria-label="Compteurs en fin de partie">
+      ${rest.map(c => html`<span class="pill cpt-pill"><${CIcon} name=${c.icon} />${c.label || c.id} : ${K.counterValue(state, adv, c.id)}</span>`)}
+    </div>`}
   </div>`;
 }
 
@@ -185,10 +207,15 @@ function CounterCard({ adv, c, index, change, setCounters, problems }) {
       <${Num} label="Maximum (vide = aucun)" value=${c.max} onChange=${v => upd({ max: v })} />
       <div class="cpt-iconpick"><${Select} label="Icône" value=${c.icon || 'tally'} onChange=${v => upd({ icon: v })} options=${ICONS} />
         <span class="cpt-preview" aria-hidden="true"><${CIcon} name=${c.icon} /></span></div>
+      <${Text} label="Tableau : ligne (facultatif)" value=${c.row || ''} onChange=${v => upd({ row: v.trim() || undefined })} placeholder="Enzo" />
+      <${Text} label="Tableau : colonne (facultatif)" value=${c.column || ''} onChange=${v => upd({ column: v.trim() || undefined })} placeholder="Décrochages" />
     </div>
+    ${(c.row || c.column) && html`<span class="subtle">Avec une ligne et une colonne, le compteur s'affiche dans un tableau sur la feuille (une ligne par valeur de « ligne », une colonne par valeur de « colonne »)${c.row && c.column ? '' : ' : il manque ' + (c.row ? 'la colonne' : 'la ligne')}.</span>`}
     ${hint && html`<span class=${'subtle' + (hint === 'formule invalide' ? ' cpt-bad' : '')}>${hint === 'formule invalide' ? html`<${Icon} name="x" />Départ : formule de dés invalide (exemples : 6, 1d6, 2d6+3).` : `Départ tiré aux dés : ${hint}.`}</span>`}
     <label class="row"><input type="checkbox" checked=${K.isVisible(c)} onChange=${e => upd({ visible: e.target.checked })} />
       Visible sur la Feuille d'Aventure (décoché : compteur secret, sans message quand il change)</label>
+    ${K.isVisible(c) && html`<label class="row"><input type="checkbox" checked=${!!c.quiet} onChange=${e => upd({ quiet: e.target.checked || undefined })} />
+      Discret : pas de message à chaque changement (seuls les déclencheurs parlent)</label>`}
     <div class="stack" style="gap:6px">
       <div class="row" style="justify-content:space-between"><b>Déclencheurs</b>
         <button class="btn small" onClick=${() => upd({ triggers: [...(c.triggers || []), { when: 'gte', value: bound(c.max) ?? 5, action: 'message', message: '' }] })}><${Icon} name="plus" />Déclencheur</button></div>
@@ -299,11 +326,35 @@ function boundsWords(c) {
   return '';
 }
 
+/** Départ et bornes communs à toutes les cases d'un tableau, sinon null (chaque case porte alors son départ). */
+function commonStart(tb) {
+  const cells = tb.rows.flatMap(r => tb.columns.map(k => tb.cell(r, k.label))).filter(Boolean);
+  const key = c => [startWords(c), boundsWords(c)].join('|');
+  return cells.every(c => key(c) === key(cells[0])) ? cells[0] : null;
+}
+
+/** Tableau imprimé : une case vide par compteur, pour y porter des bâtons (et la grille papier d'un livre du maître). */
+function PrintTable({ tb }) {
+  const common = commonStart(tb);
+  return html`<div class="pr-box pr-wide cpt-pr-tablebox">
+    ${tb.title && html`<b>${tb.title.toUpperCase()}</b>`}
+    <table class="cpt-pr-table">
+      <thead><tr><td></td>${tb.columns.map(k => html`<th scope="col"><${CIcon} name=${k.icon} /> ${k.label}</th>`)}</tr></thead>
+      <tbody>${tb.rows.map(r => html`<tr><th scope="row">${r}</th>${tb.columns.map(k => {
+        const c = tb.cell(r, k.label);
+        return html`<td class=${c ? '' : 'cpt-pr-none'}>${c && !common && html`<span class="pr-small">départ : ${startWords(c)}</span>`}</td>`;
+      })}</tr>`)}</tbody>
+    </table>
+    ${common && html`<span class="pr-small">Une marque par point. Départ : ${startWords(common)} dans chaque case${boundsWords(common) ? ` · ${boundsWords(common)}` : ''}.</span>`}
+  </div>`;
+}
+
 function PrintSheet({ adv }) {
   const list = K.countersOf(adv).filter(c => c.id);
   if (!list.length) return null;
-  const visible = list.filter(K.isVisible), hidden = list.some(c => !K.isVisible(c));
-  return html`<div class="pr-grid cpt-pr-grid">
+  const hidden = list.some(c => !K.isVisible(c));
+  const { tables, rest: visible } = K.counterTables(list.filter(K.isVisible));
+  return html`${tables.map(tb => html`<${PrintTable} tb=${tb} />`)}<div class="pr-grid cpt-pr-grid">
     ${visible.map(c => html`<div class="pr-box cpt-pr-box">
       <b class="cpt-name"><${CIcon} name=${c.icon} />${String(c.label || c.id).toUpperCase()}</b>
       <span class="pr-small">départ : ${startWords(c)}${boundsWords(c) ? ` · ${boundsWords(c)}` : ''}</span>
@@ -332,7 +383,13 @@ function PrintRules({ adv }) {
     <p>Votre Feuille d'Aventure comporte ${list.length > 1 ? 'des compteurs' : 'un compteur'}. Quand le texte vous demande d'ajouter ou de retirer
       des points, modifiez la case correspondante (entourez le nouveau total quand une réglette est imprimée). Un seuil n'agit qu'au moment
       où vous le franchissez.</p>
-    <ul>${list.map(c => {
+    <ul>${K.counterTables(list.filter(K.isVisible)).tables.map(tb => {
+      const common = commonStart(tb);
+      const cells = tb.rows.flatMap(r => tb.columns.map(k => tb.cell(r, k.label))).filter(Boolean);
+      return html`<li><b>${tb.title ? `TABLEAU ${tb.title.toUpperCase()}` : 'LE TABLEAU'}</b> : une ligne par ${tb.rows.join(', ')} ; une colonne
+        par ${tb.columns.map(k => k.label).join(', ')}.${common ? ` Chaque case part de ${startWords(common)}${boundsWords(common) ? ` (${boundsWords(common)})` : ''}.` : ''}
+        ${cells.flatMap(c => (c.triggers || []).map(x => triggerWords(c, x)).filter(Boolean)).map(x => ' ' + x)}</li>`;
+    })}${list.filter(c => !K.isVisible(c) || !K.counterTables([c]).tables.length).map(c => {
       const b = boundsWords(c);
       const st = K.startIsFixed(c) ? `votre total de départ est de ${startWords(c)}` : `${startWords(c)} pour connaître votre total de départ`;
       return html`<li><b>${String(c.label || c.id).toUpperCase()}</b>${K.isVisible(c) ? '' : ' (case Autres compteurs)'} : ${st}${b ? ` (${b})` : ''}.

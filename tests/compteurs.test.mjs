@@ -268,3 +268,49 @@ test('usages, renommage et identifiant libre', () => {
   assert.equal(freeId(adv, 'Réputation'), 'reputation-2');
   assert.equal(freeId(adv, 'Savoir'), 'savoir');
 });
+
+test('tableau : lignes et colonnes dans l’ordre d’apparition, le reste en liste', async () => {
+  const { counterTables } = await import('../js/plugins/compteurs/core.js');
+  const list = [
+    { id: 'a-ok', label: 'A ok', row: 'Ana', column: 'Réussi', icon: 'check' },
+    { id: 'libre', label: 'Libre' },
+    { id: 'b-ok', label: 'B ok', row: 'Bob', column: 'Réussi' },
+    { id: 'a-aide', label: 'A aide', row: 'Ana', column: 'Aide', icon: 'hand' },
+    { id: 'seul', label: 'Ligne seule', row: 'Ana' },
+    { id: 'x', label: 'Autre tableau', row: 'Ana', column: 'Réussi', table: 'Bilan' },
+  ];
+  const { tables, rest } = counterTables(list);
+  assert.equal(tables.length, 2);
+  const [t] = tables;
+  assert.equal(t.title, '');
+  assert.deepEqual(t.rows, ['Ana', 'Bob']);
+  assert.deepEqual(t.columns.map(c => c.label), ['Réussi', 'Aide']);
+  assert.equal(t.columns[0].icon, 'check');
+  assert.equal(t.cell('Ana', 'Aide').id, 'a-aide');
+  assert.equal(t.cell('Bob', 'Aide'), null);
+  assert.equal(tables[1].title, 'Bilan');
+  assert.deepEqual(rest.map(c => c.id), ['libre', 'seul']);
+});
+
+test('tableau : la normalisation garde ligne et colonne, la vérification signale les cases incomplètes ou doublées', () => {
+  const adv = sample([
+    { id: 'a', label: 'A', row: 'Ana', column: 'Réussi' },
+    { id: 'b', label: 'B', row: 'Ana', column: 'Réussi' },
+    { id: 'c', label: 'C', row: 'Bob' },
+  ]);
+  assert.equal(adv.rules.counters[0].row, 'Ana');
+  assert.equal(adv.rules.counters[0].column, 'Réussi');
+  const p = counterProblems(adv);
+  assert.ok(p.some(x => x.level === 'error' && /même case/.test(x.message)), JSON.stringify(p));
+  assert.ok(p.some(x => x.id === 'c' && /ligne sans colonne/.test(x.message)), JSON.stringify(p));
+});
+
+test('compteur discret : visible, sans message de changement, mais ses déclencheurs parlent', () => {
+  const adv = sample([{ id: 'q', label: 'Discret', start: 0, quiet: true, triggers: [{ when: 'gte', value: 2, action: 'message', message: 'Deux !' }] }]);
+  const s0 = hero(adv);
+  const r1 = fx(s0, adv, { op: 'counter', counter: 'q', add: 1 });
+  assert.equal(r1.state.counters.q, 1);
+  assert.equal(r1.messages.length, 0);
+  const r2 = fx(r1.state, adv, { op: 'counter', counter: 'q', add: 1 });
+  assert.deepEqual(r2.messages.map(m => m.text), ['Deux !']);
+});
