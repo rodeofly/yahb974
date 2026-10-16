@@ -90,6 +90,28 @@ Une phrase résume aussi la carte (« Vous êtes ici : Brumeval. Lieux visités 
 La carte du monde est ajoutée en annexe, sur une nouvelle page, avec tous les lieux nommés et une
 case à cocher par lieu.
 
+## Le voyage sur le plateau, entre deux étapes
+
+Pour un livre qui se joue sur un plateau (jeu de l'oie, jeu de piste…) : quand le lieu change d'un paragraphe à
+l'autre, le plateau s'affiche en grand et un **pion** avance de case en case jusqu'au nouveau lieu, à la manière d'un
+jeu de plateau (il saute, se pose, repart ; un petit son à chaque case ; il rebondit à l'arrivée). En tête : « En
+route », le lieu, et l'étape (« Étape 3 sur 9 ») si le paragraphe en a une. Un toucher, Échap ou Entrée passe le
+voyage. Si l'appareil réduit les animations, le pion est posé directement sur sa case, un instant. Le voyage et le
+moment d'un badge gagné passent l'un après l'autre, et l'encre du paragraphe attend la fin du voyage.
+
+```jsonc
+"meta": { "worldMap": {
+  "image": "images/plateau.jpg",
+  "path": [[8, 87], [18, 84], [28, 86], …],          // les cases du chemin, dans l'ordre (en % de l'image)
+  "places": { "Départ": { "x": 8, "y": 87, "case": 0 }, "Le pré": { "x": 27, "y": 85, "case": 1 }, … },
+                                                      // case : case d'arrêt du lieu (sinon la plus proche)
+  "travel": { "token": "images/pion.png" }            // le pion : une image (ronde de préférence) ou un émoji
+} }
+```
+
+Le pion va de la case du lieu quitté à celle du nouveau lieu, dans un sens ou dans l'autre (retour en arrière
+compris). Rien en mode triche après « Tout débloquer ».
+
 ## Révéler un lieu, conditions de lieu
 
 - Effet **Révéler un lieu (carte du monde)** : le lieu apparaît sur la carte du joueur (anneau vide)

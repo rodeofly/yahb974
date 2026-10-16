@@ -44,6 +44,9 @@ export const sfx = {
   win: () => [523, 659, 784, 1046].forEach((f, i) => tone({ f, t: 0.35, g: 0.22, type: 'triangle', delay: i * 0.14 })),
   death: () => [330, 294, 262, 196].forEach((f, i) => tone({ f, t: 0.5, g: 0.2, type: 'sine', delay: i * 0.3 })),
   magic: () => { for (let i = 0; i < 8; i++) tone({ f: 600 + i * 140, t: 0.12, g: 0.1, delay: i * 0.04 }); },
+  // Pion qui saute d'une case à l'autre (voyage sur le plateau), puis arrivée.
+  hop: () => { tone({ f: 520, f2: 780, t: 0.09, g: 0.12, type: 'triangle' }); noise({ t: 0.03, g: 0.08, delay: 0.09, hp: 2500 }); },
+  arrive: () => [659, 988].forEach((f, i) => tone({ f, t: 0.22, g: 0.16, type: 'triangle', delay: i * 0.1 })),
   // Trophée : fanfare montante, puis crépitements de feu d'artifice.
   trophy: () => {
     [523, 659, 784, 1046, 1318].forEach((f, i) => tone({ f, t: 0.32, g: 0.18, type: 'triangle', delay: i * 0.09 }));

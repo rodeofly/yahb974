@@ -22,7 +22,7 @@
 //      État : state.cheat = null | { turn, unlocked }, state.seenItems = { [id]: true } (cases « Nouveau »).
 // Voir docs/plugins/inventaire.md.
 
-import { registerNormalize, registerHeroInit } from '../../core/plugins.js';
+import { registerNormalize, registerHeroInit, registerAssets } from '../../core/plugins.js';
 import { applyEffects } from '../../core/rules.js';
 
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -219,3 +219,6 @@ registerNormalize(adv => {
 });
 
 registerHeroInit(state => { state.cheat = null; state.seenItems = {}; });
+
+// Images des fiches du sac et des cartes : exportées avec l'aventure (.lhz).
+registerAssets(adv => Object.values(adv.items || {}).flatMap(it => [it?.image, ...((Array.isArray(it?.cards) ? it.cards : it?.cards?.list) || []).map(c => c?.image)]));

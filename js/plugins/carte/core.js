@@ -8,6 +8,9 @@
 //    (par exemple, ceux d'un livre précédent de la même série).
 // 3. Effet { op: 'revealPlace', place } : le héros apprend où se trouve un lieu (il apparaît sur sa carte).
 // 4. Conditions { placeVisited }, { placeNotVisited }, { placeKnown } : être (ou non) déjà allé dans un lieu.
+// 5. Voyage sur le plateau : worldMap.path = [{ x, y }] (les cases, dans l'ordre), worldMap.places[lieu].case (la case
+//    d'arrêt du lieu ; sinon la plus proche), worldMap.travel = { token: 'images/pion.png' ou un émoji, label? } :
+//    quand le lieu change, le plateau s'affiche et le pion avance de case en case (travelHops).
 // Voir docs/plugins/carte.md.
 
 import { registerBlock, registerEffect, registerCondition, registerHeroInit, registerNormalize, registerAssets, findCondition, ext } from '../../core/plugins.js';
@@ -115,6 +118,44 @@ export function placePos(adv, name) {
   const key = Object.keys(places).find(k => placeName(k) === n);
   const p = key !== undefined ? places[key] : null;
   return p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)) ? { x: clamp(p.x), y: clamp(p.y) } : null;
+}
+
+/** Un pion d'image (« images/pion.png ») plutôt qu'un émoji. */
+export const isImagePath = v => typeof v === 'string' && /\.(png|jpe?g|webp|svg|gif)$/i.test(v.trim());
+
+/** Cases du plateau (worldMap.path), en pourcentage de l'image ; [] sans chemin. Accepte [x, y] ou { x, y }. */
+export function pathOf(adv) {
+  const p = adv?.meta?.worldMap?.path;
+  return (Array.isArray(p) ? p : []).map(q => (Array.isArray(q) ? { x: q[0], y: q[1] } : q))
+    .filter(q => q && Number.isFinite(Number(q.x)) && Number.isFinite(Number(q.y))).map(q => ({ x: clamp(q.x), y: clamp(q.y) }));
+}
+
+/** Case d'arrêt d'un lieu sur le chemin : `places[lieu].case`, sinon la case la plus proche du lieu ; null sinon. */
+export function placeCase(adv, name) {
+  const path = pathOf(adv);
+  if (!path.length) return null;
+  const places = adv?.meta?.worldMap?.places || {};
+  const n = placeName(name);
+  const key = Object.keys(places).find(k => placeName(k) === n);
+  if (key === undefined) return null;
+  const c = Number(places[key]?.case);
+  if (Number.isInteger(c) && c >= 0 && c < path.length) return c;
+  const pos = placePos(adv, n);
+  if (!pos) return null;
+  let best = 0, d = Infinity;
+  path.forEach((q, i) => { const e = (q.x - pos.x) ** 2 + (q.y - pos.y) ** 2; if (e < d) { d = e; best = i; } });
+  return best;
+}
+
+/** Cases parcourues pour aller d'un lieu à l'autre (indices, départ et arrivée compris), ou null (pas de voyage). */
+export function travelHops(adv, from, to) {
+  const wm = adv?.meta?.worldMap;
+  if (!wm?.travel || !wm.image) return null;
+  const a = placeCase(adv, from), b = placeCase(adv, to);
+  if (a === null || b === null || a === b) return null;
+  const step = a < b ? 1 : -1, out = [];
+  for (let i = a; i !== b + step; i += step) out.push(i);
+  return out;
 }
 
 /**
@@ -294,5 +335,6 @@ registerCondition({
 
 registerAssets(adv => [
   adv.meta?.worldMap?.image,
+  ...[adv.meta?.worldMap?.travel?.token].filter(isImagePath),
   ...Object.values(adv.sections || {}).flatMap(s => (s.blocks || []).filter(b => b.type === TYPE).map(b => b.image)),
 ]);

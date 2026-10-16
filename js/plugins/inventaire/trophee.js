@@ -8,24 +8,13 @@
 import { html, render, useState, useEffect, useRef } from '../../lib/preact-htm.js';
 import { Prose } from '../../ui/common.js';
 import { sfx } from '../../ui/audio.js';
+import { onStage } from '../../ui/stage.js';
 
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
-const queue = [];
-let host = null;
-let busy = false;
 
-/** Met des badges dans la file des célébrations ; `items` : [{ id, icon, name, earn, description }]. */
+/** Met des badges dans la file des moments plein écran ; `items` : [{ id, icon, name, earn, description }]. */
 export function celebrate(items) {
-  queue.push(...items);
-  if (!busy) next();
-}
-
-function next() {
-  const it = queue.shift();
-  if (!it) { busy = false; if (host) { render(null, host); host.remove(); host = null; } return; }
-  busy = true;
-  if (!host) { host = document.createElement('div'); host.className = 'trophy-portal'; document.body.append(host); }
-  render(html`<${Trophy} key=${it.id + Date.now()} it=${it} done=${next} />`, host);
+  for (const it of items) onStage((host, done) => render(html`<${Trophy} it=${it} done=${done} />`, host));
 }
 
 /** Feu d'artifice sur un canevas : quelques gerbes, gravité, traînées qui s'effacent. */

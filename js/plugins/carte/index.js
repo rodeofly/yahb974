@@ -7,7 +7,9 @@
 import './core.js';
 import { html, useState, useEffect, useLayoutEffect, useRef, useMemo } from '../../lib/preact-htm.js';
 import { Icon, Modal, loadCSS } from '../../ui/common.js';
-import { registerBlockUI, registerSheetPanel, registerEditorTab, registerPrintSection, registerEffectUI, registerConditionUI, registerInventoryTab } from '../../ui/registry.js';
+import { registerBlockUI, registerSheetPanel, registerEditorTab, registerPrintSection, registerEffectUI, registerConditionUI, registerInventoryTab, registerRunHook } from '../../ui/registry.js';
+import { travel } from './voyage.js';
+import * as K from './core.js';
 import { Text, Num, ImageSlot, ConditionEditor, EffectsEditor } from '../../ui/editor.js';
 import { assetUrl } from '../../store/library.js';
 import {
@@ -429,3 +431,19 @@ registerEffectUI('revealPlace', {
   blank: adv => ({ v: placesOf(adv)[0]?.name || '' }),
   Fields: ({ row, upd, adv }) => html`<${PlaceField} value=${row.v} onChange=${v => upd({ v })} adv=${adv} />`,
 }));
+
+/* ------------------------------------------------------------------ */
+/* Voyage sur le plateau, entre deux étapes                            */
+/* ------------------------------------------------------------------ */
+
+// Quand le lieu change (worldMap.travel et worldMap.path réglés), le pion va de case en case jusqu'au nouveau lieu.
+registerRunHook({
+  id: 'voyage',
+  onUpdate: (adv, prev, state, ctx) => {
+    if (!prev?.section || prev.section === state.section || state.cheat?.unlocked) return;
+    const from = K.placeName(adv.sections[prev.section]?.place), to = K.placeName(adv.sections[state.section]?.place);
+    if (!from || !to || from === to) return;
+    const hops = K.travelHops(adv, from, to);
+    if (hops) travel(adv, ctx?.source, hops, to, adv.sections[state.section]);
+  },
+});

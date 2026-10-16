@@ -3,6 +3,7 @@
 
     npm run dev                                   # le moteur seul
     npm run dev -- --livre ../mon-livre/dist      # + un livre en cours d'écriture (dossier : adventure.json, images/…)
+    npm run dev -- --lan                          # aussi depuis une tablette du même réseau (http://<adresse>:8080)
 
 Comme `npm run serve`, mais pour voir ses changements en direct, sans vider de cache :
 - aucune réponse n'est gardée par le navigateur (Cache-Control: no-store) ;
@@ -34,18 +35,21 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
 
 
 def arguments(argv):
-    port, livres, i = 8080, [], 0
+    port, livres, lan, i = 8080, [], False, 0
     while i < len(argv):
         a = argv[i]
         if a == '--livre' and i + 1 < len(argv):
             livres.append(pathlib.Path(argv[i + 1]).resolve()); i += 2; continue
-        if a.isdigit():
+        if a == '--lan':
+            lan = True
+        elif a.isdigit():
             port = int(a)
         i += 1
-    return port, livres
+    return port, livres, lan
 
 
-PORT, LIVRES = arguments(sys.argv[1:])
+# Par défaut, ce poste seulement (127.0.0.1) : un livre en cours d'écriture n'a pas à être vu de tout le réseau.
+PORT, LIVRES, LAN = arguments(sys.argv[1:])
 
 
 def livres():
@@ -103,7 +107,7 @@ class Dev(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    print(f'Livre-Héros (dev) : http://localhost:{PORT}  (Ctrl+C pour arrêter)', flush=True)
+    print(f'Livre-Héros (dev) : http://localhost:{PORT}{"  (ouvert au réseau local)" if LAN else ""}  (Ctrl+C pour arrêter)', flush=True)
     for ident, (d, _) in livres().items():
         print(f'  livre « {ident} » lu dans {d}', flush=True)
-    http.server.ThreadingHTTPServer(('', PORT), functools.partial(Dev, directory=str(RACINE))).serve_forever()
+    http.server.ThreadingHTTPServer(('' if LAN else '127.0.0.1', PORT), functools.partial(Dev, directory=str(RACINE))).serve_forever()

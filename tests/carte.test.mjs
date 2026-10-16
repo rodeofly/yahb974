@@ -221,3 +221,19 @@ test('rétrocompatibilité : aventure sans carte, normalisation, fichiers export
   assert.ok(files.includes('images/carte.webp'));
   assert.deepEqual(rectOf({ x: 90, y: -5, w: 30, h: 'x' }), { x: 90, y: 0, w: 10, h: 0 });
 });
+
+test('voyage sur le plateau : case d’arrêt (donnée ou la plus proche), cases parcourues dans les deux sens', async () => {
+  const C = await import('../js/plugins/carte/core.js');
+  const adv = { meta: { worldMap: { image: 'images/p.jpg', travel: { token: '🦙' },
+    path: [[0, 0], [10, 0], [20, 0], [30, 0], { x: 40, y: 0 }],
+    places: { 'Départ': { x: 0, y: 0, case: 0 }, 'Le pré': { x: 21, y: 3 }, 'La maison': { x: 40, y: 0, case: 4 }, 'Ailleurs': { x: 90, y: 90, case: 99 } } } } };
+  assert.equal(C.placeCase(adv, 'Le pré'), 2);
+  assert.equal(C.placeCase(adv, 'Ailleurs'), 4); // case hors du chemin : la plus proche
+  assert.equal(C.placeCase(adv, 'Inconnu'), null);
+  assert.deepEqual(C.travelHops(adv, 'Départ', 'Le pré'), [0, 1, 2]);
+  assert.deepEqual(C.travelHops(adv, 'La maison', 'Le pré'), [4, 3, 2]);
+  assert.equal(C.travelHops(adv, 'Le pré', 'Le pré'), null);
+  assert.equal(C.travelHops({ meta: { worldMap: { ...adv.meta.worldMap, travel: null } } }, 'Départ', 'Le pré'), null);
+  assert.equal(C.isImagePath('images/pion.png'), true);
+  assert.equal(C.isImagePath('🦙'), false);
+});

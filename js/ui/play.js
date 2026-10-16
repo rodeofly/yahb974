@@ -52,7 +52,7 @@ export function Play({ id, query }) {
     const a = effective(adv, state);
     setGame(g => {
       const prev = g?.state || null;
-      runHooks('onUpdate', a, prev, state, { test });
+      runHooks('onUpdate', a, prev, state, { test, source });
       if (state.ended && !prev?.ended) runHooks('onEnd', a, state, { test });
       // messages === null : mise à jour discrète (sac regardé, notes) qui garde les messages affichés.
       return { state, messages: messages === null ? (g?.messages || []) : messages, stamp: (g?.stamp || 0) + 1 };
@@ -190,8 +190,11 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
     lastSection.current = state.section;
     if (stay) return;
     // Lecture continue : on glisse jusqu'au nouveau paragraphe, les précédents restent au-dessus.
-    if (continuous) curRef.current?.scrollIntoView({ block: 'start', behavior: first || reducedMotion() ? 'auto' : 'smooth' });
-    else topRef.current?.scrollIntoView({ block: 'start' });
+    // La suite s'ajoute en bas ; un instant après, la page remonte jusqu'à ce que le nouveau paragraphe soit en haut.
+    if (continuous) {
+      if (first || reducedMotion()) curRef.current?.scrollIntoView({ block: 'start' });
+      else setTimeout(() => curRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 180);
+    } else topRef.current?.scrollIntoView({ block: 'start' });
     sfx.page();
     const path = sec.sound || adv.meta.sound;
     if (path) assetUrl(adv, source, path).then(u => ambience(u, sec.sound ? sec.soundLoop !== false : true)); else ambience(null);
@@ -246,7 +249,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
       ${test && html`<p class="badge" style="margin:0 auto 12px">Mode test : rien n'est sauvegardé</p>`}
       ${state.cheat && html`<p class="badge" style="margin:0 auto 12px"><span aria-hidden="true">🃏</span> Mode triche</p>`}
       ${continuous && html`<${Feed} adv=${adv} source=${source} state=${state} numbers=${numbers} onImage=${setLightbox} />`}
-      <div class="feed-current" ref=${curRef} aria-live=${continuous ? 'polite' : null}>
+      <div class="feed-current ink" key=${'p' + state.section + '-' + (state.trail?.length || 0)} ref=${curRef} aria-live=${continuous ? 'polite' : null}>
       <${SecHead} adv=${adv} id=${state.section} sec=${sec} numbers=${numbers} />
       ${ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
         ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
