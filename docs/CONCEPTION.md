@@ -185,3 +185,11 @@ Tous sont facultatifs : une aventure qui ne les a pas s'ouvre et se joue comme a
 1. Dans l'éditeur : **Exporter** → `mon-aventure.lhz`.
 2. Pour la partager à des joueurs : l'envoyer (ils font **Importer**), ou la publier sur le site :
    dézipper dans `adventures/mon-aventure/` et ajouter une ligne dans `adventures/index.json`.
+3. **Rayons de la bibliothèque** : une ligne de l'index peut porter `series` (le rayon : une série, une campagne),
+   `seriesOrder` (le tome) et `seriesNote` (la présentation du rayon). La bibliothèque range alors les cartes par
+   rayon (raccourcis vers chaque rayon en tête ; le titre du livre perd le nom de la série qu'il répète), les tomes
+   dans l'ordre ; sans `series` nulle part, la grille est celle d'avant. Une ligne peut aussi être un **document à
+   lire** : `kind: "document"`, `href` (le PDF), `coverUrl` (sa vignette) ; une aventure peut renvoyer à son livre
+   d'origine par `pdf`. Une copie importée d'une aventure publiée la remplace dans la liste (une seule carte).
+   En local, `npm run dev -- --bibliotheque catalogue.json` fabrique cet index à partir de dossiers, de `.lhz` et de
+   PDF (voir `tools/dev.py`).

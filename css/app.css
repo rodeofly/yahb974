@@ -287,6 +287,25 @@ html.lh-focus .feed-current.ink > *, html.lh-focus .feed-current.ink > .prose > 
 .msgs.compact .msg:not(.alert) svg { display: none; }
 .msgs.compact .msg.alert { font-size: 14px; }
 
+/* ---------- bibliothèque rangée par rayons (séries) ---------- */
+.shelf-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 18px; }
+.shelf-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink); font: 600 14px/1.3 var(--sans); text-decoration: none; }
+.shelf-chip:hover { border-color: var(--accent); }
+.shelf-chip .mono { font-size: 12px; color: var(--muted); }
+.shelf { margin: 8px 0 30px; scroll-margin-top: 80px; }
+.shelf-head { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; margin-bottom: 8px; }
+.shelf-head h2 { margin: 0; font-size: 24px; }
+.shelf-note { margin: 0 0 12px; max-width: 75ch; }
+/* Rayons de documents (scans PDF) : petites cartes au format livre, la couverture entière. */
+.shelf.docs .cards { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.card.doc .cover { aspect-ratio: 2 / 3; }
+.card.doc .cover img { width: 100%; height: 100%; object-fit: cover; }
+.card.doc .body { padding: 8px 10px 4px; gap: 4px; }
+.card.doc .body h2 { font-size: 15px !important; line-height: 1.25; }
+.card.doc .body .badge { display: none; }
+.card.doc .foot { padding: 4px 10px 10px; }
+
 /* ---------- avatar ---------- */
 .avatar { display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; border: 2px solid var(--line);
   background: var(--paper); font-size: 26px; line-height: 1; cursor: pointer; padding: 0; color: var(--muted); }

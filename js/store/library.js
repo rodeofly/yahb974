@@ -8,7 +8,11 @@ import { ext } from '../core/plugins.js';
 
 const BUNDLED = 'adventures/';
 
-/** Liste : [{ id, title, author, description, cover, source: 'bundled'|'local', updated, sections }] */
+/**
+ * Liste : [{ id, title, author, description, cover, source: 'bundled'|'local', updated, sections, series?, seriesOrder?, seriesNote? }]
+ * Une aventure importée qui porte l'identifiant d'une aventure du site la remplace dans la liste (c'est elle qui se
+ * joue) et garde son rayon (`series`) ; une seule carte, donc.
+ */
 export async function listLibrary() {
   const out = [];
   try {
@@ -17,9 +21,36 @@ export async function listLibrary() {
   } catch { /* hors ligne sans cache : on continue avec les aventures locales */ }
   for (const rec of await db.listAdventures()) {
     const a = rec.adventure;
-    out.push({ id: a.id, title: a.meta.title, author: a.meta.author, description: a.meta.description, cover: a.meta.cover, source: 'local', updated: a.meta.updated, sections: Object.keys(a.sections).length });
+    const local = { id: a.id, title: a.meta.title, author: a.meta.author, description: a.meta.description, cover: a.meta.cover, source: 'local', updated: a.meta.updated, sections: Object.keys(a.sections).length,
+      series: a.meta.series, seriesOrder: a.meta.seriesOrder };
+    const i = out.findIndex(e => e.source === 'bundled' && e.id === a.id);
+    if (i >= 0) out[i] = { ...local, series: local.series || out[i].series, seriesOrder: local.seriesOrder ?? out[i].seriesOrder, seriesNote: out[i].seriesNote, replaces: true };
+    else out.push(local);
   }
   return out;
+}
+
+/**
+ * Rayons de la bibliothèque : les aventures regroupées par `series`, dans l'ordre où chaque rayon apparaît, triées
+ * par `seriesOrder` (puis dans l'ordre de la liste). Les aventures sans rayon vont dans un dernier rayon sans titre
+ * (« Sur cet appareil » si elles sont toutes locales). Sans aucun rayon : un seul groupe, comme avant.
+ */
+export function shelvesOf(items) {
+  const shelves = [], byName = new Map();
+  items.forEach((e, k) => {
+    const name = e.series ? String(e.series) : '';
+    if (!byName.has(name)) { const s = { title: name, note: '', items: [] }; byName.set(name, s); shelves.push(s); }
+    const s = byName.get(name);
+    if (!s.note && e.seriesNote) s.note = String(e.seriesNote);
+    s.items.push({ e, k });
+  });
+  for (const s of shelves) s.items = s.items.sort((a, b) => (Number(a.e.seriesOrder) || 1e9) - (Number(b.e.seriesOrder) || 1e9) || a.k - b.k).map(x => x.e);
+  const loose = byName.get('');
+  if (loose && shelves.length > 1) {
+    shelves.splice(shelves.indexOf(loose), 1); shelves.push(loose);
+    loose.title = loose.items.every(e => e.source === 'local') ? 'Sur cet appareil' : 'Autres aventures';
+  }
+  return shelves;
 }
 
 /** Charge une aventure. Les aventures locales ont priorité sur celles du site. */

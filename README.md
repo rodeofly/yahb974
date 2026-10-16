@@ -55,6 +55,8 @@ Pour **développer** (voir ses changements à chaque rechargement, sans vieux fi
 puis <http://localhost:8080> (`tools/dev.py` : rien n'est gardé en cache, et le service worker hors ligne est
 désactivé). Pour un livre en cours d'écriture : `npm run dev -- --livre chemin/du/dossier` (le dossier qui contient
 `adventure.json` et `images/`) : il apparaît dans la bibliothèque et se relit à chaque rechargement, sans import.
+Pour toute une bibliothèque rangée par rayons (livres jouables, scans PDF) : `npm run dev -- --bibliotheque catalogue.json`
+(format en tête de `tools/dev.py`) ; `--lan` l'ouvre au réseau local.
 
 ## Mettre en ligne
 

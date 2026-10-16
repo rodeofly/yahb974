@@ -2,7 +2,7 @@
 
 import { html, useState, useEffect, useRef } from '../lib/preact-htm.js';
 import { Icon, AssetImg, toast, confirmBox } from './common.js';
-import { listLibrary, loadAdventure, importAdventure, exportAdventure, download, duplicateAdventure } from '../store/library.js';
+import { listLibrary, loadAdventure, importAdventure, exportAdventure, download, duplicateAdventure, shelvesOf } from '../store/library.js';
 import { putAdventure, deleteAdventure, listSaves } from '../store/db.js';
 import { newAdventure, slug } from '../core/rules.js';
 import { ui, sorted } from './registry.js';
@@ -17,6 +17,8 @@ export async function askReplace(existing, adv) {
 
 function Cover({ entry }) {
   const [adv, setAdv] = useState(null);
+  // Document (PDF) ou index qui donne une vignette prête : on l'affiche telle quelle.
+  if (entry.coverUrl) return html`<div class="cover"><img src=${entry.coverUrl} alt="" loading="lazy" /></div>`;
   // Aventure publiée : index.json donne déjà la couverture, inutile de télécharger toute l'aventure.
   const bundled = entry.source === 'bundled';
   useEffect(() => { if (entry.cover && !bundled) loadAdventure(entry.id).then(r => setAdv(r)).catch(() => {}); }, [entry.id, entry.cover, bundled]);
@@ -91,27 +93,43 @@ export function Library() {
         ${sorted(ui.libraryActions).map(a => html`<${a.Action} refresh=${refresh} />`)}
       </div>
     </div>
-    ${items === null ? html`<p class="muted">Chargement…</p>` : !items.length ? html`<p class="muted">Aucune aventure pour l'instant.</p>` : html`
-    <div class="cards">
-      ${items.map(e => html`<article class="card" key=${e.source + e.id}>
+    ${items === null ? html`<p class="muted">Chargement…</p>` : !items.length ? html`<p class="muted">Aucune aventure pour l'instant.</p>` : (() => {
+      // Rayons (séries) quand l'index en déclare ; sinon une seule grille, comme avant.
+      const shelves = shelvesOf(items);
+      const titled = shelves.length > 1 || !!shelves[0]?.title;
+      const shortTitle = (e, s) => (s.title && e.title?.startsWith(s.title) ? e.title.slice(s.title.length).replace(/^\s*[·:–—-]\s*/, '') || e.title : e.title);
+      const card = (e, s) => html`<article class=${'card' + (e.kind === 'document' ? ' doc' : '')} key=${e.source + e.id}>
         <${Cover} entry=${e} />
         <div class="body">
-          <span class="badge">${e.source === 'local' ? 'Sur cet appareil' : 'Publiée'}</span>
-          <h2 style="font-size:21px">${e.title}</h2>
+          <span class="badge">${e.kind === 'document' ? 'À lire (PDF)' : e.source === 'local' ? (e.replaces ? 'Copie importée' : 'Sur cet appareil') : 'Publiée'}</span>
+          <h2 style="font-size:21px">${shortTitle(e, s)}</h2>
           ${e.author && html`<span class="muted">par ${e.author}</span>`}
           ${e.description && html`<p class="muted" style="margin:0;font-size:15px">${e.description}</p>`}
           <span class="subtle">${e.sections ? `${e.sections} paragraphes` : ''}${saves[e.id] ? ` · ${saves[e.id]} partie${saves[e.id] > 1 ? 's' : ''} en cours` : ''}</span>
           ${sorted(ui.libraryExtras).map(x => html`<${x.Extra} entry=${e} />`)}
         </div>
-        <div class="foot">
+        ${e.kind === 'document' ? html`<div class="foot">
+          <a class="btn primary small" href=${e.href} target="_blank" rel="noopener"><${Icon} name="book" />Lire</a>
+        </div>` : html`<div class="foot">
           <a class="btn primary small" href=${`#/jouer/${encodeURIComponent(e.id)}`}><${Icon} name="play" />${saves[e.id] ? 'Continuer' : 'Jouer'}</a>
+          ${e.pdf && html`<a class="btn small" href=${e.pdf} target="_blank" rel="noopener" title="Le livre d'origine, en PDF"><${Icon} name="book" />PDF</a>`}
           <button class="btn small" onClick=${() => edit(e)}><${Icon} name="edit" />${e.source === 'local' ? 'Modifier' : 'Copier pour modifier'}</button>
           <button class="btn small" onClick=${() => doExport(e)} aria-label="Exporter"><${Icon} name="download" /></button>
           <a class="btn small" href=${`#/imprimer/${encodeURIComponent(e.id)}`} aria-label="Version imprimable"><${Icon} name="print" /></a>
           ${sorted(ui.cardActions).map(a => html`<${a.Action} entry=${e} refresh=${refresh} />`)}
           ${e.source === 'local' && html`<button class="btn small danger" onClick=${() => remove(e)} aria-label="Supprimer"><${Icon} name="trash" /></button>`}
-        </div>
-      </article>`)}
-    </div>`}
+        </div>`}
+      </article>`;
+      if (!titled) return html`<div class="cards">${items.map(e => card(e, { title: '' }))}</div>`;
+      const anchor = (s, i) => `rayon-${i}`;
+      return html`
+        ${shelves.length > 2 && html`<nav class="shelf-nav" aria-label="Rayons de la bibliothèque">${shelves.map((s, i) => html`<a class="shelf-chip" href=${'#' + anchor(s, i)}
+          onClick=${ev => { ev.preventDefault(); document.getElementById(anchor(s, i))?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>${s.title}<span class="mono">${s.items.length}</span></a>`)}</nav>`}
+        ${shelves.map((s, i) => html`<section class=${'shelf' + (s.items.every(e => e.kind === 'document') ? ' docs' : '')} id=${anchor(s, i)} aria-labelledby=${anchor(s, i) + '-t'}>
+          <header class="shelf-head"><h2 id=${anchor(s, i) + '-t'}>${s.title}</h2><span class="subtle">${s.items.length} livre${s.items.length > 1 ? 's' : ''}</span></header>
+          ${s.note && html`<p class="muted shelf-note">${s.note}</p>`}
+          <div class="cards">${s.items.map(e => card(e, s))}</div>
+        </section>`)}`;
+    })()}
   </main>`;
 }
