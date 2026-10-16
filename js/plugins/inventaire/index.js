@@ -9,11 +9,12 @@
 
 import { html, useState, useRef, useMemo } from '../../lib/preact-htm.js';
 import { Icon, Modal, Prose, AssetImg, Glyph, iconText, toast, confirmBox, loadCSS } from '../../ui/common.js';
-import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel, registerRunHook } from '../../ui/registry.js';
+import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel, registerRunHook, registerPrintSection } from '../../ui/registry.js';
 import { Text, Num, Select, ImageSlot } from '../../ui/editor.js';
+import { download } from '../../store/library.js';
 import * as R from '../../core/rules.js';
 import * as I from './core.js';
-import { Deck } from './cartes.js';
+import { Deck, PrintDecks } from './cartes.js';
 import { celebrate } from './trophee.js';
 
 loadCSS(new URL('./style.css', import.meta.url));
@@ -213,6 +214,7 @@ function EndingBoards({ adv, source, state }) {
 }
 
 registerSheetPanel({ id: 'badges', order: 5, Panel: SheetBoards });
+registerPrintSection({ where: 'appendix', order: 30, Section: PrintDecks });
 
 // Un badge gagné est un moment d'arrêt : feu d'artifice, badge qui tourne, sa carte, puis il se range dans le sac.
 // Pas en mode triche, ni quand plus de trois badges arrivent d'un coup (« Tout débloquer », reprise d'une partie).
@@ -268,10 +270,19 @@ registerInventory(Inventory);
 registerInventoryTab({
   id: 'carnet', order: 90, label: 'Carnet', icon: 'book',
   show: () => true,
-  Tab: ({ state, update }) => html`<div class="stack" style="gap:8px">
-    <p class="subtle" style="margin:0">Ce que le livre t'a fait noter, et tes propres notes.</p>
-    <label class="field" for="inv-notes">Notes<textarea id="inv-notes" rows="10" value=${state.notes || ''} onChange=${e => update({ ...state, notes: e.target.value }, null)}></textarea></label>
-  </div>`,
+  Tab: ({ adv, state, update }) => {
+    // Le relevé (compteurs, badges, carnet) en fichier Markdown, pour l'analyse après la partie.
+    const save = () => {
+      const day = new Date().toISOString().slice(0, 10);
+      download(new Blob([I.releve(adv, state)], { type: 'text/markdown;charset=utf-8' }), `releve-${R.slug(adv.meta?.title || 'partie')}-${day}.md`);
+    };
+    return html`<div class="stack" style="gap:8px">
+      <p class="subtle" style="margin:0">Ce que le livre t'a fait noter, et tes propres notes.</p>
+      <label class="field" for="inv-notes">Notes<textarea id="inv-notes" rows="10" value=${state.notes || ''} onChange=${e => update({ ...state, notes: e.target.value }, null)}></textarea></label>
+      <div class="row"><button class="btn small" onClick=${save}><${Icon} name="download" />Télécharger le relevé</button>
+        <span class="subtle">compteurs, badges et carnet, en un fichier texte</span></div>
+    </div>`;
+  },
 });
 
 /* ------------------------------------------------------------------ */

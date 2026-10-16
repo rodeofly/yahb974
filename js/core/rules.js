@@ -80,6 +80,9 @@ export function de(label, apos = "'") {
   const l = String(label ?? '');
   return /^([aeiouyàâäéèêëîïôöùûüœ]|h(onneur|éro(?!s)|umani|abilet|armoni|istoir|ospital|umilit|orreur|ygi|abitu|erb))/iu.test(l) ? `d${apos}${l}` : `de ${l}`;
 }
+/** Heure d'une note (« 13 h 07 »). Remplaçable pour les tests : `setNoteClock(() => '9 h 00')`. */
+let noteClock = () => { const d = new Date(); return `${d.getHours()} h ${String(d.getMinutes()).padStart(2, '0')}`; };
+export const setNoteClock = fn => { noteClock = fn; };
 /** L'aventure tutoie-t-elle le lecteur ? (`rules.tu`, ou `rules.defis.tu` pour les anciennes aventures) */
 export const tutoie = adv => !!(adv?.rules?.tu ?? adv?.rules?.defis?.tu);
 /** Avatars proposés par défaut : des personnages (féminin, masculin, neutre), puis des émojis sobres. */
@@ -312,7 +315,8 @@ export function applyEffects(state, adv, effects = []) {
         break;
       }
       case 'note':
-        s.notes = (s.notes ? s.notes + '\n' : '') + e.text;
+        // rules.noteTime : chaque note commence par l'heure (« 13 h 17 · … ») : le carnet devient un relevé horodaté.
+        s.notes = (s.notes ? s.notes + '\n' : '') + (adv.rules.noteTime ? noteClock() + ' · ' : '') + e.text;
         messages.push({ kind: 'info', text: `${tutoie(adv) ? 'Noté sur ta feuille' : 'Noté sur votre feuille'} : ${e.text}` });
         break;
       default: {

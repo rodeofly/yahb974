@@ -31,6 +31,13 @@ Une aventure sans réglage garde son sac habituel : un seul onglet « Objets »,
   **Une à une** (on fait glisser la carte, ou ‹ › et les flèches du clavier ; filtre par ligne) et **Carrousel**
   (les cartes tournent autour de celle du milieu ; on les fait glisser, ou « Faire tourner »). Toucher une carte
   du plan l'ouvre en grand. L'appareil se souvient de la vue choisie pour chaque paquet.
+- **Le Carnet** : les notes de la partie (celles que le livre fait écrire, et les siennes), et **Télécharger le
+  relevé** : un fichier Markdown avec la date, le héros, les compteurs (en tableau), les badges gagnés et à gagner,
+  puis le carnet ligne à ligne, pour l'analyse après la partie. Avec `rules.noteTime: true`, chaque note commence
+  par l'heure (« 13 h 17 · … »).
+- **La version imprimable** ajoute une annexe « À découper » pour les paquets de cartes marqués `print` : cartes de
+  58 × 82 mm, traits de coupe, couleurs et pictogrammes conservés ; `print: 3` imprime chaque carte trois fois (un
+  jeu par joueur). Sur papier, le pied de carte ne garde que la ligne (le prénom).
 - **La fiche** d'un objet : description, bouton **« Un indice : à quoi peut-il servir ? »** (l'indice dépend
   du mode de jeu : plus direct pour les petits, plus allusif pour les grands), et les actions de l'objet
   (Utiliser, Boire…).
@@ -81,7 +88,7 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
       "gain": "Badge gagné" },                          // message à l'obtention (sinon « Objet obtenu »)
     "plateau": { "name": "Plateau", "icon": "🗺️", "image": "images/plateau.jpg", "alt": "…" },   // image dans la fiche
     "cartes": { "name": "Cartes des élèves", "icon": "🎴",
-      "cards": { "view": "map",                         // vue de départ : map (plan), one (une à une), carousel
+      "cards": { "view": "map", "print": true,          // vue de départ : map (plan), one (une à une), carousel ; print : à découper
         "list": [ { "title": "lama", "sub": "2 syllabes", "band": "Le pré", "step": "2", "color": "#558B2F",
                     "image": "images/pictos/2683.png",   // pictogramme au-dessus du mot (facultatif)
                     "icon": "images/icones/x.svg",        // petite icône du bandeau (facultatif ; émoji ou image)

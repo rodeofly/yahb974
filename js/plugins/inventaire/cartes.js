@@ -4,7 +4,8 @@
 // Le modèle (deckOf) est dans ./core.js. Voir docs/plugins/inventaire.md.
 
 import { html, useState, useEffect, useRef } from '../../lib/preact-htm.js';
-import { prefs, Glyph, Icon } from '../../ui/common.js';
+import { prefs, Glyph, Icon, AssetImg } from '../../ui/common.js';
+import * as I from './core.js';
 
 const VIEWS = [['map', 'grid', 'Plan'], ['one', 'card', 'Une à une'], ['carousel', 'carousel', 'Carrousel']];
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
@@ -112,5 +113,28 @@ export function Deck({ deck, id = '', adv, source }) {
         })}
       </div>
       ${nav}`}
+  </div>`;
+}
+
+/**
+ * Version imprimable : les paquets marqués `print` (items[id].cards.print), à découper. Cartes de 58 × 82 mm, traits de
+ * coupe en pointillés, couleurs conservées à l'impression ; `print: 3` imprime chaque carte trois fois (un jeu par élève).
+ * Sur papier, la carte est pour le joueur : le pied ne garde que la ligne (le prénom), pas les indications de l'adulte.
+ */
+export function PrintDecks({ adv, source, images = true }) {
+  const decks = Object.entries(adv.items || {}).map(([id, it]) => ({ id, it, deck: I.deckOf(it) })).filter(x => x.deck?.copies > 0);
+  if (!decks.length) return null;
+  return html`<div class="dk-print">
+    <h2>À découper</h2>
+    <p class="pr-small">Imprimer en couleur, sans mise à l'échelle ; découper le long des pointillés. Plastifier si possible.</p>
+    ${decks.map(({ id, it, deck }) => html`<div class="dk-print-deck" key=${id}>
+      <h3>${it.name}${deck.copies > 1 ? html` <span class="pr-small">(${deck.copies} exemplaires de chaque)</span>` : null}</h3>
+      <div class="dk-print-grid">${deck.list.flatMap((c, k) => Array.from({ length: deck.copies }, (_, n) => html`<div class="dk-print-card" key=${k + '-' + n} style=${c.color ? `--c:${c.color}` : ''}>
+        <div class="dk-band">${c.step && html`<b class="dk-step">${c.step}</b>`}<span class="dk-band-t">${c.band || ''}</span></div>
+        <div class="dk-body">${images && c.image && html`<span class="dk-print-pic"><${AssetImg} adv=${adv} source=${source} path=${c.image} alt="" eager /></span>`}
+          <span class="dk-title">${c.title}</span>${c.sub && html`<span class="dk-sub">${c.sub}</span>`}</div>
+        ${c.row && html`<div class="dk-foot"><span>${c.row}</span></div>`}
+      </div>`))}</div>
+    </div>`)}
   </div>`;
 }

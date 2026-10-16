@@ -220,3 +220,19 @@ button.dk-card:focus-visible { outline: 3px solid var(--accent); outline-offset:
   .inv-new { animation: inv-pop .4s ease-out; }
   @keyframes inv-pop { from { transform: scale(.6); } to { transform: scale(1); } }
 }
+
+/* ---------- version imprimable : cartes à découper (cartes.js, PrintDecks) ---------- */
+.dk-print h2 { margin: 0 0 2mm; }
+.dk-print-deck { margin-top: 5mm; }
+.dk-print-deck h3 { margin: 0 0 3mm; }
+.dk-print-grid { display: grid; grid-template-columns: repeat(auto-fill, 58mm); gap: 0; justify-content: start; }
+.dk-print-card { --c: #2C6A55; width: 58mm; height: 82mm; box-sizing: border-box; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden;
+  border: 0.3mm dashed #888; padding: 2.5mm; break-inside: avoid; page-break-inside: avoid; font-family: var(--sans); color: #111; background: #fff;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.dk-print-card .dk-band { border-radius: 2mm 2mm 0 0; padding: 1.5mm 2mm; font-size: 8pt; }
+.dk-print-card .dk-step { min-width: 5mm; height: 5mm; font-size: 8pt; }
+.dk-print-card .dk-body { border-left: 0.6mm solid var(--c); border-right: 0.6mm solid var(--c); display: grid; place-content: center; gap: 1.5mm; text-align: center; padding: 2mm; background: none; }
+.dk-print-pic img { width: 30mm; height: 30mm; object-fit: contain; display: block; margin: 0 auto; }
+.dk-print-card .dk-title { font: 700 22pt/1.05 var(--serif); }
+.dk-print-card .dk-sub { font: 600 9pt/1.2 var(--mono); color: #444; }
+.dk-print-card .dk-foot { border: 0.6mm solid var(--c); border-top: 0.3mm dashed var(--c); border-radius: 0 0 2mm 2mm; padding: 1mm 2mm; font: 700 8pt/1.2 var(--sans); }

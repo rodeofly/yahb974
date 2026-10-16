@@ -184,3 +184,37 @@ test('paquet de cartes : plan en tableau quand toutes les cartes ont ligne et co
   assert.equal(g.view, 'map');
   assert.equal(g.matrix, false);
 });
+
+test('relevé : compteurs en tableau, badges gagnés et à gagner, carnet horodaté', async () => {
+  const { setNoteClock } = await import('../js/core/rules.js');
+  setNoteClock(() => '13 h 17');
+  const a = newAdventure('Séance');
+  a.meta.title = 'Le lama | séance';
+  a.rules.noteTime = true;
+  a.rules.counters = [
+    { id: 'seul-ana', label: 'Seul (Ana)', row: 'Ana', column: 'Seul', start: 0 },
+    { id: 'aide-ana', label: 'Aide (Ana)', row: 'Ana', column: 'Aide', start: 0 },
+    { id: 'seul-bob', label: 'Seul (Bob)', row: 'Bob', column: 'Seul', start: 0 },
+    { id: 'moments', label: 'Moments forts', start: 0 },
+    { id: 'secret', label: 'Secret', start: 0, visible: false },
+  ];
+  a.items = { b1: { name: 'Joker !' }, b2: { name: 'Le miroir' } };
+  a.rules.inventory = { collections: [{ id: 'badges', label: 'Badges', items: ['b1', 'b2'], board: true }] };
+  const adv = normalizeAdventure(a);
+  let s = createHero(adv, { seed: 1, name: 'Laure' }).state;
+  s = applyEffects(s, adv, [{ op: 'note', text: 'Ana : réussi seule.' }, { op: 'counter', counter: 'seul-ana', add: 2 },
+    { op: 'counter', counter: 'moments', add: 1 }, { op: 'give', item: 'b1' }]).state;
+  assert.equal(s.notes, '13 h 17 · Ana : réussi seule.');
+  const md = I.releve(adv, s, { date: new Date(2026, 9, 6) });
+  assert.match(md, /^# Le lama \/ séance : relevé/);
+  assert.match(md, /6 octobre 2026/);
+  assert.match(md, /\| \| Seul \| Aide \|/);
+  assert.match(md, /\| \*\*Ana\*\* \| 2 \| 0 \|/);
+  assert.match(md, /\| \*\*Bob\*\* \| 0 \| {2}\|/);
+  assert.match(md, /- Moments forts : 1/);
+  assert.doesNotMatch(md, /Secret/);
+  assert.match(md, /## Badges : 1 sur 2/);
+  assert.match(md, /- Gagnés : Joker !\n- À gagner : Le miroir/);
+  assert.match(md, /## Carnet\n\n- 13 h 17 · Ana : réussi seule\./);
+  setNoteClock(() => { const d = new Date(); return `${d.getHours()} h ${String(d.getMinutes()).padStart(2, '0')}`; });
+});

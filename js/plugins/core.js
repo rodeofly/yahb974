@@ -23,3 +23,5 @@ import './succes/core.js';
 import './echanges/core.js';
 
 import './inventaire/core.js';
+
+import './minuteur/core.js';

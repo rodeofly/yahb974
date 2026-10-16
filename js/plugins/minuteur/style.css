@@ -1,0 +1,14 @@
+/* Greffon « minuteur » : un anneau qui se vide seconde après seconde ; la fin se voit (cadre plein) et s'entend. */
+@property --p { syntax: '<number>'; inherits: false; initial-value: 1; }
+.timer-block { display: flex; justify-content: center; margin: 14px 0 4px; }
+.timer-go { display: inline-flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 999px; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink); font: 600 16px/1.3 var(--sans); cursor: pointer; }
+.timer-go:hover { border-color: var(--accent); }
+.timer-go:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.timer-ring { --p: 1; display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--p) * 360deg), var(--line) 0); transition: --p 1s linear; }
+.timer-ring b { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); font: 700 17px/1 var(--mono); }
+.timer-block.running .timer-go { border-color: var(--accent); }
+.timer-block.done .timer-go { border: 2px solid var(--accent); }
+.timer-again .ico { width: 16px; height: 16px; }
+@media (prefers-reduced-motion: reduce) { .timer-ring { transition: none; } }

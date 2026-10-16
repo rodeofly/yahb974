@@ -280,7 +280,7 @@ export function Print({ id, query = {} }) {
         <h2>Le Livre des formules</h2>
         ${book.map(x => html`<p><b class="pr-code">${x.code}</b> ${x.name !== x.code ? html`<b>${x.name}.</b> ` : ''}${x.description} <i>Coût : ${x.cost} ${statLabel(adv, adv.rules.spells.stat)}.${x.requires ? ` Nécessite : ${itemName(adv, x.requires)}.` : ''}</i></p>`)}
       </section>`}
-      ${sorted(ui.printSections.filter(x => x.where === 'appendix')).map(x => html`<section class="pr-page"><${x.Section} adv=${adv} /></section>`)}
+      ${sorted(ui.printSections.filter(x => x.where === 'appendix')).map(x => html`<section class="pr-page"><${x.Section} adv=${adv} source=${data.source} images=${images} /></section>`)}
     </article>
   </div>`;
 }

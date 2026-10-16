@@ -112,7 +112,9 @@ export function deckOf(item) {
   const rows = [...new Set(list.map(c => c.row).filter(Boolean))];
   const cols = [...new Set(list.map(c => c.col).filter(Boolean))];
   const matrix = rows.length > 0 && cols.length > 0 && list.every(c => c.row && c.col);
-  return { view: ['map', 'one', 'carousel'].includes(d.view) ? d.view : 'map', list, rows, cols, matrix,
+  // print : true (un exemplaire de chaque carte) ou un nombre d'exemplaires ; absent : le paquet ne s'imprime pas.
+  const copies = d.print === true ? 1 : Math.max(0, Math.min(12, Math.floor(Number(d.print) || 0)));
+  return { view: ['map', 'one', 'carousel'].includes(d.view) ? d.view : 'map', list, rows, cols, matrix, copies,
     cell: (r, k) => list.find(c => c.row === r && c.col === k) || null };
 }
 
@@ -146,6 +148,47 @@ export function markSeen(state) {
   const seen = { ...(state?.seenItems || {}) };
   for (const id of newItems(state)) seen[id] = true;
   return { ...state, seenItems: seen };
+}
+
+/* ------------------------------------------------------------------ */
+/* Relevé de la partie (Carnet → Télécharger)                          */
+/* ------------------------------------------------------------------ */
+
+const cell = v => String(v ?? '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim();
+
+/**
+ * Relevé de la partie en Markdown, pour l'analyse après coup : titre, date, héros, compteurs visibles (en tableau
+ * quand ils ont une ligne et une colonne), badges gagnés et à gagner, puis le carnet ligne à ligne.
+ */
+export function releve(adv, state, { date = new Date() } = {}) {
+  const out = [`# ${cell(adv?.meta?.title) || 'Partie'} : relevé`, ''];
+  const d = date instanceof Date ? date : new Date(date);
+  out.push(`- **Date** : ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+  if (state?.hero?.name) out.push(`- **Héros** : ${cell(state.hero.name)}`);
+  if (state?.ended) out.push(`- **Fin** : ${state.ended === 'victory' ? 'arrivée au bout' : state.ended}`);
+  const counters = (Array.isArray(adv?.rules?.counters) ? adv.rules.counters : []).filter(c => c?.id && c.visible !== false);
+  const value = c => state?.counters?.[c.id] ?? 0;
+  if (counters.length) {
+    const tabled = counters.filter(c => c.row && c.column);
+    const rows = [...new Set(tabled.map(c => c.row))], cols = [...new Set(tabled.map(c => c.column))];
+    out.push('', '## Compteurs', '');
+    if (tabled.length) {
+      out.push(`| | ${cols.map(cell).join(' | ')} |`, `|---|${cols.map(() => '---:').join('|')}|`);
+      for (const r of rows) out.push(`| **${cell(r)}** | ${cols.map(k => { const c = tabled.find(x => x.row === r && x.column === k); return c ? value(c) : ''; }).join(' | ')} |`);
+      out.push('');
+    }
+    for (const c of counters.filter(c => !(c.row && c.column))) out.push(`- ${cell(c.label || c.id)} : ${value(c)}`);
+  }
+  for (const b of collectionsOf(adv).filter(c => c.board)) {
+    const won = b.items.filter(id => owned(state, id)), left = b.items.filter(id => !owned(state, id));
+    const name = id => cell(adv.items?.[id]?.name || id);
+    out.push('', `## ${cell(b.label)} : ${won.length} sur ${b.items.length}`, '');
+    if (won.length) out.push(`- Gagnés : ${won.map(name).join(', ')}`);
+    if (left.length) out.push(`- À gagner : ${left.map(name).join(', ')}`);
+  }
+  const notes = String(state?.notes || '').split('\n').map(l => l.trim()).filter(Boolean);
+  out.push('', '## Carnet', '', ...(notes.length ? notes.map(l => `- ${l}`) : ['(vide)']), '');
+  return out.join('\n');
 }
 
 /* ------------------------------------------------------------------ */
