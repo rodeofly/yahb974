@@ -11,7 +11,9 @@
 //                     gagnés ; `columns` colonnes, 3 par défaut), avec sa bande sur la feuille et son bilan en fin de partie
 //      }
 //      adv.items[id] : category?, tag? (texte très court affiché sur la case), hint? (indice), hints? ({ [mode]: indice }),
-//                      earn? (badge : comment le gagner), gain? (texte du message d'obtention : « Badge gagné »)
+//                      earn? (badge : comment le gagner), gain? (texte du message d'obtention : « Badge gagné »),
+//                      cards? (paquet de cartes de la fiche : { view?: 'map'|'one'|'carousel', list: [{ title, sub?, band?,
+//                      step?, color?, icon?, row?, col?, foot? }] } ou directement la liste ; voir deckOf)
 // 2. La feuille tenue par le livre, et le mode triche :
 //      adv.rules.sheet = { locked: bool, cheat: bool, unlock?: { gold?, counters?: { [id]: n } } }
 //      locked : le joueur n'ajoute ni ne retire d'objet lui-même (c'est l'aventure qui donne et qui prend) ;
@@ -94,6 +96,23 @@ export function inventoryView(adv, state) {
       board: !!c.board, columns: Math.max(1, Math.min(6, Number(c.columns) || 3)) });
   }
   return tabs;
+}
+
+/**
+ * Paquet de cartes d'un objet (`item.cards`), prêt à afficher, ou null.
+ * Renvoie { view, list, rows, cols, matrix, cell(row, col) } : `matrix` quand toutes les cartes ont une ligne et une
+ * colonne (le plan est alors un tableau) ; lignes et colonnes dans l'ordre de leur première carte.
+ */
+export function deckOf(item) {
+  const d = Array.isArray(item?.cards) ? { list: item.cards } : isObj(item?.cards) ? item.cards : null;
+  if (!d) return null;
+  const list = arr(d.list).filter(c => isObj(c) && (c.title || c.icon)).map(c => ({ ...c, title: c.title ?? '' }));
+  if (!list.length) return null;
+  const rows = [...new Set(list.map(c => c.row).filter(Boolean))];
+  const cols = [...new Set(list.map(c => c.col).filter(Boolean))];
+  const matrix = rows.length > 0 && cols.length > 0 && list.every(c => c.row && c.col);
+  return { view: ['map', 'one', 'carousel'].includes(d.view) ? d.view : 'map', list, rows, cols, matrix,
+    cell: (r, k) => list.find(c => c.row === r && c.col === k) || null };
 }
 
 /** Tableaux des badges (collections `board`), tels que les montre le sac. */

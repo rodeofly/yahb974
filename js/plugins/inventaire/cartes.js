@@ -1,0 +1,114 @@
+// Greffon « inventaire » — paquet de cartes d'un objet (`items[id].cards`), affiché dans sa fiche du sac.
+// Trois vues : le plan (toutes les cartes, en tableau lignes × colonnes quand elles en ont), une à une (on fait
+// glisser la carte, ou flèches et touches ← →), le carrousel (les cartes tournent autour de celle du milieu).
+// Le modèle (deckOf) est dans ./core.js. Voir docs/plugins/inventaire.md.
+
+import { html, useState, useEffect, useRef } from '../../lib/preact-htm.js';
+import { prefs } from '../../ui/common.js';
+
+const VIEWS = [['map', '🗺️', 'Plan'], ['one', '🃏', 'Une à une'], ['carousel', '🎠', 'Carrousel']];
+const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+const describe = c => [c.row, c.step ? `étape ${c.step}` : '', c.band, c.title, c.sub].filter(Boolean).join(', ');
+
+/** Une carte : bandeau coloré (étape, intitulé, icône), le contenu en grand, le pied (la ligne : un élève…). */
+export function Card({ c, mini = false, onClick }) {
+  const Tag = onClick ? 'button' : 'div';
+  return html`<${Tag} type=${onClick ? 'button' : undefined} class=${'dk-card' + (mini ? ' mini' : '')} style=${c.color ? `--c:${c.color}` : ''}
+      onClick=${onClick} aria-label=${onClick ? `Voir la carte : ${describe(c)}` : undefined}>
+    <span class="dk-band">${c.step && html`<b class="dk-step">${c.step}</b>`}<span class="dk-band-t">${c.band || ''}</span>${c.icon && html`<span class="dk-icon" aria-hidden="true">${c.icon}</span>`}</span>
+    <span class="dk-body"><span class="dk-title">${c.title}</span>${c.sub && html`<span class="dk-sub">${c.sub}</span>`}</span>
+    ${!mini && (c.row || c.foot) && html`<span class="dk-foot"><span>${c.row || ''}</span><span class="subtle">${c.foot || ''}</span></span>`}
+  <//>`;
+}
+
+/** Le paquet de cartes, avec ses trois vues. */
+export function Deck({ deck }) {
+  const [view, setView] = useState(() => { const v = prefs.get('deck.view', deck.view); return VIEWS.some(x => x[0] === v) ? v : deck.view; });
+  const [row, setRow] = useState(null);
+  const [cur, setCur] = useState(0);
+  const list = row ? deck.list.filter(c => c.row === row) : deck.list;
+  const n = list.length;
+  const at = ((cur % n) + n) % n;
+  const go = d => setCur(i => i + d);
+  const pick = v => { setView(v); prefs.set('deck.view', v); };
+  const open = c => { setRow(null); setCur(deck.list.indexOf(c)); pick('one'); };
+  useEffect(() => { setCur(0); }, [row]);
+
+  // Glisser : on suit le doigt (ou la souris), puis on passe à la carte voisine au-delà d'un seuil.
+  const [dx, setDx] = useState(0);
+  const drag = useRef(null);
+  const dragged = useRef(false); // un glisser n'est pas un clic sur la carte voisine
+  const down = e => { drag.current = { x: e.clientX, id: e.pointerId }; e.currentTarget.setPointerCapture?.(e.pointerId); };
+  const move = e => { if (drag.current) setDx(e.clientX - drag.current.x); };
+  const up = () => {
+    if (!drag.current) return;
+    const step = view === 'carousel' ? Math.round(-dx / 110) : Math.abs(dx) > 60 ? (dx < 0 ? 1 : -1) : 0;
+    drag.current = null; dragged.current = Math.abs(dx) > 5; setDx(0);
+    if (step) go(step);
+  };
+  const keys = e => { if (e.key === 'ArrowRight') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); } };
+
+  // Carrousel : il tourne seul si on le demande (jamais quand l'appareil réduit les animations).
+  const [spin, setSpin] = useState(false);
+  useEffect(() => {
+    if (!spin || view !== 'carousel' || reduced()) return undefined;
+    const t = setInterval(() => setCur(i => i + 1), 2200);
+    return () => clearInterval(t);
+  }, [spin, view]);
+
+  const rows = deck.rows.length > 1 && view !== 'map' && html`<div class="dk-filter" role="group" aria-label="Montrer les cartes de">
+    <button type="button" class="dice-chip" aria-pressed=${row === null ? 'true' : 'false'} onClick=${() => setRow(null)}>Toutes</button>
+    ${deck.rows.map(r => html`<button type="button" class="dice-chip" aria-pressed=${row === r ? 'true' : 'false'} onClick=${() => setRow(r)}>${r}</button>`)}
+  </div>`;
+  const nav = html`<div class="dk-nav">
+    <button type="button" class="btn small" onClick=${() => go(-1)} aria-label="Carte précédente">‹</button>
+    <span class="mono" aria-live="polite">${at + 1} / ${n}</span>
+    <button type="button" class="btn small" onClick=${() => go(1)} aria-label="Carte suivante">›</button>
+    ${view === 'carousel' && !reduced() && html`<button type="button" class="btn small" aria-pressed=${spin ? 'true' : 'false'} onClick=${() => setSpin(s => !s)}>${spin ? '⏸ Arrêter' : '▶ Faire tourner'}</button>`}
+  </div>`;
+
+  return html`<div class="dk">
+    <div class="dk-views" role="group" aria-label="Vue des cartes">
+      ${VIEWS.map(([v, icon, label]) => html`<button type="button" class="dk-view" aria-pressed=${view === v ? 'true' : 'false'} onClick=${() => pick(v)}><span aria-hidden="true">${icon}</span>${label}</button>`)}
+    </div>
+
+    ${view === 'map' && (deck.matrix
+      ? html`<div class="dk-map" style=${`--cols:${deck.cols.length}`} role="table" aria-label="Plan des cartes">
+          <span role="row" class="dk-map-row">
+            <span role="columnheader" class="dk-corner"></span>
+            ${deck.cols.map(k => { const c0 = deck.list.find(c => c.col === k); return html`<span role="columnheader" class="dk-colhead" style=${c0?.color ? `--c:${c0.color}` : ''}>${c0?.step && html`<b>${c0.step}</b>`}${k}</span>`; })}
+          </span>
+          ${deck.rows.map(r => html`<span role="row" class="dk-map-row">
+            <span role="rowheader" class="dk-rowhead">${r}</span>
+            ${deck.cols.map(k => { const c = deck.cell(r, k); return html`<span role="cell">${c ? html`<${Card} c=${c} mini onClick=${() => open(c)} />` : null}</span>`; })}
+          </span>`)}
+        </div>`
+      : html`<div class="dk-grid">${deck.list.map(c => html`<${Card} c=${c} mini onClick=${() => open(c)} />`)}</div>`)}
+
+    ${view === 'one' && n > 0 && html`${rows}
+      <div class="dk-one" tabindex="0" role="region" aria-roledescription="carrousel" aria-label=${`Carte ${at + 1} sur ${n} : ${describe(list[at])}`}
+        onKeyDown=${keys} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up}>
+        <div class=${'dk-one-card' + (dx ? ' dragging' : '')} key=${at + '-' + (row || '')} style=${`transform:translateX(${dx}px) rotate(${dx / 40}deg)`}>
+          <${Card} c=${list[at]} />
+        </div>
+      </div>
+      ${nav}`}
+
+    ${view === 'carousel' && n > 0 && html`${rows}
+      <div class="dk-carousel" tabindex="0" role="region" aria-roledescription="carrousel" aria-label=${`Carte ${at + 1} sur ${n} : ${describe(list[at])}`}
+        onKeyDown=${keys} onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up}>
+        ${list.map((c, i) => {
+          let d = i - at - dx / 110;
+          if (d > n / 2) d -= n; else if (d < -n / 2) d += n;
+          const a = Math.abs(d);
+          if (a > 3.2) return null;
+          return html`<div class=${'dk-slot' + (Math.round(d) === 0 ? ' front' : '')} key=${i} aria-hidden=${Math.round(d) === 0 ? null : 'true'}
+            style=${`transform:translateX(calc(${d} * 58%)) translateZ(${-a * 70}px) rotateY(${-d * 24}deg) scale(${1 - Math.min(a, 3) * 0.08});z-index:${10 - Math.round(a)};opacity:${a > 2.6 ? 0.35 : 1}`}
+            onClick=${() => { if (dragged.current) { dragged.current = false; return; } if (Math.round(d) !== 0) go(Math.round(d)); }}>
+            <${Card} c=${c} />
+          </div>`;
+        })}
+      </div>
+      ${nav}`}
+  </div>`;
+}

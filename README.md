@@ -51,6 +51,9 @@ python3 -m http.server 8080
 puis ouvrir <http://localhost:8080>. Sur un téléphone du même réseau : `http://<adresse-de-l-ordinateur>:8080`.
 Le navigateur propose ensuite « Installer l'application ».
 
+Pour **développer** (voir ses changements à chaque rechargement, sans vieux fichiers en cache) : `npm run dev`
+(`tools/dev.py` : rien n'est gardé en cache, et le service worker hors ligne est désactivé).
+
 ## Mettre en ligne
 
 Ce dépôt est un site statique. Il suffit de le copier sur n'importe quel hébergement :

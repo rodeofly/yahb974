@@ -232,9 +232,12 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const choices = R.choicesFor(state, adv);
   const blocks = R.groupChoices(choices);
   const grouped = blocks.some(b => b.group);
+  // Sans numéros : le choix qui mène à une autre étape en montre le numéro (« 3 »), sinon « › ».
+  const goStep = c => { const st = adv.sections[c.to]?.step; return st != null && st !== '' && String(st) !== String(sec.step ?? '')
+    ? html`<span class="go step" aria-label=${`étape ${st}`}>${st}</span>` : html`<span class="go next" aria-hidden="true">›</span>`; };
   const choiceButton = c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
     <${InlineText} text=${c.text || 'Continuer'} />${String(c.to) === String(state.section)
-      ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : numbers ? html`<span class="go">${c.to}</span>` : html`<span class="go next" aria-hidden="true">›</span>`}
+      ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : numbers ? html`<span class="go">${c.to}</span>` : goStep(c)}
     ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
   </button>`;
 
@@ -244,7 +247,7 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
       ${state.cheat && html`<p class="badge" style="margin:0 auto 12px"><span aria-hidden="true">🃏</span> Mode triche</p>`}
       ${continuous && html`<${Feed} adv=${adv} source=${source} state=${state} numbers=${numbers} onImage=${setLightbox} />`}
       <div class="feed-current" ref=${curRef} aria-live=${continuous ? 'polite' : null}>
-      ${(numbers || sec.title) && html`<div class=${'sec-num' + (numbers ? '' : ' titled')}>${numbers && state.section}${sec.title && html`<small>${sec.title}</small>`}</div>`}
+      <${SecHead} adv=${adv} id=${state.section} sec=${sec} numbers=${numbers} />
       ${ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
         ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
           : html`<button class="btn small" onClick=${readAloud}><${Icon} name="speaker" />Écouter</button>`}
@@ -617,6 +620,26 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
   </aside>`;
 }
 
+/* ---------- en-tête d'un paragraphe ---------- */
+/**
+ * Numéro du paragraphe et titre ; sans numéros (`rules.numbers: false`), l'étape de l'auteur (`sections[n].step`,
+ * « 3 », « B »…) sur `rules.steps` (« 3/9 », avec une jauge), ou le titre seul.
+ */
+function SecHead({ adv, id, sec, numbers }) {
+  const step = sec.step != null && sec.step !== '' ? String(sec.step) : null;
+  const total = Number(adv.rules.steps) || 0;
+  if (numbers) return html`<div class="sec-num">${id}${sec.title && html`<small>${sec.title}</small>`}</div>`;
+  if (step) {
+    const n = Number(step);
+    return html`<div class="sec-num stepped" aria-label=${`Étape ${step}${total ? ` sur ${total}` : ''}${sec.title ? ` : ${sec.title}` : ''}`}>
+      <span class="sec-step" aria-hidden="true">${step}${total ? html`<span class="of">/${total}</span>` : null}</span>
+      ${total > 1 && Number.isInteger(n) && html`<span class="sec-gauge" aria-hidden="true">${Array.from({ length: total }, (_, k) => html`<i class=${k < n ? 'on' : ''}></i>`)}</span>`}
+      ${sec.title && html`<small aria-hidden="true">${sec.title}</small>`}
+    </div>`;
+  }
+  return sec.title ? html`<div class="sec-num titled"><small>${sec.title}</small></div>` : null;
+}
+
 /* ---------- lecture continue ---------- */
 const reducedMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 /** Nombre de paragraphes lus gardés à l'écran au-dessus du paragraphe courant. */
@@ -638,7 +661,7 @@ function Feed({ adv, source, state, numbers, onImage }) {
       if (!s) return null;
       const via = trail[from + k + 1]?.via;
       return html`<section class="feed-past" key=${from + k + '-' + p.section}>
-        ${(numbers || s.title) && html`<div class=${'sec-num' + (numbers ? '' : ' titled')}>${numbers && p.section}${s.title && html`<small>${s.title}</small>`}</div>`}
+        <${SecHead} adv=${adv} id=${p.section} sec=${s} numbers=${numbers} />
         ${s.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${s.image} alt=${s.alt || s.title || ''} onClick=${e => onImage(e.target.src)} /></figure>`}
         <${Prose} text=${s.text} />
         ${via && html`<p class="feed-choice"><span aria-hidden="true">→</span> <${InlineText} text=${via} /></p>`}

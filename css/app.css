@@ -202,6 +202,14 @@ button.badge:hover { border-color: var(--accent); }
 
 /* ---------- lecture continue, numéros cachés ---------- */
 .sec-num.titled small { font-size: 15px; letter-spacing: .08em; }
+.sec-num.stepped { display: grid; justify-items: center; gap: 6px; }
+.sec-step { font: 700 44px/1 var(--mono); }
+.sec-step .of { font-size: 20px; color: var(--muted); margin-left: 2px; }
+.sec-gauge { display: inline-flex; gap: 4px; }
+.sec-gauge i { width: 18px; height: 6px; border-radius: 3px; border: 1.5px solid var(--ink); }
+.sec-gauge i.on { background: var(--accent); border-color: var(--accent); }
+.sec-num.stepped small { margin-top: 0; font-size: 15px; letter-spacing: .08em; }
+.choice .go.step { font: 700 15px/1 var(--mono); min-width: 1.8em; height: 1.8em; display: inline-grid; place-items: center; border: 1.5px solid currentColor; border-radius: 50%; }
 .choice .go.next { font-size: 22px; font-weight: 400; color: var(--muted); }
 .reader.continuous .feed-current { scroll-margin-top: 72px; }
 .feed { display: grid; gap: 0; }

@@ -165,3 +165,22 @@ test('tableau des badges : vue, objets hors bande du sac, « comment le gagner �
   const p = I.inventoryProblems(adv);
   assert.ok(p.some(x => /comment le gagner/.test(x.message) && /Le miroir/.test(x.message)), JSON.stringify(p));
 });
+
+test('paquet de cartes : plan en tableau quand toutes les cartes ont ligne et colonne, sinon grille', () => {
+  assert.equal(I.deckOf({ name: 'x' }), null);
+  assert.equal(I.deckOf({ cards: [] }), null);
+  const d = I.deckOf({ cards: { view: 'carousel', list: [
+    { title: 'lama', row: 'Enzo', col: 'Le pré', step: '2' }, { title: 'vélo', row: 'Maëva', col: 'Le pré' },
+    { title: 'sofa', row: 'Enzo', col: 'La rivière' }, { nope: true },
+  ] } });
+  assert.equal(d.view, 'carousel');
+  assert.equal(d.list.length, 3);
+  assert.deepEqual(d.rows, ['Enzo', 'Maëva']);
+  assert.deepEqual(d.cols, ['Le pré', 'La rivière']);
+  assert.equal(d.matrix, true);
+  assert.equal(d.cell('Enzo', 'La rivière').title, 'sofa');
+  assert.equal(d.cell('Maëva', 'La rivière'), null);
+  const g = I.deckOf({ cards: [{ title: 'A' }, { title: 'B', row: 'r' }] });
+  assert.equal(g.view, 'map');
+  assert.equal(g.matrix, false);
+});

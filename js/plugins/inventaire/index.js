@@ -13,6 +13,7 @@ import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields
 import { Text, Num, Select } from '../../ui/editor.js';
 import * as R from '../../core/rules.js';
 import * as I from './core.js';
+import { Deck } from './cartes.js';
 
 loadCSS(new URL('./style.css', import.meta.url));
 
@@ -62,6 +63,8 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
   const onBoard = I.boardItems(adv);
   const count = Object.entries(state.inventory || {}).filter(([id, q]) => q > 0 && !onBoard.has(id)).length;
   const board = tab?.kind === 'collection' && tab.board;
+  // La fiche d'un objet à cartes prend toute la largeur, sous la grille.
+  const wide = board || (current?.owned && !!I.deckOf(adv.items[current.id]));
   return html`<${Modal} title=${`Ton sac · ${plural(count, 'objet', 'objets')}`} onClose=${close} wide>
     <div class="inv-sac" lang="fr">
       ${state.cheat && html`<p class="inv-cheat-banner" role="status"><span aria-hidden="true">🃏</span> Partie en mode triche : elle ne compte pas pour les succès.</p>`}
@@ -77,7 +80,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
       ${tab?.kind === 'extra' ? html`<div class="inv-panel" role="tabpanel" aria-label=${tab.label}>
           <${tab.def.Tab} adv=${adv} source=${source} state=${state} update=${update} />
         </div>`
-      : html`<div class=${'inv-panel inv-layout' + (board ? ' board' : '')} role="tabpanel" aria-label=${tab?.label}>
+      : html`<div class=${'inv-panel inv-layout' + (wide ? ' board' : '')} role="tabpanel" aria-label=${tab?.label}>
           <div class="stack" style="gap:10px;min-width:0">
             ${board && html`<${BoardProgress} tab=${tab} />`}
             ${tab?.message && html`<p class="inv-message" aria-label=${`Message : ${tab.message.map(m => (m.shown ? m.char : ' ')).join('')}`}>
@@ -135,6 +138,7 @@ function Detail({ adv, state, slot, kind, edit, act, isNew }) {
   return html`<aside class="inv-detail" aria-live="polite">
     <span class="inv-big" aria-hidden="true">${it.icon || '•'}</span>
     <h3>${it.name}${slot.qty > 1 ? ` ×${slot.qty}` : ''}${isNew && html` <span class="badge">Nouveau</span>`}</h3>
+    ${I.deckOf(it) && html`<${Deck} deck=${I.deckOf(it)} />`}
     ${kind === 'board' && html`<p class="inv-earn won"><span class="eyebrow"><span aria-hidden="true">✓</span> Badge gagné</span>${earn ? html`<span>${earn}</span>` : null}</p>`}
     ${it.description ? html`<${Prose} text=${it.description} />` : html`<p class="subtle" style="margin:0">Pas de description.</p>`}
     ${hint && (hintOpen
