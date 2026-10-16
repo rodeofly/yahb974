@@ -11,6 +11,7 @@
 //                     gagnés ; `columns` colonnes, 3 par défaut), avec sa bande sur la feuille et son bilan en fin de partie
 //      }
 //      adv.items[id] : category?, tag? (texte très court affiché sur la case), hint? (indice), hints? ({ [mode]: indice }),
+//                      image? (image dans la fiche, chemin dans l'aventure), alt?,
 //                      earn? (badge : comment le gagner), gain? (texte du message d'obtention : « Badge gagné »),
 //                      cards? (paquet de cartes de la fiche : { view?: 'map'|'one'|'carousel', list: [{ title, sub?, band?,
 //                      step?, color?, icon?, row?, col?, foot? }] } ou directement la liste ; voir deckOf)

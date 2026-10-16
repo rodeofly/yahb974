@@ -19,11 +19,13 @@ Une aventure sans réglage garde son sac habituel : un seul onglet « Objets »,
   pas gagné), son nom et **comment le gagner** ; une jauge « 3 sur 9 ». La Feuille d'Aventure en montre une
   petite grille (3 × 3 par défaut) qui ouvre le tableau, et l'écran de fin le bilan des badges. Un badge gagné
   s'annonce « Badge gagné : 🙋 Joker ! » et sa fiche s'ouvre comme celle d'un objet.
+- **Une image** (objet avec `image`, par exemple un plateau de jeu) : la fiche prend toute la largeur et montre
+  l'image ; un toucher l'agrandit. Elle se choisit dans l'éditeur (onglet Objets, volet « Dans le sac »).
 - **Un paquet de cartes** (objet avec `cards`) : sa fiche prend toute la largeur et propose trois vues :
   **Plan** (toutes les cartes ; en tableau lignes × colonnes quand chaque carte a une ligne et une colonne),
   **Une à une** (on fait glisser la carte, ou ‹ › et les flèches du clavier ; filtre par ligne) et **Carrousel**
   (les cartes tournent autour de celle du milieu ; on les fait glisser, ou « Faire tourner »). Toucher une carte
-  du plan l'ouvre en grand. L'appareil se souvient de la vue choisie.
+  du plan l'ouvre en grand. L'appareil se souvient de la vue choisie pour chaque paquet.
 - **La fiche** d'un objet : description, bouton **« Un indice : à quoi peut-il servir ? »** (l'indice dépend
   du mode de jeu : plus direct pour les petits, plus allusif pour les grands), et les actions de l'objet
   (Utiliser, Boire…).
@@ -72,6 +74,7 @@ Les catégories, les collections et les compteurs de « Tout débloquer » s'éc
     "badge-joker": { "name": "Joker !", "icon": "🙋", "description": "…",
       "earn": "Note un joker demandé par un élève.",   // badge : comment le gagner (visible avant)
       "gain": "Badge gagné" },                          // message à l'obtention (sinon « Objet obtenu »)
+    "plateau": { "name": "Plateau", "icon": "🗺️", "image": "images/plateau.jpg", "alt": "…" },   // image dans la fiche
     "cartes": { "name": "Cartes des élèves", "icon": "🎴",
       "cards": { "view": "map",                         // vue de départ : map (plan), one (une à une), carousel
         "list": [ { "title": "lama", "sub": "2 syllabes", "band": "Le pré", "step": "2", "color": "#558B2F",

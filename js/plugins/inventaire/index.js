@@ -8,9 +8,9 @@
 // Le moteur (vue du sac, triche, indices) est dans ./core.js. Voir docs/plugins/inventaire.md.
 
 import { html, useState, useRef, useMemo } from '../../lib/preact-htm.js';
-import { Icon, Modal, Prose, toast, confirmBox, loadCSS } from '../../ui/common.js';
+import { Icon, Modal, Prose, AssetImg, toast, confirmBox, loadCSS } from '../../ui/common.js';
 import { ui, sorted, registerInventory, registerInventoryTab, registerItemFields, registerRulesSection, registerSheetPanel, registerEndingPanel } from '../../ui/registry.js';
-import { Text, Num, Select } from '../../ui/editor.js';
+import { Text, Num, Select, ImageSlot } from '../../ui/editor.js';
 import * as R from '../../core/rules.js';
 import * as I from './core.js';
 import { Deck } from './cartes.js';
@@ -64,7 +64,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
   const count = Object.entries(state.inventory || {}).filter(([id, q]) => q > 0 && !onBoard.has(id)).length;
   const board = tab?.kind === 'collection' && tab.board;
   // La fiche d'un objet à cartes prend toute la largeur, sous la grille.
-  const wide = board || (current?.owned && !!I.deckOf(adv.items[current.id]));
+  const wide = board || (current?.owned && (!!I.deckOf(adv.items[current.id]) || !!adv.items[current.id]?.image));
   return html`<${Modal} title=${`Ton sac · ${plural(count, 'objet', 'objets')}`} onClose=${close} wide>
     <div class="inv-sac" lang="fr">
       ${state.cheat && html`<p class="inv-cheat-banner" role="status"><span aria-hidden="true">🃏</span> Partie en mode triche : elle ne compte pas pour les succès.</p>`}
@@ -104,7 +104,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
             ${tab?.kind === 'category' && !slots.length && html`<p class="subtle" style="margin:0">Rien ici pour l'instant.</p>`}
             ${edit && html`<${AddItem} adv=${adv} state=${state} act=${act} />`}
           </div>
-          <${Detail} key=${current?.id || 'vide'} adv=${adv} state=${state} slot=${current} kind=${board ? 'board' : tab?.kind} edit=${edit} act=${act} isNew=${current && fresh.has(current.id)} />
+          <${Detail} key=${current?.id || 'vide'} adv=${adv} source=${source} state=${state} slot=${current} kind=${board ? 'board' : tab?.kind} edit=${edit} act=${act} isNew=${current && fresh.has(current.id)} />
         </div>`}
 
       <${CheatPanel} adv=${adv} state=${state} act=${act} />
@@ -113,8 +113,9 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
 }
 
 /** Fiche de l'objet choisi : grande icône, nom, description, indice selon le mode, actions. */
-function Detail({ adv, state, slot, kind, edit, act, isNew }) {
+function Detail({ adv, source, state, slot, kind, edit, act, isNew }) {
   const [hintOpen, setHintOpen] = useState(false);
+  const [zoom, setZoom] = useState(false);
   if (!slot) return html`<aside class="inv-detail empty"><p class="subtle" style="margin:0">Choisis une case pour regarder l'objet de plus près.</p></aside>`;
   const it = adv.items[slot.id] || { name: slot.id };
   const earn = String(it.earn || '').trim();
@@ -138,7 +139,9 @@ function Detail({ adv, state, slot, kind, edit, act, isNew }) {
   return html`<aside class="inv-detail" aria-live="polite">
     <span class="inv-big" aria-hidden="true">${it.icon || '•'}</span>
     <h3>${it.name}${slot.qty > 1 ? ` ×${slot.qty}` : ''}${isNew && html` <span class="badge">Nouveau</span>`}</h3>
-    ${I.deckOf(it) && html`<${Deck} deck=${I.deckOf(it)} />`}
+    ${it.image && html`<figure class=${'inv-pic' + (zoom ? ' zoom' : '')}><button type="button" onClick=${() => setZoom(z => !z)} aria-label=${zoom ? 'Réduire l\'image' : 'Agrandir l\'image'}>
+      <${AssetImg} adv=${adv} source=${source} path=${it.image} alt=${it.alt || it.name} eager /></button></figure>`}
+    ${I.deckOf(it) && html`<${Deck} deck=${I.deckOf(it)} id=${slot.id} />`}
     ${kind === 'board' && html`<p class="inv-earn won"><span class="eyebrow"><span aria-hidden="true">✓</span> Badge gagné</span>${earn ? html`<span>${earn}</span>` : null}</p>`}
     ${it.description ? html`<${Prose} text=${it.description} />` : html`<p class="subtle" style="margin:0">Pas de description.</p>`}
     ${hint && (hintOpen
@@ -271,6 +274,7 @@ registerItemFields({
         ${cats.length > 1 && html`<${Select} label="Onglet du sac" value=${it.category || ''} onChange=${v => set({ category: v || undefined })}
           options=${[['', `Par défaut (${cats[0].label})`], ...cats.map(c => [c.id, c.label])]} />`}
         <${Text} label="Étiquette sur la case (une lettre, un numéro : facultatif)" value=${it.tag} onChange=${v => set({ tag: v.trim() || undefined })} placeholder="A" />
+        <${ImageSlot} adv=${adv} path=${it.image} name=${'objet-' + String(it.name || 'image').toLowerCase().replace(/[^a-z0-9]+/g, '-')} label="Image dans la fiche du sac (facultatif)" onChange=${p => set({ image: p || undefined })} />
         <${Text} area rows="2" label="Indice : à quoi l'objet peut-il servir, sans tout dévoiler ?" value=${it.hint} onChange=${v => set({ hint: v || undefined })} placeholder="Ce que la nuit cache, elle le montre." />
         ${it.earn !== undefined || I.collectionsOf(adv).some(c => c.board) ? html`
           <${Text} label="Badge : comment le gagner (affiché dans le tableau des badges avant de l'obtenir)" value=${it.earn} onChange=${v => set({ earn: v.trim() ? v : undefined })} placeholder="Note un joker demandé par un élève." />

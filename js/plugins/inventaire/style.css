@@ -62,6 +62,13 @@
 .inv-end { display: grid; gap: 10px; width: 100%; max-width: 640px; margin: 0 auto; text-align: left; }
 .inv-end h3 { margin: 0; display: flex; gap: 8px; align-items: center; }
 
+/* ---------- image d'un objet (items[id].image) ---------- */
+.inv-pic { margin: 0; }
+.inv-pic button { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--sunk); cursor: zoom-in; }
+.inv-pic img { display: block; width: 100%; max-height: 52vh; object-fit: contain; }
+.inv-pic.zoom button { cursor: zoom-out; }
+.inv-pic.zoom img { max-height: none; }
+
 /* ---------- paquet de cartes (items[id].cards) ---------- */
 .dk { display: grid; gap: 12px; }
 .dk-views { display: inline-flex; flex-wrap: wrap; gap: 6px; }

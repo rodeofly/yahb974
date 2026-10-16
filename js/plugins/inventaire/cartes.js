@@ -22,15 +22,17 @@ export function Card({ c, mini = false, onClick }) {
 }
 
 /** Le paquet de cartes, avec ses trois vues. */
-export function Deck({ deck }) {
-  const [view, setView] = useState(() => { const v = prefs.get('deck.view', deck.view); return VIEWS.some(x => x[0] === v) ? v : deck.view; });
+export function Deck({ deck, id = '' }) {
+  // La vue choisie est gardée par paquet (les cartes des élèves en plan, les jokers en carrousel…).
+  const key = 'deck.view.' + id;
+  const [view, setView] = useState(() => { const v = prefs.get(key, deck.view); return VIEWS.some(x => x[0] === v) ? v : deck.view; });
   const [row, setRow] = useState(null);
   const [cur, setCur] = useState(0);
   const list = row ? deck.list.filter(c => c.row === row) : deck.list;
   const n = list.length;
   const at = ((cur % n) + n) % n;
   const go = d => setCur(i => i + d);
-  const pick = v => { setView(v); prefs.set('deck.view', v); };
+  const pick = v => { setView(v); prefs.set(key, v); };
   const open = c => { setRow(null); setCur(deck.list.indexOf(c)); pick('one'); };
   useEffect(() => { setCur(0); }, [row]);
 
