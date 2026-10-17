@@ -14,7 +14,7 @@
 // Voir docs/plugins/carte.md.
 
 import { registerBlock, registerEffect, registerCondition, registerHeroInit, registerNormalize, registerAssets, findCondition, ext } from '../../core/plugins.js';
-import { check, describeCondition, choiceGuard, enter } from '../../core/rules.js';
+import { check, describeCondition, choiceGuard, enter, targetsOf } from '../../core/rules.js';
 
 export const TYPE = 'map';
 
@@ -73,6 +73,44 @@ export function placesOf(adv) {
     m.get(p).push(id);
   }
   return [...m].map(([name, sections]) => ({ name, sections })).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+}
+
+/** Tri des numéros de paragraphes : 2 avant 10, puis les identifiants non numériques. */
+const byNum = (a, b) => (Number(a) - Number(b)) || String(a).localeCompare(String(b), 'fr');
+
+/**
+ * Lieu de chaque paragraphe, pour la carte du monde en mode triche : le sien, sinon celui du paragraphe le plus proche
+ * qui y mène (paragraphes ajoutés sans lieu, comme ceux d'une campagne). Map id → { place, inherited }.
+ * Les paragraphes qu'aucun paragraphe avec lieu n'atteint restent sans lieu.
+ */
+export function placeOfSections(adv) {
+  const out = new Map();
+  const queue = [];
+  for (const id of Object.keys(adv?.sections || {}).sort(byNum)) {
+    const p = placeName(adv.sections[id]?.place);
+    if (p) { out.set(id, { place: p, inherited: false }); queue.push(id); }
+  }
+  // Parcours en largeur depuis tous les paragraphes situés à la fois : chacun hérite du lieu le plus proche.
+  for (let i = 0; i < queue.length; i++) {
+    const from = queue[i];
+    for (const t of targetsOf(adv.sections[from] || {})) {
+      if (!adv.sections[t.to] || out.has(t.to)) continue;
+      out.set(t.to, { place: out.get(from).place, inherited: true });
+      queue.push(t.to);
+    }
+  }
+  return out;
+}
+
+/** Paragraphes de chaque lieu, héritiers compris : Map lieu → [{ id, inherited }], par numéro. */
+export function sectionsByPlace(adv) {
+  const m = new Map();
+  for (const [id, x] of placeOfSections(adv)) {
+    if (!m.has(x.place)) m.set(x.place, []);
+    m.get(x.place).push({ id, inherited: x.inherited });
+  }
+  for (const list of m.values()) list.sort((a, b) => byNum(a.id, b.id));
+  return m;
 }
 
 /** Lieux où le héros est déjà allé, d'après state.visited. */
@@ -178,6 +216,26 @@ export function worldMarkers(state, adv) {
     if (!status) continue;
     out.push({ name, ...pos, status, ...(status === 'here' && !here.exact ? { approx: true } : {}) });
   }
+  return out;
+}
+
+/**
+ * Ce que réserve un paragraphe (carte du monde en mode triche) : { combats: [noms des adversaires], items: [ids] }.
+ * Les objets sont ceux que donne un effet « give » à l'entrée, dans un bloc (réussite d'un défi, zone de carte…) ou
+ * dans un choix. Passer l'aventure du mode joué : variantes appliquées, blocs et choix des autres modes retirés.
+ */
+export function sectionStakes(adv, id) {
+  const s = adv?.sections?.[id];
+  const out = { combats: [], items: [] };
+  if (!s) return out;
+  for (const b of s.blocks || []) if (b?.type === 'combat') out.combats.push(...(b.enemies || []).map(e => e?.name).filter(Boolean));
+  const walk = o => {
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (!o || typeof o !== 'object') return;
+    if (o.op === 'give' && o.item && !out.items.includes(o.item)) out.items.push(o.item);
+    Object.values(o).forEach(walk);
+  };
+  walk([s.onEnter, s.blocks, s.choices]);
   return out;
 }
 

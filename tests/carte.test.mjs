@@ -5,6 +5,7 @@ import '../js/plugins/carte/core.js';
 import {
   hotspotsFor, chooseHotspot, placesOf, visitedPlaces, knownPlaces, journey, currentPlace, worldMarkers,
   journeyPoints, rectOf, placePos, midSentence,
+  sectionStakes, placeOfSections, sectionsByPlace,
 } from '../js/plugins/carte/core.js';
 import { newAdventure, normalizeAdventure, createHero, start, enter, applyEffects, check, targetsOf, back, describeCondition } from '../js/core/rules.js';
 import { validate, renumber, remap, reachable } from '../js/core/validate.js';
@@ -38,6 +39,36 @@ function sample() {
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const H = { go: n => `rendez-vous au <b>${n}</b>`, esc, UP: (adv, id) => id.toUpperCase(), plural: (n, one, many) => `${n} ${n > 1 ? many : one}`, condText, effectText };
+
+test('carte du monde (triche) : combats et objets à gagner d’un paragraphe', () => {
+  const adv = { sections: {
+    '1': { blocks: [{ type: 'combat', enemies: [{ name: 'L’essaim' }] }], choices: [{ text: 'Fuir', to: '2' }] },
+    '2': { onEnter: [{ op: 'give', item: 'lanterne' }], blocks: [{ type: 'challenge', successEffects: [{ op: 'give', item: 'piece-02' }] }],
+           choices: [{ text: 'Prendre la corde', to: '3', effects: [{ op: 'give', item: 'corde' }, { op: 'give', item: 'lanterne' }] }] },
+    '3': { blocks: [{ type: 'shop', items: [{ item: 'galette', price: 2 }] }] },
+  } };
+  assert.deepEqual(sectionStakes(adv, '1'), { combats: ['L’essaim'], items: [] });
+  assert.deepEqual(sectionStakes(adv, '2'), { combats: [], items: ['lanterne', 'piece-02', 'corde'] });
+  assert.deepEqual(sectionStakes(adv, '3'), { combats: [], items: [] }, 'une boutique ne donne rien');
+  assert.deepEqual(sectionStakes(adv, '9'), { combats: [], items: [] });
+});
+
+test('carte du monde (triche) : un paragraphe sans lieu prend celui du paragraphe le plus proche qui y mène', () => {
+  const adv = { sections: {
+    '1': { place: 'Puits', choices: [{ text: 'a', to: '63' }, { text: 'b', to: '2' }] },
+    '2': { place: 'Forêt', choices: [{ text: 'c', to: '64' }] },
+    '63': { choices: [{ text: 'd', to: '64' }, { text: 'e', to: '65' }] },
+    '64': { blocks: [{ type: 'combat', enemies: [{ name: 'Essaim' }], win: '66' }] },
+    '65': {}, '66': {}, '99': {},
+  } };
+  const m = placeOfSections(adv);
+  assert.deepEqual(m.get('63'), { place: 'Puits', inherited: true });
+  assert.equal(m.get('64').place, 'Forêt', 'le plus proche : § 2 (Forêt) y mène directement');
+  assert.equal(m.get('66').place, 'Forêt', 'la sortie d’un combat compte');
+  assert.equal(m.get('65').place, 'Puits');
+  assert.equal(m.has('99'), false, 'inatteignable : sans lieu');
+  assert.deepEqual(sectionsByPlace(adv).get('Forêt').map(x => x.id), ['2', '64', '66']);
+});
 
 test('bloc carte : cibles pour le graphe et la vérification', () => {
   const adv = sample();

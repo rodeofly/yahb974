@@ -89,6 +89,11 @@ Une phrase résume aussi la carte (« Vous êtes ici : Brumeval. Lieux visités 
 tirets : on touche un lieu (ou son bouton sous la carte), puis l'un de ses paragraphes, et on y va. Le saut reste
 écrit dans le fil de lecture (« 🃏 Saut au § 21 (mode triche) »).
 
+Sur chaque lieu, **⚔️** signale un combat et **🎁** un objet que le héros n'a pas encore (effet « Donner un objet » à
+l'entrée d'un paragraphe, dans un choix, une zone de carte ou la réussite d'un défi) ; la liste des paragraphes du lieu
+nomme les adversaires et les objets (✓ : déjà possédé). Un paragraphe **sans lieu** (paragraphes ajoutés par une
+campagne, par exemple) est rattaché au lieu du paragraphe le plus proche qui y mène ; il est marqué d'un point « · ».
+
 ### Version imprimable
 
 La carte du monde est ajoutée en annexe, sur une nouvelle page, avec tous les lieux nommés et une

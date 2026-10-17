@@ -192,3 +192,9 @@
 .carte-cheat-places, .carte-cheat-secs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .carte-cheat-secs > b { margin-right: 4px; }
 .carte-cheat .btn[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); font-weight: 700; }
+/* Mode triche : combats (⚔️) et objets à gagner (🎁) d'un lieu et de ses paragraphes */
+.carte-stakes { position: absolute; left: 70%; bottom: 70%; white-space: nowrap; font-size: 14px; line-height: 1; padding: 2px 3px;
+  background: var(--paper); border: 1px solid var(--ink); border-radius: 10px; box-shadow: 0 1px 3px rgb(0 0 0 / .3); pointer-events: none; }
+.carte-stakes-inline { margin-left: 4px; }
+.carte-cheat-sec { flex-wrap: wrap; text-align: left; }
+.carte-stake { font-size: 13px; color: var(--muted); }

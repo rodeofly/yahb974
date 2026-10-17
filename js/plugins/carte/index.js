@@ -14,7 +14,7 @@ import { Text, Num, ImageSlot, ConditionEditor, EffectsEditor } from '../../ui/e
 import { assetUrl } from '../../store/library.js';
 import {
   TYPE, hotspotsFor, chooseHotspot, rectOf, round1, clamp, placesOf, placeName, placePos,
-  worldMarkers, journeyPoints, visitedPlaces, currentPlace, knownPlaces,
+  worldMarkers, journeyPoints, visitedPlaces, currentPlace, knownPlaces, sectionStakes, sectionsByPlace,
 } from './core.js';
 import { cheatGoto } from '../inventaire/core.js';
 
@@ -219,7 +219,7 @@ function labelsOverlap(root) {
   return r.some((a, i) => r.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1));
 }
 
-function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded, onPlace, chosen }) {
+function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded, onPlace, chosen, stakes }) {
   const wm = adv.meta.worldMap || {};
   const url = useAssetUrl(adv, source, wm.image);
   const frame = useRef();
@@ -234,28 +234,42 @@ function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded,
     ${url && markers.map(m => html`<${Pin} key=${m.name} m=${m} />`)}
     ${url && onPlace && markers.filter(m => m.status !== 'unknown').map(m => html`<button type="button" key=${'go-' + m.name}
         class=${'carte-jump' + (chosen === m.name ? ' on' : '')} style=${`left:${m.x}%;top:${m.y}%`}
-        aria-pressed=${chosen === m.name ? 'true' : 'false'} aria-label=${`${m.name} : choisir un paragraphe où aller`} title=${m.name}
-        onClick=${e => { e.stopPropagation(); onPlace(m.name); }}></button>`)}
+        aria-pressed=${chosen === m.name ? 'true' : 'false'} aria-label=${`${m.name}${stakeText(stakes?.[m.name])} : choisir un paragraphe où aller`} title=${m.name + stakeText(stakes?.[m.name])}
+        onClick=${e => { e.stopPropagation(); onPlace(m.name); }}>${stakeMarks(stakes?.[m.name], 'carte-stakes')}</button>`)}
   </div>`;
 }
 
+/** Combats et objets encore à gagner d'un lieu, ou d'un paragraphe : { combat: bool, win: [ids pas encore possédés], all: [ids] }. */
+function stakesOf(adv, state, ids) {
+  const combats = [], all = [];
+  for (const id of ids) { const x = sectionStakes(adv, id); combats.push(...x.combats); x.items.forEach(i => { if (!all.includes(i)) all.push(i); }); }
+  return { combats, all, win: all.filter(i => !(state.inventory?.[i] > 0)) };
+}
+const stakeText = x => (!x ? '' : `${x.combats.length ? ' — combat' : ''}${x.win.length ? ` — ${x.win.length > 1 ? `${x.win.length} objets` : 'un objet'} à gagner` : ''}`);
+const stakeMarks = (x, cls) => (!x || (!x.combats.length && !x.win.length) ? null
+  : html`<span class=${cls} aria-hidden="true">${x.combats.length ? '⚔️' : ''}${x.win.length ? '🎁' : ''}</span>`);
+
 /**
  * Mode triche : sous la carte, les lieux (boutons) et, pour le lieu choisi, ses paragraphes. Un clic y emmène.
+ * ⚔️ signale un combat, 🎁 un objet que le héros n'a pas encore (les objets déjà possédés sont cochés).
  */
-function CheatTravel({ adv, state, update, onClose, chosen, setChosen, places }) {
-  const sections = chosen ? (placesOf(adv).find(p => p.name === chosen)?.sections || [])
-    .sort((a, b) => (Number(a) - Number(b)) || String(a).localeCompare(String(b), 'fr')) : [];
+function CheatTravel({ adv, state, update, onClose, chosen, setChosen, places, stakes, byPlace }) {
+  const sections = chosen ? byPlace.get(chosen) || [] : [];
   const go = id => { const r = cheatGoto(state, adv, id); update(r.state, r.messages); onClose?.(); };
   return html`<div class="carte-cheat" lang="fr">
-    <p class="carte-cheat-head"><span aria-hidden="true">🃏</span> <b>Mode triche</b> : touche un lieu sur la carte (ou ci-dessous), puis le paragraphe où aller.</p>
+    <p class="carte-cheat-head"><span aria-hidden="true">🃏</span> <b>Mode triche</b> : touche un lieu sur la carte (ou ci-dessous), puis le paragraphe où aller.
+      <span class="subtle"> ⚔️ combat · 🎁 objet à gagner</span></p>
     <div class="carte-cheat-places" role="group" aria-label="Lieux de la carte">
-      ${places.map(m => html`<button type="button" key=${m.name} class="btn small" aria-pressed=${chosen === m.name ? 'true' : 'false'} onClick=${() => setChosen(chosen === m.name ? null : m.name)}>${m.n ? html`<span class="mono">${m.n}.</span> ` : null}${m.name}</button>`)}
+      ${places.map(m => html`<button type="button" key=${m.name} class="btn small" aria-pressed=${chosen === m.name ? 'true' : 'false'} aria-label=${m.name + stakeText(stakes[m.name])} onClick=${() => setChosen(chosen === m.name ? null : m.name)}>${m.n ? html`<span class="mono">${m.n}.</span> ` : null}${m.name}${stakeMarks(stakes[m.name], 'carte-stakes-inline')}</button>`)}
     </div>
     ${chosen && html`<div class="carte-cheat-secs" role="group" aria-label=${`Paragraphes du lieu ${chosen}`}>
       <b>${chosen}</b>
-      ${sections.length ? sections.map(id => html`<button type="button" key=${id} class=${'btn small' + (String(state.section) === String(id) ? ' primary' : '')} onClick=${() => go(id)}>
-          <span class="mono">§ ${id}</span>${adv.sections[id]?.title ? html` <span>${adv.sections[id].title}</span>` : null}
-        </button>`)
+      ${sections.length ? sections.map(({ id, inherited }) => { const x = stakesOf(adv, state, [id]); return html`<button type="button" key=${id} class=${'btn small carte-cheat-sec' + (String(state.section) === String(id) ? ' primary' : '')} onClick=${() => go(id)}
+          title=${inherited ? 'Paragraphe sans lieu : rattaché au lieu du paragraphe qui y mène' : undefined}>
+          <span class="mono">§ ${id}</span>${adv.sections[id]?.title ? html` <span>${adv.sections[id].title}</span>` : null}${inherited ? html`<span class="carte-stake" aria-label="sans lieu"> ·</span>` : null}
+          ${x.combats.length > 0 && html`<span class="carte-stake"><span aria-hidden="true">⚔️</span> ${x.combats.join(', ')}</span>`}
+          ${x.all.length > 0 && html`<span class="carte-stake"><span aria-hidden="true">🎁</span> ${x.all.map(i => `${adv.items?.[i]?.name || i}${state.inventory?.[i] > 0 ? ' ✓' : ''}`).join(', ')}</span>`}
+        </button>`; })
         : html`<span class="subtle">Aucun paragraphe n’a ce lieu.</span>`}
     </div>`}
   </div>`;
@@ -284,6 +298,8 @@ function WorldView({ adv, source, state, update, onClose }) {
   const markers = !cheat ? seen : [...seen.filter(m => m.status !== 'unknown'), ...Object.keys(wm.places || {}).map(placeName)
     .filter(n => n && !seen.some(m => m.name === n && m.status !== 'unknown')).map(n => ({ name: n, ...placePos(adv, n), status: 'known' }))
     .filter(m => Number.isFinite(m.x))];
+  const byPlace = useMemo(() => (cheat ? sectionsByPlace(adv) : new Map()), [cheat, adv]);
+  const stakes = useMemo(() => Object.fromEntries([...byPlace].map(([name, list]) => [name, stakesOf(adv, state, list.map(x => x.id))])), [byPlace, adv, state]);
   const points = wm.showPath !== false ? journeyPoints(state, adv) : [];
   const here = currentPlace(state, adv);
   const visited = visitedPlaces(state, adv);
@@ -297,8 +313,8 @@ function WorldView({ adv, source, state, update, onClose }) {
   const shown = compact ? markers.map(m => (m.status !== 'unknown' ? { ...m, n: ++k } : m)) : markers;
   return html`<div class="stack carte-view" style="gap:12px">
     <${WorldMap} adv=${adv} source=${source} markers=${shown} points=${points} onCrowded=${compact ? null : () => setCrowded(sig)}
-      onPlace=${cheat ? n => setChosen(c => (c === n ? null : n)) : null} chosen=${chosen} />
-    ${cheat && html`<${CheatTravel} adv=${adv} state=${state} update=${update} onClose=${onClose} chosen=${chosen} setChosen=${setChosen}
+      onPlace=${cheat ? n => setChosen(c => (c === n ? null : n)) : null} chosen=${chosen} stakes=${stakes} />
+    ${cheat && html`<${CheatTravel} adv=${adv} state=${state} update=${update} onClose=${onClose} chosen=${chosen} setChosen=${setChosen} stakes=${stakes} byPlace=${byPlace}
       places=${compact ? shown.filter(m => m.n).sort((a, b) => a.n - b.n) : [...markers].sort((a, b) => a.name.localeCompare(b.name, 'fr'))} />`}
     ${!markers.length && html`<p class="subtle" style="margin:0">Aucun lieu de votre voyage n'est encore marqué sur cette carte.</p>`}
     ${compact && !cheat && html`<ol class="carte-legend" aria-label="Lieux numérotés sur la carte">
