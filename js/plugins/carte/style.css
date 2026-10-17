@@ -181,3 +181,14 @@
 .voyage-hint { margin: 0; font: 500 14px/1.3 var(--sans); color: #6B5A3A; }
 @keyframes voyage-in { from { opacity: 0; transform: scale(.98); } }
 @media (prefers-reduced-motion: reduce) { .voyage { animation: none; transition: none; } }
+
+/* Mode triche : lieux cliquables sur la carte du monde, puis choix du paragraphe */
+.carte-jump { position: absolute; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; z-index: 4;
+  background: transparent; border: 2px dashed var(--accent); cursor: pointer; padding: 0; }
+.carte-jump:hover, .carte-jump:focus-visible { background: color-mix(in srgb, var(--accent) 22%, transparent); outline: none; border-style: solid; }
+.carte-jump.on { border: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 28%, transparent); }
+.carte-cheat { display: grid; gap: 8px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; background: var(--paper); }
+.carte-cheat-head { margin: 0; }
+.carte-cheat-places, .carte-cheat-secs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.carte-cheat-secs > b { margin-right: 4px; }
+.carte-cheat .btn[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); font-weight: 700; }

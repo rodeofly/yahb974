@@ -83,6 +83,23 @@ test('feuille tenue par le livre : pas d\'ajout ni de retrait, sauf en mode tric
   assert.ok(s.cheat); assert.equal(I.canEditItems(adv, s), true);
 });
 
+test('mode triche : aller directement à un paragraphe', () => {
+  const adv = sample({ sheet: { locked: true, cheat: true } });
+  adv.sections['7'] = { ...structuredClone(adv.sections[adv.start]), title: 'La clairière', place: 'Clairière' };
+  let s = hero(adv);
+  const to = '7';
+  assert.equal(I.cheatGoto(s, adv, to).state, s, 'sans triche, pas de saut');
+  s = I.startCheat(s).state;
+  const r = I.cheatGoto(s, adv, `§ ${to}`);
+  assert.equal(r.state.section, to);
+  assert.match(r.messages[0].text, new RegExp(`tu sautes au § ${to}`));
+  assert.match(r.state.trail.at(-1).via, /mode triche/, 'le saut reste écrit dans le fil de lecture');
+  const bad = I.cheatGoto(s, adv, '9999');
+  assert.equal(bad.state, s);
+  assert.match(bad.messages[0].text, /n’existe pas/);
+  assert.equal(I.cheatGoto({ ...s, ended: 'death' }, adv, to).state.section, s.section, 'partie finie : pas de saut');
+});
+
 test('tout débloquer : objets, drapeaux et compagnons de la campagne, or et compteurs prévus', () => {
   const adv = sample({ sheet: { locked: true, cheat: true, unlock: { gold: 50, counters: { memoire: 40 } } } });
   let s = I.startCheat(hero(adv)).state;

@@ -80,7 +80,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
       </div>
 
       ${tab?.kind === 'extra' ? html`<div class="inv-panel" role="tabpanel" aria-label=${tab.label}>
-          <${tab.def.Tab} adv=${adv} source=${source} state=${state} update=${update} />
+          <${tab.def.Tab} adv=${adv} source=${source} state=${state} update=${update} onClose=${onClose} />
         </div>`
       : html`<div class=${'inv-panel inv-layout' + (wide ? ' board' : '')} role="tabpanel" aria-label=${tab?.label}>
           <div class="stack" style="gap:10px;min-width:0">
@@ -109,7 +109,7 @@ function Inventory({ adv, source, state, update, onClose, tab: wanted }) {
           <${Detail} key=${current?.id || 'vide'} adv=${adv} source=${source} state=${state} slot=${current} kind=${board ? 'board' : tab?.kind} edit=${edit} act=${act} isNew=${current && fresh.has(current.id)} />
         </div>`}
 
-      <${CheatPanel} adv=${adv} state=${state} act=${act} />
+      <${CheatPanel} adv=${adv} state=${state} act=${act} jump=${r => { update(r.state, r.messages); onClose(); }} />
     </div>
   <//>`;
 }
@@ -242,8 +242,30 @@ function AddItem({ adv, state, act }) {
   </form>`;
 }
 
+/** Mode triche : « Aller au § » — saute directement au paragraphe tapé. `jump(r)` reçoit { state, messages }. */
+export function CheatJump({ adv, state, jump, compact = false }) {
+  const [to, setTo] = useState('');
+  const [err, setErr] = useState('');
+  if (!state.cheat || state.ended) return null;
+  const go = e => {
+    e.preventDefault();
+    const id = to.trim().replace(/^§\s*/, '');
+    if (!id) return;
+    if (!adv.sections[id]) { setErr(`Le paragraphe ${id} n’existe pas.`); return; }
+    setErr(''); setTo('');
+    jump(I.cheatGoto(state, adv, id));
+  };
+  return html`<form class=${'inv-jump row' + (compact ? ' compact' : '')} onSubmit=${go} lang="fr">
+    <label class="row"><span aria-hidden="true">🃏</span> <span>Aller au §</span>
+      <input type="text" inputmode="numeric" class="mono" value=${to} size="5" aria-label="Numéro du paragraphe où aller (mode triche)"
+        onInput=${e => { setTo(e.target.value); setErr(''); }} /></label>
+    <button class="btn small" type="submit" disabled=${!to.trim()}>Aller</button>
+    ${err && html`<span class="inv-jump-err" role="alert">${err}</span>`}
+  </form>`;
+}
+
 /** Mode triche : un choix délibéré, définitif pour la partie. */
-function CheatPanel({ adv, state, act }) {
+function CheatPanel({ adv, state, act, jump }) {
   if (!I.cheatAllowed(adv) || state.ended) return null;
   if (!state.cheat) {
     const ask = async () => {
@@ -258,8 +280,15 @@ function CheatPanel({ adv, state, act }) {
   return html`<div class="inv-cheat on row">
     <span><span aria-hidden="true">🃏</span> <b>Mode triche</b> <span class="subtle">${state.cheat.unlocked ? '· tout est débloqué' : '· tu peux ajouter des objets, ou tout débloquer d\'un coup'}</span></span>
     <button class="btn small" onClick=${() => act(I.unlockAll(state, adv))}><${Icon} name="star" />Tout débloquer</button>
+    <${CheatJump} adv=${adv} state=${state} jump=${jump} />
   </div>`;
 }
+
+// En mode triche, « Aller au § » est aussi en haut de la Feuille d'Aventure.
+registerSheetPanel({
+  id: 'triche-saut', order: 1, place: 'top',
+  Panel: ({ adv, state, update }) => html`<${CheatJump} adv=${adv} state=${state} compact jump=${r => update(r.state, r.messages)} />`,
+});
 
 registerInventory(Inventory);
 

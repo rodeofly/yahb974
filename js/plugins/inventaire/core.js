@@ -23,7 +23,7 @@
 // Voir docs/plugins/inventaire.md.
 
 import { registerNormalize, registerHeroInit, registerAssets } from '../../core/plugins.js';
-import { applyEffects } from '../../core/rules.js';
+import { applyEffects, enter } from '../../core/rules.js';
 
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 const arr = v => (Array.isArray(v) ? v : []);
@@ -199,6 +199,18 @@ export function releve(adv, state, { date = new Date() } = {}) {
 export function startCheat(state) {
   if (state?.cheat) return { state, messages: [] };
   return { state: { ...state, cheat: { turn: Number(state?.turn) || 0, unlocked: false } }, messages: [{ kind: 'info', text: 'Mode triche activé : cette partie ne compte plus pour les succès.' }] };
+}
+
+/**
+ * Mode triche : aller directement au paragraphe `id` (champ « Aller au § », clic sur la carte du monde). Le saut
+ * reste écrit dans le fil de lecture. Sans mode triche, ou partie finie, ne fait rien. Renvoie { state, messages }.
+ */
+export function cheatGoto(state, adv, id) {
+  const to = String(id ?? '').trim().replace(/^§\s*/, '');
+  if (!state?.cheat || state.ended || !to) return { state, messages: [] };
+  if (!adv.sections?.[to]) return { state, messages: [{ kind: 'loss', text: `Le paragraphe ${to} n’existe pas.` }] };
+  const r = enter(state, adv, to, { via: `🃏 Saut au § ${to} (mode triche)` });
+  return { state: r.state, messages: [{ kind: 'info', text: `Mode triche : tu sautes au § ${to}.` }, ...r.messages] };
 }
 
 /**

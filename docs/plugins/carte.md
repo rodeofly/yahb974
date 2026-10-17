@@ -85,6 +85,10 @@ Les repères :
 
 Une phrase résume aussi la carte (« Vous êtes ici : Brumeval. Lieux visités : Brumeval, Marais. »).
 
+**En mode triche** (greffon [inventaire](inventaire.md)), tous les lieux placés apparaissent, entourés d'un anneau en
+tirets : on touche un lieu (ou son bouton sous la carte), puis l'un de ses paragraphes, et on y va. Le saut reste
+écrit dans le fil de lecture (« 🃏 Saut au § 21 (mode triche) »).
+
 ### Version imprimable
 
 La carte du monde est ajoutée en annexe, sur une nouvelle page, avec tous les lieux nommés et une

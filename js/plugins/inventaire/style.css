@@ -242,3 +242,10 @@ button.dk-card:focus-visible { outline: 3px solid var(--accent); outline-offset:
 .dk-print-card .dk-title { font: 700 22pt/1.05 var(--serif); }
 .dk-print-card .dk-sub { font: 600 9pt/1.2 var(--mono); color: #444; }
 .dk-print-card .dk-foot { border: 0.6mm solid var(--c); border-top: 0.3mm dashed var(--c); border-radius: 0 0 2mm 2mm; padding: 1mm 2mm; font: 700 8pt/1.2 var(--sans); }
+
+/* Mode triche : « Aller au § » (sac et haut de la Feuille d'Aventure) */
+.inv-jump { gap: 6px 8px; align-items: center; flex-wrap: wrap; }
+.inv-jump label { gap: 6px; align-items: center; font-weight: 600; }
+.inv-jump input { width: 5.5em; font-size: 16px; padding: 4px 6px; }
+.inv-jump.compact { padding: 6px 8px; border: 1px dashed var(--line); border-radius: 6px; }
+.inv-jump-err { color: var(--loss); font-weight: 600; flex-basis: 100%; }

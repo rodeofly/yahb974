@@ -60,6 +60,9 @@ de passer la partie en triche, après confirmation :
 - le joueur peut alors ajouter et retirer des objets, et **Tout débloquer** : tous les objets de l'aventure
   (un exemplaire), les marques et les compagnons transportés par la campagne, plus l'or et les compteurs
   prévus par `unlock` ;
+- **Aller au §** (en haut de la feuille et dans le sac) : on tape un numéro, on y va directement ; sur la
+  carte du monde, tous les lieux deviennent cliquables (voir [carte.md](carte.md)). Le saut reste écrit dans
+  le fil de lecture ;
 - la partie compte comme une **partie de test** pour les succès : rien n'est enregistré ;
 - dans une campagne qui déclare `cheatFlag`, le **passeport** porte cette marque : le livre suivant repart en
   mode triche (voir [campagne.md](campagne.md)).

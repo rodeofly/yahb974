@@ -361,7 +361,8 @@ html.lh-focus .feed-current.ink > *, html.lh-focus .feed-current.ink > .prose > 
 
 /* ---------- feuille d'aventure ---------- */
 .sheet { position: sticky; top: 72px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; max-height: calc(100vh - 90px); overflow-y: auto; }
-.sheet h2 { font-size: 20px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sheet h2 { font-size: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 8px; }
+.sheet h2 .badge { white-space: nowrap; }
 .stats { display: grid; gap: 8px; }
 .stat { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 8px; }
 .stat .label { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); }

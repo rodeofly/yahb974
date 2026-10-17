@@ -16,6 +16,7 @@ import {
   TYPE, hotspotsFor, chooseHotspot, rectOf, round1, clamp, placesOf, placeName, placePos,
   worldMarkers, journeyPoints, visitedPlaces, currentPlace, knownPlaces,
 } from './core.js';
+import { cheatGoto } from '../inventaire/core.js';
 
 loadCSS(new URL('./style.css', import.meta.url));
 
@@ -218,7 +219,7 @@ function labelsOverlap(root) {
   return r.some((a, i) => r.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1));
 }
 
-function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded }) {
+function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded, onPlace, chosen }) {
   const wm = adv.meta.worldMap || {};
   const url = useAssetUrl(adv, source, wm.image);
   const frame = useRef();
@@ -231,6 +232,32 @@ function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded 
     ${url && points.length > 1 && html`<svg class="carte-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <polyline class="halo" points=${line} /><polyline points=${line} /></svg>`}
     ${url && markers.map(m => html`<${Pin} key=${m.name} m=${m} />`)}
+    ${url && onPlace && markers.filter(m => m.status !== 'unknown').map(m => html`<button type="button" key=${'go-' + m.name}
+        class=${'carte-jump' + (chosen === m.name ? ' on' : '')} style=${`left:${m.x}%;top:${m.y}%`}
+        aria-pressed=${chosen === m.name ? 'true' : 'false'} aria-label=${`${m.name} : choisir un paragraphe où aller`} title=${m.name}
+        onClick=${e => { e.stopPropagation(); onPlace(m.name); }}></button>`)}
+  </div>`;
+}
+
+/**
+ * Mode triche : sous la carte, les lieux (boutons) et, pour le lieu choisi, ses paragraphes. Un clic y emmène.
+ */
+function CheatTravel({ adv, state, update, onClose, chosen, setChosen, places }) {
+  const sections = chosen ? (placesOf(adv).find(p => p.name === chosen)?.sections || [])
+    .sort((a, b) => (Number(a) - Number(b)) || String(a).localeCompare(String(b), 'fr')) : [];
+  const go = id => { const r = cheatGoto(state, adv, id); update(r.state, r.messages); onClose?.(); };
+  return html`<div class="carte-cheat" lang="fr">
+    <p class="carte-cheat-head"><span aria-hidden="true">🃏</span> <b>Mode triche</b> : touche un lieu sur la carte (ou ci-dessous), puis le paragraphe où aller.</p>
+    <div class="carte-cheat-places" role="group" aria-label="Lieux de la carte">
+      ${places.map(m => html`<button type="button" key=${m.name} class="btn small" aria-pressed=${chosen === m.name ? 'true' : 'false'} onClick=${() => setChosen(chosen === m.name ? null : m.name)}>${m.n ? html`<span class="mono">${m.n}.</span> ` : null}${m.name}</button>`)}
+    </div>
+    ${chosen && html`<div class="carte-cheat-secs" role="group" aria-label=${`Paragraphes du lieu ${chosen}`}>
+      <b>${chosen}</b>
+      ${sections.length ? sections.map(id => html`<button type="button" key=${id} class=${'btn small' + (String(state.section) === String(id) ? ' primary' : '')} onClick=${() => go(id)}>
+          <span class="mono">§ ${id}</span>${adv.sections[id]?.title ? html` <span>${adv.sections[id].title}</span>` : null}
+        </button>`)
+        : html`<span class="subtle">Aucun paragraphe n’a ce lieu.</span>`}
+    </div>`}
   </div>`;
 }
 
@@ -241,14 +268,22 @@ function Keys({ statuses, path }) {
   </ul>`;
 }
 
-function WorldModal({ adv, source, state, onClose }) {
-  return html`<${Modal} title="Carte du monde" onClose=${onClose} wide><${WorldView} adv=${adv} source=${source} state=${state} /><//>`;
+function WorldModal({ adv, source, state, update, onClose }) {
+  return html`<${Modal} title="Carte du monde" onClose=${onClose} wide><${WorldView} adv=${adv} source=${source} state=${state} update=${update} onClose=${onClose} /><//>`;
 }
 
-/** La carte du joueur et sa légende (fenêtre « Carte du monde », onglet du sac). */
-function WorldView({ adv, source, state }) {
+/**
+ * La carte du joueur et sa légende (fenêtre « Carte du monde », onglet du sac). En mode triche, tous les lieux placés
+ * sont montrés et cliquables : on choisit un lieu, puis l'un de ses paragraphes, et on y va.
+ */
+function WorldView({ adv, source, state, update, onClose }) {
   const wm = adv.meta.worldMap;
-  const markers = worldMarkers(state, adv);
+  const cheat = !!state.cheat && !state.ended && !!update;
+  const [chosen, setChosen] = useState(null);
+  const seen = worldMarkers(state, adv);
+  const markers = !cheat ? seen : [...seen.filter(m => m.status !== 'unknown'), ...Object.keys(wm.places || {}).map(placeName)
+    .filter(n => n && !seen.some(m => m.name === n && m.status !== 'unknown')).map(n => ({ name: n, ...placePos(adv, n), status: 'known' }))
+    .filter(m => Number.isFinite(m.x))];
   const points = wm.showPath !== false ? journeyPoints(state, adv) : [];
   const here = currentPlace(state, adv);
   const visited = visitedPlaces(state, adv);
@@ -261,9 +296,12 @@ function WorldView({ adv, source, state }) {
   let k = 0;
   const shown = compact ? markers.map(m => (m.status !== 'unknown' ? { ...m, n: ++k } : m)) : markers;
   return html`<div class="stack carte-view" style="gap:12px">
-    <${WorldMap} adv=${adv} source=${source} markers=${shown} points=${points} onCrowded=${compact ? null : () => setCrowded(sig)} />
+    <${WorldMap} adv=${adv} source=${source} markers=${shown} points=${points} onCrowded=${compact ? null : () => setCrowded(sig)}
+      onPlace=${cheat ? n => setChosen(c => (c === n ? null : n)) : null} chosen=${chosen} />
+    ${cheat && html`<${CheatTravel} adv=${adv} state=${state} update=${update} onClose=${onClose} chosen=${chosen} setChosen=${setChosen}
+      places=${compact ? shown.filter(m => m.n).sort((a, b) => a.n - b.n) : [...markers].sort((a, b) => a.name.localeCompare(b.name, 'fr'))} />`}
     ${!markers.length && html`<p class="subtle" style="margin:0">Aucun lieu de votre voyage n'est encore marqué sur cette carte.</p>`}
-    ${compact && html`<ol class="carte-legend" aria-label="Lieux numérotés sur la carte">
+    ${compact && !cheat && html`<ol class="carte-legend" aria-label="Lieux numérotés sur la carte">
       ${shown.filter(m => m.n).map(m => html`<li key=${m.name}><span class=${'carte-pin static num ' + m.status}><span class="carte-dot" aria-hidden="true">${m.n}</span></span>${m.status === 'here' ? html`<b>${m.name} (${m.approx ? 'dernier lieu connu' : 'vous êtes ici'})</b>` : m.name}</li>`)}
     </ol>`}
     <${Keys} statuses=${statuses} path=${points.length > 1} />
@@ -279,21 +317,21 @@ function WorldView({ adv, source, state }) {
 registerInventoryTab({
   id: 'carte-monde', order: 80, label: 'Carte', icon: 'map',
   show: adv => !!adv.meta?.worldMap?.image,
-  Tab: ({ adv, source, state }) => html`<${WorldView} adv=${adv} source=${source} state=${state} />`,
+  Tab: ({ adv, source, state, update, onClose }) => html`<${WorldView} adv=${adv} source=${source} state=${state} update=${update} onClose=${onClose} />`,
 });
 
 registerSheetPanel({
   id: 'carte-monde',
   order: 30,
   place: 'top', // tout en haut de la feuille, sous le nom du héros
-  Panel({ adv, source, state }) {
+  Panel({ adv, source, state, update }) {
     const [open, setOpen] = useState(false);
     if (!adv.meta.worldMap?.image) return null;
     const n = visitedPlaces(state, adv).length;
     return html`<div class="row carte-sheet">
       <button class="btn small" onClick=${() => setOpen(true)}><${Icon} name="map" />Carte du monde</button>
       <span class="subtle">${plural(n, 'lieu visité', 'lieux visités')}</span>
-      ${open && html`<${WorldModal} adv=${adv} source=${source} state=${state} onClose=${() => setOpen(false)} />`}
+      ${open && html`<${WorldModal} adv=${adv} source=${source} state=${state} update=${update} onClose=${() => setOpen(false)} />`}
     </div>`;
   },
 });
