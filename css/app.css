@@ -338,6 +338,25 @@ html.lh-focus .feed-current.ink > *, html.lh-focus .feed-current.ink > .prose > 
 .round { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; background: var(--paper); }
 .round .vs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; }
 .round .vs b { font-family: var(--mono); font-size: 18px; }
+/* Un assaut : une ligne par combattant (dés + Habileté = total), la gagnante en couleur, puis le verdict. */
+.assaut { display: grid; gap: 4px; }
+.assaut-side { display: grid; grid-template-columns: minmax(4.5em, auto) auto 1fr auto; align-items: center; gap: 8px 10px;
+  padding: 4px 10px; border-radius: 6px; border: 1px solid transparent; }
+.assaut-side .who { font-weight: 600; }
+.assaut-side .calc { color: var(--muted); font-size: 15px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+.assaut-side .calc .n { font-family: var(--mono); color: var(--ink); }
+.assaut-side .calc small { font-size: 12px; }
+.assaut-side .tot { font-family: var(--mono); font-size: 24px; min-width: 2ch; text-align: right; }
+.assaut-side.win { border-color: var(--gain); background: color-mix(in srgb, var(--gain) 10%, transparent); }
+.assaut-side.win .tot { color: var(--gain); }
+.assaut-side.lose { opacity: .72; }
+.assaut .verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 4px 10px; font-weight: 600; }
+.assaut .verdict .cmp { font-weight: 500; }
+.assaut .verdict.gain { color: var(--gain); } .assaut .verdict.loss { color: var(--loss); }
+@media (max-width: 480px) {
+  .assaut-side { grid-template-columns: auto 1fr auto; }
+  .assaut-side .who { grid-column: 1 / -1; }
+}
 .log { max-height: 180px; overflow-y: auto; font-size: 14px; color: var(--muted); display: grid; gap: 2px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
 
 /* ---------- feuille d'aventure ---------- */

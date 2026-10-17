@@ -10,6 +10,7 @@ import { ext, sumCombat } from './plugins.js';
  * Vocabulaire du combat : `rules.combat.words` remplace tout ou partie de ces libellés (un mode peut le faire
  * aussi, ex. « duel de courage » pour les petits : personne n'est blessé, l'adversaire recule).
  * Repères remplacés : {name} adversaire, {n} points, {stat} caractéristique de vie, {round}, {me}, {foe}, {txt}, {total}.
+ * more / less / same : la phrase qui compare les deux totaux sous l'assaut (sans « vous » ni « tu »).
  */
 export const COMBAT_WORDS = {
   title: 'Combat', round: 'assaut {round}', start: 'Combattre', attack: 'Assaut', auto: 'Combat automatique',
@@ -19,6 +20,8 @@ export const COMBAT_WORDS = {
   hit: 'Touché ! −{n}', wounded: 'Blessé −{n}', draw: 'Égalité', parry: 'Paré', harmless: 'Touché, sans blessure',
   win: 'Vous avez gagné le combat.', lose: 'Vous avez perdu le combat.', fled: 'Vous avez pris la fuite.',
   foeHealth: '', down: '{name} est vaincu.', spare: '{name} renonce au combat.', death: 'Vous avez succombé au combat.',
+  more: '{me} est plus grand que {foe}', less: '{me} est plus petit que {foe}', same: '{me} et {foe} : autant l’un que l’autre',
+  bonus: 'bonus', dice: 'dés',
   logRound: 'Assaut {round} — vous {me} contre {name} {foe} : {txt}.',
   logHit: 'vous blessez {name} (−{n})', logWounded: '{name} vous blesse (−{n} {stat})', logDraw: 'vous esquivez tous les deux',
   logParry: 'vous parez l\'attaque de {name}', logHarmless: '{name} vous touche sans vous blesser',
@@ -104,7 +107,11 @@ export function attackRound(state, adv) {
       s.stats[hpId].cur = Math.max(0, s.stats[hpId].cur - taken); outcome = 'wounded'; wounded = true;
     } else if (ea > pa) outcome = 'harmless'; // adversaire à 0 dégât : il touche sans blesser (pas de Chance à tenter)
     else outcome = 'draw';
-    exchanges.push({ enemy: e.id, name: e.name, player: { dice: pr.dice, total: pa }, foe: { dice: er.dice, total: ea }, outcome, damage: outcome === 'wounded' ? taken : outcome === 'hit' ? dealt : 0 });
+    // Le détail (Habileté, bonus) sert à afficher l'addition : dés + Habileté + bonus = total.
+    exchanges.push({ enemy: e.id, name: e.name,
+      player: { dice: pr.dice, total: pa, skill: me, bonus: c.playerMod + mods.attack },
+      foe: { dice: er.dice, total: ea, skill: e.skill, bonus: e.attackMod },
+      outcome, damage: outcome === 'wounded' ? taken : outcome === 'hit' ? dealt : 0 });
     const W = combatWords(adv), v = { name: e.name, stat: statLabel(adv, hpId) };
     const txt = { hit: fillWords(W.logHit, { ...v, n: dealt }), wounded: fillWords(W.logWounded, { ...v, n: taken }), draw: fillWords(W.logDraw, v), parry: fillWords(W.logParry, v), harmless: fillWords(W.logHarmless, v) }[outcome];
     lines.push(fillWords(W.logRound, { ...v, round: c.round, me: pa, foe: ea, txt }));

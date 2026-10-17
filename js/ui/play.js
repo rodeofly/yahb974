@@ -420,6 +420,38 @@ function RollBlock({ adv, state, index, block, update, go }) {
   </section>`;
 }
 
+/**
+ * Un assaut, lisible par un enfant : une ligne par combattant (dés + Habileté + bonus = total), la ligne
+ * gagnante en couleur, puis une phrase qui compare les deux totaux et dit ce qui arrive.
+ */
+function Assaut({ adv, x, W, stamp }) {
+  const F = C.fillWords;
+  const skillLabel = R.statLabel(adv, adv.rules.combat.skill);
+  const p = x.player.total, f = x.foe.total;
+  const side = (who, r, cls) => {
+    const sum = r.dice.reduce((a, b) => a + b, 0);
+    // Anciennes parties sauvegardées : pas de détail, on montre l'écart entre le total et les dés.
+    const skill = r.skill ?? r.total - sum, bonus = r.skill == null ? 0 : (r.bonus || 0);
+    const sign = n => (n < 0 ? `− ${-n}` : `+ ${n}`);
+    return html`<div class=${'assaut-side ' + cls}>
+      <span class="who">${who}</span>
+      <${Dice} result=${{ dice: r.dice, total: r.total, mod: 0 }} stamp=${stamp} showTotal=${false} />
+      <span class="calc"><span class="n">${sum}</span><small>${W.dice}</small> <span class="n">${sign(skill)}</span><small>${skillLabel}</small>${bonus ? html` <span class="n">${sign(bonus)}</span><small>${W.bonus}</small>` : null} <span class="n">=</span></span>
+      <b class="tot">${r.total}</b>
+    </div>`;
+  };
+  const tone = x.outcome === 'wounded' ? 'loss' : x.outcome === 'hit' ? 'gain' : '';
+  return html`<div class="assaut">
+    ${side(W.you, x.player, p > f ? 'win' : p < f ? 'lose' : '')}
+    ${side(x.name, x.foe, f > p ? 'win' : f < p ? 'lose' : '')}
+    <div class=${'verdict ' + tone}>
+      <span class="cmp">${F(p > f ? W.more : p < f ? W.less : W.same, { me: p, foe: f })}</span>
+      <span aria-hidden="true">→</span>
+      <span>${F(W[x.outcome] || '', { n: x.damage, name: x.name })}</span>
+    </div>
+  </div>`;
+}
+
 function CombatBlock({ adv, source, state, index, block, update, go }) {
   const c = state.combat?.block === index ? state.combat : null;
   const hp = state.stats[adv.rules.combat.health];
@@ -472,11 +504,7 @@ function CombatBlock({ adv, source, state, index, block, update, go }) {
     </div>
     ${c.mode === 'together' && !c.over && html`<p class="subtle" style="margin:0">${W.target}</p>`}
     ${last && html`<div class="round">
-      ${last.exchanges.map(x => html`<div class="vs">
-        <span>${W.you}</span><${Dice} result=${{ dice: x.player.dice, total: x.player.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.player.total}</b>
-        <span>${F(W.versus, { name: x.name })}</span><${Dice} result=${{ dice: x.foe.dice, total: x.foe.total, mod: 0 }} stamp=${stamp} showTotal=${false} /><b>${x.foe.total}</b>
-        <span class=${x.outcome === 'wounded' ? 'msg loss' : x.outcome === 'hit' ? 'msg gain' : 'msg'} style="padding:2px 8px">${F(W[x.outcome] || '', { n: x.damage, name: x.name })}</span>
-      </div>`)}
+      ${last.exchanges.map(x => html`<${Assaut} adv=${adv} x=${x} W=${W} stamp=${stamp} />`)}
       ${last.luck && html`<div class=${'outcome ' + (last.luck.lucky ? 'ok' : 'ko')}>Chance : ${last.luck.total} — ${last.luck.lucky ? 'Chanceux' : 'Malchanceux'}</div>`}
       ${(last.extra || []).map(x => html`<div class="subtle">${x}</div>`)}
     </div>`}

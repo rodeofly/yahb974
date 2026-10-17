@@ -223,6 +223,13 @@ test('combat : bonus appliqués (même graine), armure, pénalité sans arme', (
   const naked = attackRound(startCombat(bare, adv, 0), adv);
   assert.equal(naked.combat.last.mods.attack, -4);
   assert.equal(naked.combat.last.exchanges[0].player.total, a.player.total - 4);
+  // Le détail affiché sous l'assaut refait le total : dés + Habileté + bonus (−4 sans arme).
+  const sum = d => d.reduce((x, y) => x + y, 0);
+  for (const x of [a, b, naked.combat.last.exchanges[0]]) {
+    assert.equal(sum(x.player.dice) + x.player.skill + x.player.bonus, x.player.total);
+    assert.equal(sum(x.foe.dice) + x.foe.skill + x.foe.bonus, x.foe.total);
+  }
+  assert.equal(naked.combat.last.exchanges[0].player.bonus, -4);
   const lines = bonuses(armed, adv).lines;
   assert.deepEqual(lines.map(l => `${l.label} : ${l.text}`), ['Épée fine : +1 Force d\'Attaque, +1 dégât infligé', 'Bouclier : −1 dégât subi']);
   assert.equal(bonuses(bare, adv).lines[0].text, '−4 Force d\'Attaque');
