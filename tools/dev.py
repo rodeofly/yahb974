@@ -7,7 +7,9 @@
     npm run dev -- --lan                                # aussi depuis une tablette du même réseau (http://<adresse>:8080)
 
 Comme `npm run serve`, mais pour voir ses changements en direct, sans vider de cache :
-- aucune réponse n'est gardée par le navigateur (Cache-Control: no-store) ;
+- le navigateur garde une copie de chaque fichier mais redemande à chaque fois s'il a changé (Cache-Control: no-cache
+  et ETag) : un fichier inchangé coûte une réponse « 304 » vide, un fichier modifié est renvoyé aussitôt. Les fichiers
+  texte (JS, CSS, JSON) partent compressés (gzip) : une tablette ou un téléphone en Wi-Fi charge vite, même la première fois ;
 - `sw.js` est remplacé par un service worker qui vide les caches et se désinscrit : la version installée
   (hors ligne) ne sert plus de vieux fichiers. Un simple rechargement de la page montre la dernière version ;
 - `--livre CHEMIN` (plusieurs fois si besoin) : le livre de ce dossier (adventure.json, images/…) ou de ce .lhz apparaît
@@ -30,6 +32,8 @@ import threading
 import time
 import urllib.parse
 import zipfile
+import gzip
+import hashlib
 
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 
@@ -155,19 +159,46 @@ def catalogue():
         return _cache['val']
 
 
+_gz = {}  # ETag de la version compressée → octets compressés (on ne recompresse pas un fichier inchangé)
+COMPRESSIBLE = ('text/', 'javascript', 'json', 'svg', 'xml', 'manifest')
+
+
 class Dev(http.server.SimpleHTTPRequestHandler):
+    # HTTP/1.1 : connexions gardées ouvertes (90 fichiers sans renégocier à chaque fois), et Chrome n'utilise les ETag
+    # que pour une réponse HTTP/1.1. Chaque réponse porte donc sa longueur (Content-Length).
+    protocol_version = 'HTTP/1.1'
+
     def end_headers(self):
-        self.send_header('Cache-Control', 'no-store')
+        # Copie gardée, mais redemandée à chaque fois (ETag) : les changements se voient au rechargement.
+        self.send_header('Cache-Control', 'no-cache')
         super().end_headers()
 
     def envoyer(self, corps, type_, nom=None):
+        etag = hashlib.md5(corps).hexdigest()
+        gz = (len(corps) > 1024 and any(k in type_ for k in COMPRESSIBLE)
+              and 'gzip' in self.headers.get('Accept-Encoding', ''))
+        etag = f'"{etag}{"-gz" if gz else ""}"'
+        if etag in [e.strip() for e in self.headers.get('If-None-Match', '').split(',')]:
+            self.send_response(304)
+            self.send_header('ETag', etag)
+            self.end_headers()
+            return None
+        if gz:
+            if len(_gz) > 800:
+                _gz.clear()
+            corps = _gz.get(etag) or _gz.setdefault(etag, gzip.compress(corps, 6))
         self.send_response(200)
         self.send_header('Content-Type', type_)
         self.send_header('Content-Length', str(len(corps)))
+        self.send_header('ETag', etag)
+        self.send_header('Vary', 'Accept-Encoding')
+        if gz:
+            self.send_header('Content-Encoding', 'gzip')
         if nom:
             self.send_header('Content-Disposition', "inline; filename*=UTF-8''" + urllib.parse.quote(nom))
         self.end_headers()
         self.wfile.write(corps)
+        return None
 
     def do_GET(self):
         chemin = urllib.parse.unquote(self.path.split('?')[0])
@@ -194,6 +225,12 @@ class Dev(http.server.SimpleHTTPRequestHandler):
                     return self.envoyer(corps, self.guess_type(reste))
                 self.send_error(404)
                 return None
+        # Fichiers du moteur : même envoi (ETag, 304, gzip) ; les dossiers et les cas particuliers restent au serveur standard.
+        f = pathlib.Path(self.translate_path(self.path))
+        if f.is_dir() and (f / 'index.html').is_file() and self.path.split('?')[0].endswith('/'):
+            f = f / 'index.html'
+        if f.is_file() and (f == RACINE or RACINE in f.parents):
+            return self.envoyer(f.read_bytes(), self.guess_type(str(f)))
         return super().do_GET()
 
     def log_message(self, fmt, *args):

@@ -57,6 +57,12 @@ Dans la condition d'un choix, choisissez « Le héros… **a un compteur** », l
 **au plus (≤)**, **exactement (=)** ou **entre… et…**. Un choix indisponible est grisé avec la raison
 (« Il faut avoir au moins 5 points de Réputation. »), ou caché si vous cochez la case prévue.
 
+### Un compteur de journées
+
+Un compteur nommé « Jours… » (identifiant `jour` ou `jours`), ou marqué `"days": true` dans le fichier, compte les
+journées : dans le **graphe** de l'éditeur, le regroupement **Par jour** le suit (chaque fois qu'il augmente, à
+l'entrée d'un paragraphe ou dans un choix, le jour passe), comme l'effet « Nouveau jour ».
+
 ### 4. Version imprimable
 
 - **Règles** : un paragraphe « Les compteurs » explique chaque compteur, ses bornes et ses déclencheurs

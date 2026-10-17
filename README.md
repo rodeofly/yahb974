@@ -71,6 +71,8 @@ pour que les joueurs reçoivent la nouvelle version.
 2. Un paragraphe = un texte, une image facultative, des effets à l'arrivée, des blocs (test, table de dés, combat, boutique)
    et des choix. Un choix peut exiger un objet, une marque, une caractéristique… et appliquer des effets.
 3. L'onglet **Graphe** montre toute l'aventure ; glissez les paragraphes pour les ranger, cliquez pour les ouvrir.
+   Regroupements **Par lieu** (un paragraphe sans lieu va avec le paragraphe le plus proche qui y mène), **Par jour**
+   (effet « Nouveau jour » ou compteur des jours) et **Par étape** ; un regroupement sans objet est grisé.
 4. L'onglet **Vérifier** liste les renvois cassés, les impasses et les paragraphes inaccessibles.
 5. **Tester d'ici** lance une partie à partir du paragraphe ouvert, sans rien sauvegarder.
 6. **Exporter** produit un fichier `.lhz` (zip : `adventure.json` + images) à partager ou à garder en sauvegarde.

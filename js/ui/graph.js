@@ -120,15 +120,24 @@ export function GraphTab({ adv, change, open, current }) {
   const [hits, setHits] = useState(null);
 
   // La structure (paragraphes, renvois, lieux, titres) : on ne reconstruit le graphe que si elle change.
-  const structureKey = useMemo(() => JSON.stringify(Object.entries(adv.sections).map(([id, s]) => [id, s.title, s.place, s.ending, (s.blocks || []).map(b => b.type), (s.choices || []).map(c => c.to), (s.blocks || []).map(b => [b.success, b.failure, b.win, b.flee, b.lose, (b.table || []).map(t => t.to), (b.options || []).map(o => o.to)]), (s.onEnter || []).some(e => e.op === 'newDay')])), [adv]);
+  // Les jours dépendent des effets « nouveau jour » et du compteur des journées (à l'entrée ou dans un choix).
+  const dayFx = list => (list || []).filter(e => e?.op === 'newDay' || e?.op === 'counter').map(e => `${e.op}:${e.counter || ''}:${e.add || ''}`).join(',');
+  const structureKey = useMemo(() => JSON.stringify([(adv.rules?.counters || []).map(c => [c.id, c.label, c.days, c.start]),
+    Object.entries(adv.sections).map(([id, s]) => [id, s.title, s.place, s.ending, (s.blocks || []).map(b => b.type), (s.choices || []).map(c => [c.to, dayFx(c.effects)]), (s.blocks || []).map(b => [b.success, b.failure, b.win, b.flee, b.lose, (b.table || []).map(t => t.to), (b.options || []).map(o => o.to)]), dayFx(s.onEnter)])]), [adv]);
   const A = useMemo(() => analyze(adv), [structureKey]);
   const hasSpells = useMemo(() => [...A.out.values()].some(l => l.some(t => t.kind === 'spell')), [A]);
+  // Lieu d'un paragraphe : le sien, sinon celui du paragraphe le plus proche qui y mène (analyse).
+  const placeOf = id => A.place.get(id)?.name || 'Sans lieu';
   const places = useMemo(() => {
     const first = new Map();
-    for (const id of A.ids) { const p = adv.sections[id].place || 'Sans lieu'; const d = A.depth.get(id) ?? 1e9; if (!first.has(p) || d < first.get(p)) first.set(p, d); }
+    for (const id of A.ids) { const p = placeOf(id); const d = A.depth.get(id) ?? 1e9; if (!first.has(p) || d < first.get(p)) first.set(p, d); }
     return [...first.entries()].sort((a, b) => a[1] - b[1]).map(([p]) => p);
   }, [structureKey]);
   const days = useMemo(() => [...new Set([...A.day.values()])].sort((a, b) => a - b), [A]);
+  // Regroupements possibles : il faut au moins deux lieux (hors « Sans lieu ») ou deux journées.
+  const canPlace = places.filter(p => p !== 'Sans lieu').length >= 2;
+  const canDay = days.length >= 2;
+  useEffect(() => { if ((group === 'place' && !canPlace) || (group === 'day' && !canDay)) setGroup('none'); }, [canPlace, canDay, group]);
   // Étapes : tranches de distance au départ, environ douze groupes.
   const stage = useMemo(() => {
     const max = Math.max(0, ...[...A.depth.values()].filter(Number.isFinite));
@@ -151,7 +160,7 @@ export function GraphTab({ adv, change, open, current }) {
     return seen;
   }, [A, current, radius]);
 
-  const groupOf = id => group === 'place' ? places.indexOf(adv.sections[id].place || 'Sans lieu') : group === 'day' ? days.indexOf(A.day.get(id) ?? days[days.length - 1]) : group === 'stage' ? stage.of(id) : -1;
+  const groupOf = id => group === 'place' ? places.indexOf(placeOf(id)) : group === 'day' ? days.indexOf(A.day.get(id) ?? days[days.length - 1]) : group === 'stage' ? stage.of(id) : -1;
   const groupLabels = group === 'place' ? places : group === 'day' ? days.map(d => `Jour ${d}`) : group === 'stage' ? stage.labels : null;
 
   /* ---------- construction ---------- */
@@ -344,8 +353,10 @@ export function GraphTab({ adv, change, open, current }) {
         <button ...${press('frise', layout)} onClick=${() => { setLayout('frise'); setGroup('none'); }}>Frise</button></div>
       <div class="seg" role="group" aria-label="Regrouper">
         <button ...${press('none', group)} onClick=${() => setGroup('none')}>Sans groupe</button>
-        <button ...${press('place', group)} onClick=${() => { setGroup('place'); setLayout('spring'); }}>Par lieu</button>
-        <button ...${press('day', group)} onClick=${() => { setGroup('day'); setLayout('spring'); }}>Par jour</button>
+        <button ...${press('place', group)} disabled=${!canPlace} onClick=${() => { setGroup('place'); setLayout('spring'); }}
+          title=${canPlace ? 'Un paragraphe sans lieu va avec le paragraphe le plus proche qui y mène' : 'Donnez un lieu aux paragraphes (onglet Paragraphe) : il en faut au moins deux'}>Par lieu</button>
+        <button ...${press('day', group)} disabled=${!canDay} onClick=${() => { setGroup('day'); setLayout('spring'); }}
+          title=${canDay ? (A.dayCounter ? `Les jours suivent le compteur « ${A.dayCounter.label || A.dayCounter.id} »` : 'Les jours suivent l’effet « Nouveau jour »') : 'Aucune journée : effet « Nouveau jour », ou compteur des jours (« Jours… »)'}>Par jour</button>
         <button ...${press('stage', group)} onClick=${() => { setGroup('stage'); setLayout('spring'); }} title="Tranches de distance au départ : lisible même pour un très grand livre">Par étape</button></div>
       <label class="chk" title="N'afficher que les paragraphes proches du paragraphe ouvert">Voisinage
         <select value=${radius} onChange=${e => setRadius(Number(e.target.value))} aria-label="Rayon du voisinage" style="min-height:0;padding:2px 4px">

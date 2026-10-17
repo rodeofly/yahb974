@@ -14,7 +14,8 @@
 // Voir docs/plugins/carte.md.
 
 import { registerBlock, registerEffect, registerCondition, registerHeroInit, registerNormalize, registerAssets, findCondition, ext } from '../../core/plugins.js';
-import { check, describeCondition, choiceGuard, enter, targetsOf } from '../../core/rules.js';
+import { check, describeCondition, choiceGuard, enter } from '../../core/rules.js';
+import { inheritedPlaces } from '../../core/analysis.js';
 
 export const TYPE = 'map';
 
@@ -84,22 +85,7 @@ const byNum = (a, b) => (Number(a) - Number(b)) || String(a).localeCompare(Strin
  * Les paragraphes qu'aucun paragraphe avec lieu n'atteint restent sans lieu.
  */
 export function placeOfSections(adv) {
-  const out = new Map();
-  const queue = [];
-  for (const id of Object.keys(adv?.sections || {}).sort(byNum)) {
-    const p = placeName(adv.sections[id]?.place);
-    if (p) { out.set(id, { place: p, inherited: false }); queue.push(id); }
-  }
-  // Parcours en largeur depuis tous les paragraphes situés à la fois : chacun hérite du lieu le plus proche.
-  for (let i = 0; i < queue.length; i++) {
-    const from = queue[i];
-    for (const t of targetsOf(adv.sections[from] || {})) {
-      if (!adv.sections[t.to] || out.has(t.to)) continue;
-      out.set(t.to, { place: out.get(from).place, inherited: true });
-      queue.push(t.to);
-    }
-  }
-  return out;
+  return new Map([...inheritedPlaces(adv)].map(([id, x]) => [id, { place: x.name, inherited: x.inherited }]));
 }
 
 /** Paragraphes de chaque lieu, héritiers compris : Map lieu → [{ id, inherited }], par numéro. */
