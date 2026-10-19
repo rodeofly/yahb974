@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">L’île des parcours</title>
+  <desc id="desc">Une île verte traversée par les branches d’un graphe, sur fond crème.</desc>
+  <rect width="512" height="512" fill="#f7f5ef"/>
+  <path d="M286 72 377 114 433 219 407 332 290 432 164 410 74 306 87 192 183 101Z" fill="none" stroke="#d4ddd2" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M282 103 363 141 402 226 377 316 279 399 179 380 105 295 116 204 199 131Z" fill="#123e3a"/>
+  <path d="M158 300 233 245 300 307M233 245 281 175" fill="none" stroke="#f7f5ef" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M190 179 216 161 235 174M303 354 329 334" fill="none" stroke="#568078" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="158" cy="300" r="23" fill="#f7f5ef"/>
+  <circle cx="300" cy="307" r="23" fill="#f7f5ef"/>
+  <circle cx="233" cy="245" r="24" fill="#e88664" stroke="#123e3a" stroke-width="8"/>
+  <circle cx="281" cy="175" r="24" fill="#e2bd6c"/>
+  <circle cx="281" cy="175" r="7" fill="#123e3a"/>
+</svg>

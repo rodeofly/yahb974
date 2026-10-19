@@ -3,8 +3,8 @@
 Ce document décrit comment Livre-Héros (yahb974) affiche, à côté d'un livre-jeu, une **page compagnon** (un monde
 en 3D, une carte animée…) qui suit l'histoire paragraphe par paragraphe et partage les mêmes boutons. Il sert à
 **adapter un livre existant** (ou un roman) en « mode synchro 3D », et à écrire une page compagnon qui lui répond.
-Premier livre qui s'en sert : *Les sentiers de La Réunion*, avec l'appli 3D *L'île des parcours* (servie en local :
-le livre publié sur ce site se joue sans la télé).
+Premier livre qui s'en sert : *Les sentiers de La Réunion*, avec l'appli 3D *L'île des parcours* (publiée avec le site,
+dans `ile-des-parcours/` ; en local, servie sur le port 8081).
 
 Principe en une phrase : **le livre raconte et décide, la télé montre ; les boutons sont les mêmes des deux côtés.**
 

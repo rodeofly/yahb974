@@ -1,0 +1,383 @@
+/* Fil d'Ariane: panel of the eight itineraries, stage card and fiche viewer. */
+.ariane-toggle span { font-size: 11px; font-weight: 600; }
+.terrain-hud .ariane-toggle[aria-expanded="true"] { background: #204d40; color: #fffcf0; }
+.ariane-panel {
+  position: absolute; left: max(28px, env(safe-area-inset-left)); top: 82px; width: 360px;
+  max-height: calc(100dvh - 165px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  background: #f9fbf3f2; backdrop-filter: blur(24px); border: 1px solid #ffffffc0; border-radius: 15px;
+  box-shadow: 0 12px 60px #143c3020; padding: 18px 18px 14px; pointer-events: auto; color: #163e3a;
+}
+.ariane-head { display: flex; align-items: start; gap: 8px; margin-bottom: 12px; }
+.ariane-head > div { flex: 1; }
+.ariane-head h2 { font-size: 19px; font-weight: 600; letter-spacing: -.04em; line-height: 1.2; margin: 6px 0 0; }
+.ariane-panel .ariane-close { height: 26px; width: 26px; border: 0 !important; box-shadow: none; background: transparent; font-size: 24px; flex-shrink: 0; margin-left: auto; }
+.ariane-back { background: none; font-size: 12px; font-weight: 600; color: #3d6759; padding: 4px 0; }
+.ariane-levels { display: flex; padding: 3px; border: 1px solid #dce5d4; background: #eef3e6; border-radius: 8px; gap: 4px; margin: 10px 0; }
+.ariane-levels button { padding: 7px 4px; font-size: 11.5px; flex: 1; background: transparent; border-radius: 6px; }
+.ariane-levels button.active { background: #fffef7; box-shadow: 0 2px 7px #1f432a14; color: #204d40; font-weight: 650; }
+.ariane-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 7px; }
+.ariane-item { width: 100%; display: flex; align-items: center; gap: 11px; text-align: left; padding: 10px 11px; border-radius: 10px; background: #fffffcd0 !important; border: 1px solid #e4ebdc !important; border-left: 5px solid var(--trail) !important; }
+.ariane-item:hover { background: #fff !important; box-shadow: 0 3px 12px #1f432a14; }
+.ariane-num { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--trail, #204d40); color: #fff; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px #0002; }
+.ariane-item-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ariane-item-text strong { font-size: 13px; font-weight: 650; }
+.ariane-item-text small { font-size: 10.5px; color: #627a68; }
+.ariane-item-text .ariane-stats { font-variant-numeric: tabular-nums; color: #44634f; }
+.ariane-score { font-size: 10px; color: #4f7058; white-space: nowrap; font-weight: 600; }
+.ariane-title { display: flex; gap: 11px; align-items: center; margin: 4px 0 12px; }
+.ariane-title h2 { font-size: 20px; font-weight: 650; letter-spacing: -.04em; margin: 0; line-height: 1.15; }
+.ariane-title small { font-size: 11px; color: #627a68; }
+.ariane-title .ariane-num { width: 34px; height: 34px; font-size: 15px; }
+.ariane-fiche { display: block; width: 100%; padding: 0; border-radius: 10px; overflow: hidden; background: #efe6d2 !important; box-shadow: 0 3px 14px #3b2b1420; cursor: zoom-in; }
+.ariane-fiche img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
+.ariane-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 12px 0; font-size: 11px; }
+.ariane-facts dt { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #7c8d77; font-weight: 650; }
+.ariane-facts dd { margin: 2px 0 0; line-height: 1.45; }
+.ariane-facts .wide, .ariane-facts div:nth-child(3) { grid-column: 1 / -1; }
+.ariane-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 8px; }
+.terrain-hud .ariane-play { background: #204d40; color: #fffcf0; font-weight: 650; font-size: 13px; padding: 10px 16px; border-radius: 9px; box-shadow: 0 3px 10px #173b2730; }
+.terrain-hud .ariane-play:hover { background: #2a6151; }
+.terrain-hud .ariane-chip { background: #eef3e6; border: 1px solid #dce5d4 !important; border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+.terrain-hud .ariane-chip.active { background: #f2c14e; border-color: #d9a73a !important; color: #3b2b0c; font-weight: 650; }
+.ariane-speed select { font-size: 11.5px; padding: 8px; border: 1px solid #dce5d4; border-radius: 8px; background: #fefffa; }
+.ariane-progress { margin: 6px 0 4px; }
+.ariane-progress > div { height: 6px; border-radius: 4px; background: #dfe7d6; overflow: hidden; }
+.ariane-progress span { display: block; height: 100%; background: linear-gradient(90deg, #f2c14e, #e0a43a); transition: width .25s linear; }
+.ariane-progress small { font-size: 10px; color: #627a68; font-variant-numeric: tabular-nums; }
+.ariane-narrator { font-size: 12px; font-weight: 650; color: #6b5131; margin: 8px 0 2px; }
+.terrain-hud.cams-merged .camera-switch { display: none; }
+.cam-bar {
+  display: flex; align-items: flex-end; gap: 6px; padding: 4px 6px 5px; border-radius: 12px; pointer-events: auto;
+  background: #f6f9f1e6; border: 1px solid #ffffffe0; box-shadow: 0 4px 24px #193f3b14; backdrop-filter: blur(14px);
+}
+.cam-group { display: flex; align-items: center; gap: 2px; position: relative; padding-top: 12px; }
+.cam-group + .cam-group { border-left: 1px solid #d5dfcd; padding-left: 6px; }
+.cam-group::before { content: attr(data-caption); position: absolute; top: 1px; left: 8px; font-size: 7.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #7c8d77; }
+.cam-group:first-child::before { left: 4px; }
+.terrain-hud .cam-bar button { padding: 6px 8px; border-radius: 8px; background: transparent; font-size: 15px; display: flex; gap: 5px; align-items: center; white-space: nowrap; }
+.cam-bar button span { font-size: 10.5px; font-weight: 600; }
+.terrain-hud .cam-bar button.active { background: #204d40; color: #fffcf0; }
+.terrain-hud .cam-bar button:hover:not(.active):not(:disabled) { background: #e3ebdc; }
+.cam-bar button:disabled { opacity: .38; cursor: not-allowed; }
+.cam-bar select { font-size: 11px; padding: 5px 4px; border: 1px solid #dce5d4; border-radius: 7px; background: #fefffa; max-width: 128px; margin-right: 2px; }
+.ariane-prompt {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: max(80px, calc(env(safe-area-inset-bottom) + 80px));
+  display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 16px; border-radius: 999px; pointer-events: auto; z-index: 3;
+  background: #fffdf6f4; border: 1px solid #fff; border-left: 6px solid var(--stage); box-shadow: 0 10px 34px #12302a30;
+  font-size: 13px; font-weight: 600; color: #163e3a; max-width: calc(100vw - 32px); animation: ariane-rise .28s ease-out;
+}
+.ariane-prompt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terrain-hud .ariane-prompt [data-prompt="open"] { background: #204d40; color: #fffcf0; padding: 9px 14px; border-radius: 999px; font-weight: 650; font-size: 12.5px; white-space: nowrap; }
+.terrain-hud .ariane-prompt [data-prompt="close"] { background: transparent; font-size: 20px; padding: 2px 8px; }
+.ariane-troop { font-size: 11px; line-height: 1.5; color: #4f6a57; margin: 6px 0; }
+.ariane-check { display: flex; gap: 7px; align-items: center; font-size: 11.5px; margin: 8px 0; }
+.ariane-h3 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #6d8771; margin: 16px 0 6px; }
+.ariane-stages { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.ariane-stages button { width: 100%; display: flex; gap: 10px; align-items: center; text-align: left; padding: 7px 9px; border-radius: 8px; background: transparent; }
+.ariane-stages button:hover { background: #eef3e6; }
+.ariane-stage-icon { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 14px; background: color-mix(in srgb, var(--stage) 18%, white); border: 1px solid color-mix(in srgb, var(--stage) 45%, white); }
+.ariane-stage-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.ariane-stage-text strong { font-size: 12px; font-weight: 600; }
+.ariane-stage-text small { font-size: 10px; color: #6a8070; }
+.ariane-stage-state { color: #2f7d4f; font-weight: 700; }
+.ariane-stages .done .ariane-stage-text strong { color: #5d7462; }
+.ariane-tale { margin: 12px 0; font-size: 12.5px; line-height: 1.6; color: #2c4a43; }
+.ariane-tale summary { cursor: pointer; font-weight: 650; font-size: 12px; color: #204d40; }
+.ariane-tale p { margin: 8px 0; }
+.ariane-help { font-size: 10.5px; color: #6a8070; line-height: 1.5; border-top: 1px solid #dce5d3; padding-top: 10px; }
+.ariane-credit { font-size: 9.5px; color: #7c8d77; line-height: 1.5; margin: 10px 0 0; }
+.ariane-credit a { color: inherit; }
+
+.ariane-card {
+  position: absolute; left: 50%; bottom: max(84px, calc(env(safe-area-inset-bottom) + 84px)); transform: translateX(-50%);
+  width: min(540px, calc(100vw - 32px)); max-height: min(calc(100dvh - 200px), 560px); overflow: auto; overscroll-behavior: contain;
+  background: #fffdf6f7; backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid #fff; border-top: 5px solid var(--stage);
+  box-shadow: 0 18px 60px #12302a38; padding: 18px 20px 16px; pointer-events: auto; color: #163e3a; z-index: 3;
+  animation: ariane-rise .28s ease-out;
+}
+@keyframes ariane-rise { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.ariane-card h3 { font-size: 20px; letter-spacing: -.03em; margin: 6px 0 8px; }
+.ariane-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #6d8771; margin: 14px 0 6px; }
+.ariane-card h5 { font-size: 12px; margin: 8px 0 4px; color: #204d40; }
+.ariane-card .terrain-eyebrow { font-size: 9px; }
+.ariane-card-close { position: absolute; right: 10px; top: 8px; background: transparent !important; font-size: 24px; line-height: 1; padding: 4px 8px; }
+.ariane-question { font-size: 15.5px; line-height: 1.55; margin: 10px 0 12px; }
+.ariane-answer { font-size: 14px; line-height: 1.5; background: #eef6e6; border-left: 4px solid #7a9e3d; padding: 9px 12px; border-radius: 8px; margin: 8px 0; }
+.ariane-card-lead { font-size: 14px; line-height: 1.6; }
+.ariane-card-meta { font-size: 11.5px; color: #627a68; }
+.ariane-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.ariane-glossary { font-size: 12px; line-height: 1.5; }
+.ariane-glossary p { margin: 3px 0; }
+.ariane-lightbox { position: absolute; inset: 0; background: #0b1a17d9; display: grid; place-items: center; pointer-events: auto; z-index: 5; cursor: zoom-out; }
+.ariane-lightbox img { max-width: min(94vw, 900px); max-height: 92dvh; border-radius: 10px; box-shadow: 0 20px 80px #000a; }
+.ariane-lightbox button { position: absolute; top: 18px; right: 22px; font-size: 30px; background: transparent !important; color: #fff !important; }
+
+@media (max-width: 950px) { .ariane-panel { left: 20px; width: 330px; } }
+@media (max-width: 1500px) { .cam-bar button span { display: none; } .cam-bar button.active span { display: inline; } }
+@media (max-width: 950px) { .cam-bar button.active span { display: none; } }
+@media (max-width: 600px) {
+  .cam-bar { position: absolute; top: 58px; left: 8px; right: 8px; overflow-x: auto; scrollbar-width: none; }
+  .cam-bar select { max-width: 100px; }
+  .ariane-prompt { bottom: max(12px, env(safe-area-inset-bottom)); }
+  .ariane-toggle span { display: none; }
+  .ariane-panel { left: 10px; right: 10px; width: auto; top: auto; bottom: max(10px, env(safe-area-inset-bottom)); max-height: 52dvh; border-radius: 14px; padding: 14px; z-index: 2; }
+  .terrain-hud.ariane-open .terrain-bottomline { opacity: 0; pointer-events: none; }
+  .ariane-card { bottom: max(12px, env(safe-area-inset-bottom)); max-height: 70dvh; z-index: 4; }
+  .ariane-fiche img { aspect-ratio: 16 / 10; }
+}
+
+/* Badge débloqué à l'arrivée sur une étape (comme les trophées du livre-jeu). */
+.terrain-hud .ariane-badge { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; overflow: hidden; pointer-events: auto; }
+.ariane-badge::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgb(20 50 45 / .55), rgb(6 16 14 / .78) 72%); animation: ariane-badge-fade .35s ease-out; transition: opacity .45s; }
+.ariane-badge.is-leaving::before, .ariane-badge.is-leaving .ariane-badge-stage, .ariane-badge.is-leaving .ariane-badge-sky { opacity: 0; transition: opacity .45s; }
+.ariane-badge-sky { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.terrain-hud .ariane-badge-stage:focus { outline: none; }
+.terrain-hud .ariane-badge-stage { position: relative; isolation: isolate; display: grid; justify-items: center; gap: 8px; padding: 24px; border: 0; background: none; color: #fff; font: inherit; cursor: pointer; text-align: center; }
+.ariane-badge-rays { position: absolute; left: 50%; top: 50%; width: 150vmin; height: 150vmin; margin: -75vmin 0 0 -75vmin; z-index: -1; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgb(255 213 74 / .22) 0deg 7deg, transparent 7deg 20deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0 16%, transparent 58%); mask-image: radial-gradient(circle, #000 0 16%, transparent 58%);
+  animation: ariane-badge-rays 16s linear infinite; }
+.ariane-badge-kicker { font: 800 14px/1 Inter, "Segoe UI", system-ui, sans-serif; letter-spacing: .32em; text-transform: uppercase; color: #ffd54a; text-shadow: 0 2px 12px rgb(0 0 0 / .6); animation: ariane-badge-rise .5s .2s both ease-out; }
+.ariane-badge-slogan { font: 900 clamp(46px, 10vw, 104px)/1 Inter, "Segoe UI", system-ui, sans-serif; letter-spacing: -.03em; text-transform: uppercase;
+  background: linear-gradient(180deg, #fff6c8, #ffd54a 55%, #ff9f1a); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 rgb(80 40 0 / .55)) drop-shadow(0 10px 28px rgb(0 0 0 / .5)); animation: ariane-badge-slam .6s .1s cubic-bezier(.2, 1.6, .4, 1) both; }
+.ariane-badge-spin { perspective: 700px; }
+.ariane-badge-icon { display: inline-grid; place-items: center; width: min(30vw, 150px); aspect-ratio: 1; border-radius: 50%; font-size: min(17vw, 86px); line-height: 1;
+  background: radial-gradient(circle at 35% 30%, #fff 0, var(--stage) 62%, rgb(0 0 0 / .25) 100%); border: 6px solid #ffd54a; box-shadow: 0 0 0 6px rgb(255 213 74 / .25), 0 16px 40px rgb(0 0 0 / .45);
+  transform-style: preserve-3d; animation: ariane-badge-pop .8s .25s cubic-bezier(.2, 1.5, .4, 1) both, ariane-badge-turn 3.4s linear 1.05s infinite; }
+.ariane-badge-name { font: 750 clamp(20px, 3.6vw, 32px)/1.15 Inter, "Segoe UI", system-ui, sans-serif; text-shadow: 0 3px 16px rgb(0 0 0 / .65); animation: ariane-badge-rise .5s .45s both ease-out; }
+.ariane-badge-trail { font: 600 13px/1.3 Inter, "Segoe UI", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: rgb(255 255 255 / .8); animation: ariane-badge-rise .5s .6s both ease-out; }
+@keyframes ariane-badge-fade { from { opacity: 0; } }
+@keyframes ariane-badge-rays { to { transform: rotate(360deg); } }
+@keyframes ariane-badge-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes ariane-badge-slam { 0% { opacity: 0; transform: scale(2.4); } 60% { opacity: 1; transform: scale(.94); } 100% { transform: none; } }
+@keyframes ariane-badge-pop { 0% { transform: scale(0) rotateY(0); } 55% { transform: scale(1.25) rotateY(220deg); } 100% { transform: scale(1) rotateY(360deg); } }
+@keyframes ariane-badge-turn { 0% { transform: rotateY(0) translateY(0); } 50% { transform: rotateY(180deg) translateY(-10px); } 100% { transform: rotateY(360deg) translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .ariane-badge-rays, .ariane-badge-icon, .ariane-badge-slogan, .ariane-badge-kicker, .ariane-badge-name, .ariane-badge-trail { animation: none; } }
+
+.ariane-badge-doors { margin-top: 6px; padding: 8px 16px; border-radius: 999px; background: rgb(255 213 74 / .18); border: 1px solid rgb(255 213 74 / .55); font: 750 15px/1.2 Inter, "Segoe UI", system-ui, sans-serif; color: #ffe9a8; animation: ariane-badge-rise .5s .8s both ease-out; }
+.ariane-badge.is-finale .ariane-badge-slogan { font-size: clamp(50px, 11vw, 120px); }
+.ariane-badge.is-finale .ariane-badge-rays { background: repeating-conic-gradient(from 0deg, rgb(255 213 74 / .3) 0deg 6deg, transparent 6deg 15deg); animation-duration: 10s; }
+.terrain-hud .ariane-prompt [data-prompt="jump"] { background: #ff7a1a; color: #fffcf0; padding: 9px 14px; border-radius: 999px; font-weight: 650; font-size: 12.5px; white-space: nowrap; }
+.terrain-hud .ariane-prompt [data-prompt="list"] { background: transparent; border: 1px solid currentColor !important; padding: 8px 12px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+
+/* A real top bar (brand, views, menus) and a sidebar (Fil d'Ariane, then the
+   gamebook's inventory): the scene stays clear; one button hides them both. */
+.terrain-hud.cams-merged .terrain-topline {
+  top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 14px; min-height: 52px;
+  padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
+  background: #f6f9f1f2; border-bottom: 1px solid #dbe5d2; box-shadow: 0 2px 18px #193f3b14; backdrop-filter: blur(14px);
+  pointer-events: auto; transition: transform .35s ease, opacity .35s;
+}
+.terrain-hud.cams-merged.is-moving .terrain-topline, .terrain-hud.cams-merged.pointer-locked .terrain-topline { opacity: 1; }
+.terrain-hud.cams-merged .terrain-identity { min-width: 0; gap: 6px; text-shadow: none; flex: 0 0 auto; }
+.terrain-hud.cams-merged .terrain-identity h1 { font-size: 18px; margin: 0; }
+.terrain-hud.cams-merged .terrain-identity div > span { display: none; }
+.terrain-hud.cams-merged .terrain-mark { font-size: 20px; }
+.terrain-hud.cams-merged .cam-bar { margin: 0 auto; background: none; border: 0; box-shadow: none; backdrop-filter: none; padding: 0 0 4px; min-width: 0; }
+.terrain-hud.cams-merged .terrain-tools { gap: 6px; flex: 0 0 auto; }
+.terrain-hud.cams-merged .terrain-tools .terrain-icon-button, .terrain-hud.cams-merged .terrain-tools .terrain-settings-button { height: 36px; box-shadow: none; }
+.terrain-hud.cams-merged .terrain-tools .terrain-icon-button { width: 36px; font-size: 17px; }
+.terrain-hud .ariane-menus-toggle { font-size: 18px !important; }
+.terrain-hud.menus-hidden .terrain-topline { transform: translateY(-110%); }
+.terrain-hud .ariane-bar-tab {
+  position: absolute; top: env(safe-area-inset-top, 0px); left: 50%; transform: translate(-50%, -110%); z-index: 6; pointer-events: auto;
+  padding: 4px 18px 7px; border-radius: 0 0 12px 12px; background: #f6f9f1f2; border: 1px solid #dbe5d2 !important; border-top: 0 !important;
+  box-shadow: 0 4px 16px #193f3b1f; font-size: 12px; font-weight: 650; color: #204d40; transition: transform .35s ease;
+}
+.terrain-hud.menus-hidden .ariane-bar-tab { transform: translate(-50%, 0); }
+.terrain-hud.cams-merged .terrain-settings { top: calc(60px + env(safe-area-inset-top, 0px)); }
+
+.ariane-sidebar {
+  position: absolute; top: calc(52px + env(safe-area-inset-top, 0px)); left: 0; bottom: 0; width: 370px; z-index: 2;
+  display: flex; flex-direction: column; pointer-events: auto; color: #163e3a;
+  background: #f9fbf3f4; backdrop-filter: blur(22px); border-right: 1px solid #dbe5d2; box-shadow: 6px 0 30px #143c3018; transition: transform .35s ease;
+}
+.terrain-hud.menus-hidden .ariane-sidebar { transform: translateX(-105%); }
+.ariane-tabs { display: flex; gap: 4px; padding: 8px 10px 0; border-bottom: 1px solid #e0e8d8; flex: 0 0 auto; }
+.terrain-hud .ariane-tabs button { flex: 1; padding: 9px 8px 8px; border-radius: 9px 9px 0 0; background: transparent; font-size: 12.5px; font-weight: 650; color: #527061; border-bottom: 3px solid transparent !important; }
+.terrain-hud .ariane-tabs button.active { color: #204d40; border-bottom-color: #204d40 !important; background: #fffef8; }
+.ariane-sidebar .ariane-panel, .ariane-sidebar .ariane-inventory {
+  position: static; width: auto; max-height: none; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  border: 0; border-radius: 0; box-shadow: none; background: transparent; backdrop-filter: none; padding: 14px 16px;
+}
+.ariane-doors { font-size: 13px; font-weight: 650; color: #204d40; margin: 0 0 10px; }
+.ariane-inventory-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ariane-inventory-list li { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 10px; background: #fffffcd0; border: 1px solid #e4ebdc; border-left: 5px solid var(--trail); }
+.ariane-inventory-list strong { display: block; font-size: 12.5px; font-weight: 650; margin-bottom: 4px; }
+.ariane-mini-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.ariane-mini-badge { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; background: #e9eee3; filter: grayscale(1); opacity: .45; }
+.ariane-mini-badge.won { background: radial-gradient(circle at 35% 30%, #fff, var(--trail) 75%); border: 2px solid #ffd54a; filter: none; opacity: 1; }
+.ariane-soon { font-size: 11px; color: #6d8771; line-height: 1.5; margin: 14px 0 0; }
+@media (min-width: 900px) {
+  .terrain-hud.ariane-open:not(.menus-hidden) .ariane-card, .terrain-hud.ariane-open:not(.menus-hidden) .ariane-prompt { left: calc(370px + (100% - 370px) / 2); }
+  .terrain-hud.ariane-open:not(.menus-hidden) .terrain-bottomline { left: calc(370px + 20px); }
+}
+@media (max-width: 600px) {
+  .terrain-hud.cams-merged .terrain-identity { display: none; }
+  .terrain-hud.cams-merged .terrain-topline { gap: 6px; padding-left: 6px; padding-right: 6px; }
+  .terrain-hud.cams-merged .cam-bar { position: static; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; margin: 0; }
+  .ariane-sidebar { top: auto; height: 56dvh; width: 100%; border-right: 0; border-top: 1px solid #dbe5d2; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px #143c3020; }
+  .terrain-hud.menus-hidden .ariane-sidebar { transform: translateY(105%); }
+  .ariane-sidebar .ariane-panel { position: static; left: auto; right: auto; bottom: auto; max-height: none; border-radius: 0; padding: 12px 14px; }
+}
+
+/* An object found in a container: one celebration each, until put in the bag. */
+.ariane-loot .ariane-badge-stage { cursor: default; max-width: min(520px, 92vw); }
+.ariane-loot-name { font: 800 clamp(24px, 4.4vw, 40px)/1.1 Inter, "Segoe UI", system-ui, sans-serif; color: #fff; text-align: center; text-shadow: 0 3px 16px rgb(0 0 0 / .6); animation: ariane-badge-rise .5s .4s both ease-out; }
+.ariane-loot-text { font: 500 15px/1.5 Inter, "Segoe UI", system-ui, sans-serif; color: rgb(255 255 255 / .9); text-align: center; max-width: 440px; animation: ariane-badge-rise .5s .55s both ease-out; }
+.terrain-hud .ariane-loot-stow { margin-top: 10px; padding: 11px 20px; border-radius: 999px; background: #ffd54a; color: #3c2512; font-size: 15px; font-weight: 750; box-shadow: 0 6px 22px rgb(0 0 0 / .35); animation: ariane-badge-rise .5s .7s both ease-out; }
+.terrain-hud .ariane-loot-stow:hover { background: #ffe27a; }
+.ariane-objects-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; margin: 16px 0 8px; color: #204d40; }
+.ariane-objects-title span { font-size: 12px; color: #8a6420; }
+.ariane-objects { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.ariane-objects li { display: flex; gap: 8px; align-items: center; padding: 7px 8px; border-radius: 9px; background: #fffffcd0; border: 1px solid #e4ebdc; }
+.ariane-objects li > span { font-size: 22px; line-height: 1; }
+.ariane-objects small { display: flex; flex-direction: column; font-size: 11px; font-weight: 650; color: #204d40; line-height: 1.25; }
+.ariane-objects em { font-style: normal; font-weight: 500; color: #6d8771; font-size: 10px; }
+
+/* Minimap and cross-section, top right, like a strategy game's map. */
+.terrain-hud .trail-map {
+  position: absolute; top: calc(60px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 2; width: 248px;
+  padding: 6px 8px 8px; border-radius: 12px; background: #f9fbf3ee; border: 1px solid #ffffffd0; box-shadow: 0 8px 30px #143c3022; backdrop-filter: blur(16px);
+  pointer-events: auto; color: #163e3a; transition: transform .35s ease, opacity .35s;
+}
+.trail-map header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+.trail-map-title { font-size: 9px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; color: #6d8771; }
+.terrain-hud .trail-map-fold { width: 22px; height: 22px; border-radius: 6px; background: transparent; font-size: 16px; line-height: 1; color: #204d40; }
+.terrain-hud .trail-map-fold:hover { background: #e3ebdc; }
+.trail-map.is-folded .trail-map-body { display: none; }
+.trail-map.is-folded { width: auto; }
+.trail-map-frame { position: relative; width: 232px; height: 232px; border-radius: 8px; overflow: hidden; border: 1px solid #c9d6c0; background: #cee6f2; }
+.trail-map-frame canvas { position: absolute; inset: 0; }
+.trail-map-live { cursor: crosshair; }
+.trail-map-scale { position: absolute; left: 6px; bottom: 4px; font-size: 9px; font-weight: 650; color: #3c2512; background: #ffffffcc; border-radius: 4px; padding: 1px 5px; pointer-events: none; }
+.trail-map-profile { margin-top: 7px; }
+.trail-map-profile-head { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6d8771; margin-bottom: 2px; }
+.trail-map-readout { color: #204d40; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+.trail-map-profile canvas { display: block; cursor: col-resize; border-radius: 6px; background: #fffef8; }
+.terrain-hud.settings-open .trail-map { opacity: 0; pointer-events: none; }
+.terrain-hud.menus-hidden .trail-map { transform: translateX(115%); }
+@media (max-width: 700px) { .terrain-hud .trail-map { display: none; } }
+
+/* « Saut » alone in the bar; the other views in a pop-up. */
+.cam-pop { position: relative; }
+.terrain-hud .cam-bar .cam-pop-toggle { padding: 6px 10px; border-radius: 9px; border: 1px solid #d5dfcd !important; background: #fffef8; }
+.terrain-hud .cam-bar .cam-pop-toggle.active { background: #204d40; color: #fffcf0; border-color: #204d40 !important; }
+.terrain-hud .cam-bar .cam-pop-toggle span, .terrain-hud .cam-bar .cam-jump span { display: inline; }
+.cam-pop-panel {
+  position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); z-index: 8; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end;
+  width: max-content; max-width: min(640px, calc(100vw - 24px)); padding: 10px 12px 12px; border-radius: 14px;
+  background: #f9fbf3f6; border: 1px solid #dbe5d2; box-shadow: 0 16px 50px #143c3030; backdrop-filter: blur(18px); animation: ariane-rise .2s ease-out;
+}
+.cam-pop-panel[hidden] { display: none; }
+.terrain-hud .cam-pop-panel button span { display: inline !important; }
+.cam-pop-panel .cam-group + .cam-group { border-left: 1px solid #d5dfcd; padding-left: 8px; }
+@media (max-width: 600px) { .cam-pop-panel { position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); left: 8px; right: 8px; transform: none; max-width: none; } }
+
+/* Chapters: a folding panel (the current trail open, the rest folded). */
+.terrain-hud.cams-merged #terrain-destination-select, .terrain-hud.cams-merged #terrain-go { display: none; }
+.ariane-chapters { position: relative; pointer-events: auto; }
+/* The old destination row sizes every button as a small square: not these. */
+.terrain-hud .terrain-destination .ariane-chapters-toggle { width: auto; min-width: max-content; white-space: nowrap; }
+.terrain-hud .terrain-destination .ariane-chapters-panel button { width: 100%; height: auto; border: 0 !important; backdrop-filter: none; font-size: 11.5px; }
+.terrain-hud .ariane-chapters-toggle { height: 38px; padding: 0 14px; border-radius: 9px; background: #f8faf2e6; border: 1px solid #ffffffe0 !important; backdrop-filter: blur(12px); box-shadow: 0 3px 14px #28422c08; font-size: 12px; font-weight: 650; color: #204d40; }
+.terrain-hud .ariane-chapters-toggle[aria-expanded="true"] { background: #204d40; color: #fffcf0; }
+.ariane-chapters-panel {
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: 320px; max-height: min(64dvh, 560px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  padding: 10px 10px 12px; border-radius: 14px; background: #f9fbf3f6; border: 1px solid #dbe5d2; box-shadow: 0 16px 50px #143c3030; backdrop-filter: blur(18px);
+  color: #163e3a; z-index: 8; animation: ariane-rise .2s ease-out;
+}
+.ariane-chapters-panel[hidden] { display: none; }
+.ariane-chapters-panel header { font-size: 9px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; color: #6d8771; margin: 0 4px 8px; }
+.ariane-chapters-heading { font-size: 10px; font-weight: 700; color: #6d8771; margin: 10px 4px 4px; text-transform: uppercase; letter-spacing: .08em; }
+.ariane-chapters-panel details { border-radius: 9px; margin: 3px 0; background: #fffffcb0; border: 1px solid #e4ebdc; border-left: 4px solid var(--trail, #c9d6c0); }
+.ariane-chapters-panel details.is-current { background: #fffef8; box-shadow: 0 3px 12px #1f432a14; }
+.ariane-chapters-panel summary { display: flex; align-items: center; gap: 8px; padding: 7px 9px; cursor: pointer; font-size: 12px; font-weight: 650; list-style: none; }
+.ariane-chapters-panel summary::-webkit-details-marker { display: none; }
+.ariane-chapters-panel summary::after { content: '▸'; margin-left: auto; color: #6d8771; transition: transform .2s; }
+.ariane-chapters-panel details[open] > summary::after { transform: rotate(90deg); }
+.ariane-chapters-panel summary .ariane-num { width: 22px; height: 22px; font-size: 11px; }
+.ariane-chapters-panel summary small { font-size: 10px; color: #6d8771; font-weight: 600; }
+.ariane-chapters-panel ol { list-style: none; margin: 0; padding: 0 6px 8px 6px; display: grid; gap: 2px; }
+.terrain-hud .ariane-chapters-panel ol button { width: 100%; text-align: left; padding: 6px 8px; border-radius: 7px; background: transparent; font-size: 11.5px; color: #163e3a; }
+.terrain-hud .ariane-chapters-panel ol button:hover { background: #e9f0e1; }
+.terrain-hud .ariane-chapters-panel ol button.done { color: #4f7058; }
+.ariane-chapters-group { --trail: #9fb7c9; }
+
+/* « Le guide zarboutan des sentiers de La Réunion »: the big title while the tangue falls. */
+.ariane-title-card { position: absolute; left: 50%; top: max(92px, 13vh); transform: translateX(-50%); width: min(760px, calc(100vw - 32px)); text-align: center; pointer-events: none; color: #fffdf4; text-shadow: 0 3px 22px rgb(10 30 28 / .75), 0 1px 3px rgb(10 30 28 / .8); animation: ariane-title-in 1.2s .3s both ease-out; z-index: 3; }
+.ariane-title-card[hidden] { display: none !important; }
+.ariane-title-kicker { display: inline-block; font: 800 12px/1.3 Inter, "Segoe UI", system-ui, sans-serif; letter-spacing: .24em; text-transform: uppercase; color: #ffd54a; }
+.ariane-title-card h1 { margin: 10px 0 0; font: 900 clamp(34px, 6.6vw, 76px)/.98 Inter, "Segoe UI", system-ui, sans-serif; letter-spacing: -.035em; text-wrap: balance; }
+.ariane-title-card h1 small { display: block; margin-top: 6px; font-size: .5em; font-weight: 750; letter-spacing: -.01em; }
+.ariane-title-card p { margin: 14px auto 0; max-width: 520px; font: 600 14px/1.45 Inter, "Segoe UI", system-ui, sans-serif; }
+@keyframes ariane-title-in { from { opacity: 0; transform: translate(-50%, -14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .ariane-title-card { animation: none; } }
+
+/* The doors' stories and their zarboutans. */
+.ariane-door-tale summary { font-weight: 750; }
+.ariane-glyph { margin-top: 8px; padding: 8px 10px; border-radius: 9px; background: #f3f6ec; border: 1px dashed #c9d6bf; font-size: 12px; }
+.ariane-zarb-door { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.ariane-zarb-door li > span, .ariane-zarb-door button { display: flex; gap: 9px; align-items: center; width: 100%; text-align: left; padding: 7px 9px; border-radius: 10px; background: #fffffcd0; border: 1px solid #e4ebdc !important; }
+.ariane-zarb-door li.is-hidden > span { opacity: .6; }
+.ariane-zarb-door b { display: block; font-size: 12.5px; color: #204d40; }
+.ariane-zarb-door small { display: block; font-size: 11px; color: #6d8771; }
+.ariane-zarb-icon { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; background: radial-gradient(circle at 35% 30%, #fff, var(--el) 80%); border: 2px solid var(--el); color: #fff; font-weight: 800; }
+.ariane-zarb-door li.is-met .ariane-zarb-icon { box-shadow: 0 0 0 2px #ffd54a; }
+.ariane-zarb-clue { font-size: 13px; line-height: 1.5; color: #355a4c; background: #f3f6ec; border-left: 3px solid var(--trail, #2f7d4f); padding: 8px 10px; border-radius: 0 9px 9px 0; }
+
+/* The zarboutan's page. */
+.ariane-zarb-tale p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.55; }
+.ariane-zarb-truc { margin: 10px 0 6px; padding: 9px 11px; border-radius: 10px; background: #fff6d6; border: 1px solid #f1d98a; font-size: 13px; line-height: 1.45; }
+.ariane-zarb-note { margin: 4px 0; font-size: 12.5px; line-height: 1.45; color: #355a4c; }
+.ariane-zarb-gift { margin: 10px 0 0; font-size: 12.5px; color: #6b5323; }
+.ariane-zarb-letter { margin-top: 8px; font: 750 clamp(16px, 2.6vw, 22px)/1.2 Inter, "Segoe UI", system-ui, sans-serif; text-shadow: 0 3px 16px rgb(0 0 0 / .65); animation: ariane-badge-rise .5s .6s both ease-out; }
+.ariane-zarb-letter b { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; margin-left: 6px; border-radius: 10px; background: #ffd54a; color: #3a2408; font-size: 1.5em; text-shadow: none; }
+.ariane-zarb-badge .ariane-badge-doors { letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+
+/* The guide, in the bag. */
+.ariane-zarb-message { font: 750 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: .14em; color: #204d40; background: #f3f6ec; border-radius: 9px; padding: 8px 10px; word-break: break-word; }
+.ariane-zarb-grid { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.ariane-zarb-grid li > span, .ariane-zarb-grid button { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 8px; font-size: 11px; font-weight: 700; color: #7c8d77; background: #eef2e8; border: 1px solid #dde5d4 !important; padding: 0; }
+.ariane-zarb-grid button span { font-size: 15px; line-height: 1; }
+.ariane-zarb-grid button b { position: absolute; left: 3px; top: 2px; font-size: 8.5px; color: #4a6b60; }
+.ariane-zarb-grid button i { position: absolute; right: 3px; bottom: 1px; font-style: normal; font-size: 11px; font-weight: 900; color: #3a2408; }
+.ariane-zarb-grid li.is-known button { background: #fffef7; border-color: var(--el) !important; border-style: dashed !important; }
+.ariane-zarb-grid li.is-met button { background: radial-gradient(circle at 35% 30%, #fff, color-mix(in srgb, var(--el) 45%, #fff) 85%); border: 2px solid var(--el) !important; }
+.ariane-title-card { transition: top .9s ease, opacity .9s ease; }
+.ariane-title-card h1, .ariane-title-card p, .ariane-title-kicker { transition: font-size .9s ease, opacity .9s ease, margin .9s ease; }
+.ariane-title-card.is-small { top: max(70px, 9vh); opacity: .92; }
+.ariane-title-card.is-small h1 { font-size: clamp(20px, 3vw, 30px); }
+.ariane-title-card.is-small h1 small { display: inline; margin: 0 0 0 .3em; font-size: .7em; }
+.ariane-title-card.is-small p { opacity: 0; margin-top: 0; font-size: 0; }
+.ariane-title-card.is-small .ariane-title-kicker { font-size: 10px; }
+
+/* La coupure : un fondu au noir pendant que la troupe est déposée ailleurs (au lieu d'un long vol). */
+.ariane-cut { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 24px; background: #06110c; color: #fffcf0; font: 650 clamp(15px, 2.2vw, 22px)/1.35 Inter, "Segoe UI", system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .28s ease; pointer-events: none; }
+.ariane-cut.is-in { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .ariane-cut { transition: none; } }
+/* La télé du livre-jeu (?tele=1) : rien que le paysage et la troupe ; le livre raconte. */
+/* Only the book's buttons stay: the prompt bar (at the bottom: the book's subtitles run along the top) and the loot. */
+body.tele-mode .terrain-hud > :not(.ariane-prompt):not(.ariane-badge):not(.trail-map), body.tele-mode .player-touch-controls, body.tele-mode .player-crosshair { display: none !important; }
+/* A small television (the book's page): no map over the picture. */
+@media (max-height: 520px) { body.tele-mode .terrain-hud > .trail-map { display: none !important; } }
+/* The trail's map and profile, always there while a trail is under way: top left, below the book's badge (Florian, 18/10). */
+body.tele-mode:not(.tele-trail) .terrain-hud > .trail-map { display: none !important; }
+body.tele-mode .terrain-hud > .trail-map { top: calc(var(--book-top, 0px) + 16px); right: auto; bottom: auto; left: max(10px, env(safe-area-inset-left)); }
+@media (max-width: 600px) { body.tele-mode .terrain-hud > .trail-map { width: 200px; } }
+/* On a phone the map is usually left out ; on the book's television it stays (the trail's progress). */
+@media (max-width: 700px) { body.tele-mode.tele-trail .terrain-hud > .trail-map { display: block; } }
+body.tele-mode .ariane-prompt { top: auto; bottom: calc(var(--book-legend, 0px) + 10px); flex-wrap: wrap; justify-content: center; padding: 6px; border-left-width: 1px; border-radius: 16px; }
+body.tele-mode .terrain-hud .ariane-prompt button { background: #204d40; color: #fffcf0; padding: 8px 13px; border-radius: 999px; font-weight: 650; font-size: 12.5px; }
+body.tele-mode .terrain-hud .ariane-prompt button:hover { background: #2a6151; }
+/* The loot card stays clear of the book's legend (along the bottom of the television). */
+body.tele-mode .ariane-loot { place-items: center; padding: 8px 16px calc(var(--book-legend, 0px) + 8px); }
+body.tele-mode .ariane-loot .ariane-badge-stage { transform: scale(.62); transform-origin: center; }
+body.tele-mode .ariane-loot .ariane-loot-text { display: none; }
+/* A big television (the book's full screen): the loot at full size, centred above the subtitles. */
+@media (min-height: 620px) and (min-width: 700px) {
+  body.tele-mode .ariane-loot { place-items: center; padding: 4vh 16px calc(var(--book-legend, 0px) + 4vh); }
+  body.tele-mode .ariane-loot .ariane-badge-stage { transform: none; }
+  body.tele-mode .ariane-loot .ariane-loot-text { display: block; }
+}

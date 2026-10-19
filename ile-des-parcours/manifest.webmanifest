@@ -1,0 +1,42 @@
+{
+  "id": "./",
+  "name": "L’île des parcours",
+  "short_name": "Les parcours",
+  "description": "Explorez La Réunion avec un tangue animé : course, sauts et planeur sur un relief IGN réel, un sol cartoon, une canopée réglable et des rochers volcaniques.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#f7f5ef",
+  "theme_color": "#123e3a",
+  "categories": [
+    "education",
+    "games"
+  ],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

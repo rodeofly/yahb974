@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr" data-app="ile-des-parcours">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#123e3a">
+  <meta name="description" content="Explorez La Réunion avec un tangue animé : course, sauts, FPS et planeur, sur un relief IGN réel au paysage cartoon, à la canopée réglable et aux rochers volcaniques.">
+  <title>Les sentiers de La Réunion dont vous êtes le héros</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./exploration-ui.css">
+  <link rel="stylesheet" href="./fil-ariane.css">
+</head>
+<body class="terrain-focus">
+<a class="skip" href="#main">Aller au parcours</a>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#explorer" aria-label="L’île des parcours, accueil"><span class="brand-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m7 23 9-15 9 15H7Z"/><path d="m7 23 9-5 9 5M16 8v10"/><circle cx="16" cy="8" r="3"/><circle cx="7" cy="23" r="3"/><circle cx="25" cy="23" r="3"/><circle cx="16" cy="18" r="2"/></svg></span><span>L’île des<br><strong>parcours</strong></span></a>
+    <div class="workspace-label">LABORATOIRE PÉDAGOGIQUE</div>
+    <nav aria-label="Navigation principale">
+      <button class="nav-item active" data-view="explorer"><span class="nav-icon">◈</span> Explorer <span class="nav-tag">3D</span></button>
+      <button class="nav-item" data-view="graphe"><span class="nav-icon">⌘</span> Atelier du graphe</button>
+      <button class="nav-item" data-view="journal"><span class="nav-icon">▤</span> Mon parcours <span id="journal-count" class="count">0</span></button>
+      <button class="nav-item" data-view="projet"><span class="nav-icon">◇</span> Le projet</button>
+    </nav>
+    <div class="side-project"><span class="mini-label">SCÉNARIO ACTIF</span><span id="side-title">L’île des possibles</span><span class="quiet">Observation · Raisonnement</span><div class="tiny-progress"><span id="side-progress"></span></div><span id="side-completion" class="quiet">1 lieu découvert</span></div>
+    <div class="side-bottom"><span class="local-dot"></span><span id="storage-status">Progression sur cet appareil</span><button id="install-app" class="link-button" hidden>Installer l’application ↗</button><span class="version">Prototype 0.5.0 · Sans compte élève</span></div>
+  </aside>
+  <main id="main">
+    <header class="topbar"><div><div class="breadcrumb">LE LIVRE DONT TU ES LE HÉROS <span>/</span> <span id="view-breadcrumb">EXPLORATION</span></div><h1 id="page-title">L’île des possibles<span class="title-dot">.</span></h1></div><div class="top-actions"><button id="import-btn" class="button secondary small">↥ <span>Importer</span></button><button id="export-btn" class="button secondary small">↧ <span>Exporter</span></button><button id="help-btn" class="help-button" aria-label="Aide">?</button></div></header>
+    <section id="explorer-view" class="view active">
+      <div class="intro-row"><p>Un paysage à explorer. Des choix pour apprendre.</p><span class="badge"><span class="local-dot"></span> Scénario de démonstration</span></div>
+      <div class="explore-grid">
+        <section class="world-panel" aria-label="Carte du monde">
+          <div class="world-toolbar"><div class="segmented" aria-label="Style graphique"><button data-style="nature" class="active">Cartoon 3D</button><button data-style="voxel">Facettes 3D</button><button data-style="map">Carte 2D</button></div><label class="quality-control"><span class="sr-only">Qualité graphique</span><select id="quality-select"><option value="eco">Éco</option><option value="balanced" selected>Équilibré</option><option value="high">Élevé</option></select></label></div>
+          <div id="world-container"><div id="world-loading" class="world-loading"><span class="loader"></span>Chargement du relief réel de La Réunion…</div></div>
+          <div id="world-map" class="world-map" hidden></div>
+          <div class="world-controls"><button id="reset-view" aria-label="Vue d’ensemble" title="Vue d’ensemble">⌖</button><button id="focus-player" aria-label="Centrer sur mon personnage" title="Mon personnage">◎</button></div>
+          <div class="world-footer"><span id="world-instructions">Glisser pour tourner · Molette / pincement pour zoomer</span><span id="renderer-status">3D locale</span></div>
+          <div id="landmark-preview" class="landmark-preview" hidden></div>
+        </section>
+        <aside id="story-panel" class="story-panel" aria-label="Étape et choix"></aside>
+      </div>
+      <div class="below-world"><div class="legend"><span><i class="legend-current"></i> Position actuelle</span><span><i class="legend-visited"></i> Déjà exploré</span><span><i></i> À découvrir</span></div><button class="link-button" id="open-graph">Voir les décisions dans le graphe <span>↗</span></button></div>
+      <div id="skills-strip" class="skills-strip"></div>
+    </section>
+    <section id="graphe-view" class="view" hidden>
+      <div class="intro-row"><p>Le même parcours, vu comme un graphe orienté conditionnel.</p><span class="badge">Mode auteur</span></div>
+      <div class="graph-actions"><button id="add-node" class="button primary small">＋ Ajouter un lieu</button><button id="undo-edit" class="button secondary small" disabled>↶ Annuler la modification</button><div class="graph-stats" id="graph-stats"></div></div>
+      <div class="graph-layout"><section class="graph-board"><div class="graph-board-header"><span class="eyebrow">CARTE DES DÉCISIONS</span><span>Cliquez sur un lieu pour le modifier</span></div><div id="graph-canvas"></div><div class="graph-legend"><span>→ Choix orienté</span><span>⇢ Choix avec prérequis</span><span>Une boucle peut servir à réapprendre.</span></div></section><aside class="editor-panel" id="node-editor"></aside></div>
+      <section class="analysis-panel"><div><span class="eyebrow">LABORATOIRE MATHÉMATIQUE</span><h2>Comprendre les chemins</h2><p>Ces calculs analysent la structure. Ils n’appliquent pas les conditions pédagogiques.</p></div><div class="analysis-controls"><label>Départ<select id="analysis-start"></select></label><label>Destination<select id="analysis-end"></select></label><button class="button secondary small" data-analysis="bfs">Parcours en largeur</button><button class="button secondary small" data-analysis="dfs">Parcours en profondeur</button><button class="button primary small" data-analysis="shortest">Plus court chemin</button><button class="button secondary small" data-analysis="cycles">Cycles et composantes</button><button class="button secondary small" data-analysis="matrix">Matrice d’adjacence</button><button class="button secondary small" data-analysis="topological">Tri topologique</button></div><div id="analysis-output" class="analysis-output">Choisissez une opération pour examiner ce graphe.</div></section>
+    </section>
+    <section id="journal-view" class="view" hidden><div class="intro-row"><p>Les choix, les détours et les indices qui composent ton histoire.</p><button id="export-journal" class="button secondary small">↧ Exporter le journal</button></div><div id="journal-content"></div></section>
+    <section id="projet-view" class="view" hidden>
+      <div class="intro-row"><p>Un moteur de parcours. Plusieurs façons d’explorer.</p><span class="badge">Prototype fonctionnel · v0.5.0</span></div>
+      <section class="project-hero"><span class="eyebrow">L’HISTOIRE RESTE. LE DÉCOR CHANGE.</span><h2>Le graphe est le cœur.<br>Le monde est sa représentation.</h2><p>Un sommet décrit une scène ou une activité. Une arête représente un choix, un coût, un prérequis et des effets. L’état de l’élève contient sa position, ses indicateurs et son historique. Les vues 3D et 2D lisent ces mêmes données.</p><div class="architecture-line"><span>Contenu du livre</span><b>→</b><span>Graphe + état</span><b>→</b><span>3D · Blocs · 2D</span></div></section>
+      <div class="project-grid"><article class="info-card"><h3>Ce que tu peux essayer</h3><ul><li>Courir et bondir avec un tangue animé sur le relief réel de La Réunion.</li><li>Explorer en FPS, à la troisième personne ou en planeur.</li><li>Survoler les cirques, rejoindre Bélouve et les sols volcaniques de la Fournaise.</li><li>Choisir une lumière de journée ou de fin d’après-midi.</li><li>Régler le détail du terrain, la canopée et les légendes automatiques.</li><li>Changer de décor sans perdre son parcours.</li><li>Modifier les lieux et leurs choix dans l’atelier.</li><li>Importer/exporter le graphe et exporter le journal.</li></ul></article><article class="info-card"><h3>Ce que représente cette démo</h3><p>Le relief utilise le MNT réel IGN RGE ALTI de La Réunion, extrait sur une grille de 25 m. Les caméras FPS, troisième personne et planeur permettent de se déplacer librement. Le scénario pédagogique et ses mesures restent fictifs.</p><p>Les indicateurs montrent le mécanisme d’adaptation. Ils ne constituent pas une évaluation validée des compétences. Les données restent sur cet appareil, sous réserve des limites de stockage du navigateur.</p><p>Le relief conserve ses proportions à ×1. Le couvert arboré suit la classification satellitaire ESA WorldCover 2021. La canopée, les arbres, le sol cartoon, les rochers et les couleurs sont une interprétation graphique. Le détail du maillage, les légendes et le budget graphique sont réglables.</p></article></div>
+      <section class="info-card platform-card"><h3>Essayer sur d’autres supports</h3><p>Le jeu web fonctionne sans dépendance distante. Les paquets ci-dessous embarquent le lecteur et son atelier. Ce sont des paquets de développement ; aucune application n’a été soumise à une boutique.</p><div class="download-grid"><a target="_blank" rel="noopener" href="./downloads/ile-des-parcours-pwa.zip" download><b>Web / PWA</b><span>Application statique complète ↧</span></a><a target="_blank" rel="noopener" href="./downloads/ile-des-parcours-chrome.zip" download><b>Chrome / Edge</b><span>Extension locale à charger ↧</span></a><a target="_blank" rel="noopener" href="./downloads/ile-des-parcours-firefox.zip" download><b>Firefox</b><span>Extension locale de test ↧</span></a></div><p><a class="button secondary small" href="./downloads/ile-des-parcours-source.zip" download>↧ Projet complet documenté pour Claude</a></p><p class="quiet">PWA : l’installation et le hors-ligne dépendent du navigateur et de l’hébergement. Android et iOS : préparation Capacitor. Microsoft Store : préparation PWABuilder. Compilation, signature et publication en boutique restent à réaliser.</p></section>
+      <section class="info-card"><h3>Un format ouvert et transportable</h3><p>Le bouton Exporter produit le graphe JSON, indépendant de son rendu. Chaque règle utilise des opérateurs déclaratifs autorisés : aucun script de parcours n’est exécuté. Les graphes importés sont limités à 500 lieux, 2 000 choix et 4 Mo pour ce prototype.</p><details><summary>Exemple de choix conditionnel</summary><pre>{
+  "id": "passage-volcan",
+  "source": "refuge",
+  "target": "volcan",
+  "label": "Accéder au défi",
+  "weight": 3,
+  "condition": { "variable": "observation", "op": "gte", "value": 1 },
+  "effects": { "autonomie": 1 }
+}</pre></details><p class="quiet">Un plus court chemin structurel peut être bloqué par les prérequis. Le moteur distingue l’analyse du graphe de l’exécution d’un parcours.</p><button id="restore-demo" class="button secondary small">Recharger le scénario de démonstration</button></section>
+    </section>
+    <footer class="app-footer"><span>L’île des parcours <b>·</b> Apprendre, c’est aussi choisir son chemin.</span><span>MNT IGN · Couvert arboré ESA 2021 · Paysage stylisé</span></footer>
+  </main>
+</div>
+<input id="import-file" type="file" accept=".json,application/json" hidden>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="help-dialog"><button id="close-help" class="dialog-close" aria-label="Fermer">×</button><span class="eyebrow">BIENVENUE SUR L’ÎLE</span><h2>Explore La Réunion.</h2><p>Choisis Carte, 3e personne, FPS ou Planeur en haut de la scène. Avec le tangue, utilise ZQSD, WASD ou les flèches ; glisse pour regarder, Maj pour courir et Espace pour sauter. V change de caméra. Le bouton Capturer la souris active le regard libre ; Échap la libère.</p><p><b>Planeur :</b> G déploie ou replie l’aile. Le vol avance automatiquement ; Q/D ou A/D font virer, Z/W fait piquer, S ou Maj freine. Le bouton Accélérer le vol ×2 accélère uniquement le planeur. Le contact avec le sol termine le vol. Sur écran tactile, le joystick gauche déplace le personnage et le glisser à droite oriente la vue ; les boutons Courir et Sauter servent au sol, et Freiner sert en vol. Les destinations rejoignent rapidement les repères de l’île. Les réglages permettent d’adapter le détail du terrain, le budget graphique et les légendes.</p><p><b>Atelier du graphe :</b> modifie un lieu, ajoute un choix ou compare les chemins avec les opérations mathématiques. Les modifications du scénario recommencent la simulation ; tu peux les annuler.</p><p><b>Mon parcours :</b> retrouve ton historique et exporte-le. Les indicateurs de cette démo ne sont pas des notes scolaires.</p><button id="start-help" class="button primary">C’est parti →</button></dialog>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

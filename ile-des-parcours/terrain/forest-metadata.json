@@ -1,0 +1,152 @@
+{
+  "id": "reunion-esa-worldcover-2021-v200-tree-cover-50m-v1",
+  "title": "Couvert arboré — ESA WorldCover 2021",
+  "producer": "ESA WorldCover consortium",
+  "product": "ESA WorldCover 10 m 2021 v200",
+  "observationYear": 2021,
+  "productVersion": "v200",
+  "sourceClass": {
+    "code": 10,
+    "name": "Tree cover",
+    "definitionNote": "WorldCover class for areas dominated by trees with at least 10% cover; includes plantations. The mask measures the area assigned to this class, not crown density or tree counts."
+  },
+  "satelliteInputs": [
+    "Copernicus Sentinel-1",
+    "Copernicus Sentinel-2"
+  ],
+  "sourceDescriptionUrl": "https://esa-worldcover.org/en/data-access",
+  "manualUrl": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf",
+  "citation": "Zanaga et al. (2022). ESA WorldCover 10 m 2021 v200. https://doi.org/10.5281/zenodo.7254221",
+  "doi": "https://doi.org/10.5281/zenodo.7254221",
+  "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
+  "sources": [
+    {
+      "tile": "S21E054",
+      "url": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E054_Map.tif",
+      "bytes": 2578116,
+      "sha256": "4c7bd040a6d258f32ca9c987d00e76d7133bd2915d0792ebc91283f2e07bad38",
+      "retrievedAt": "2026-10-16T20:25:25.432591+00:00",
+      "crs": "EPSG:4326",
+      "bounds": [
+        54.0,
+        -21.0,
+        57.0,
+        -18.0
+      ],
+      "nativePixelDegrees": [
+        8.333333333333333e-05,
+        8.333333333333333e-05
+      ],
+      "width": 36000,
+      "height": 36000,
+      "nodata": 0.0
+    },
+    {
+      "tile": "S24E054",
+      "url": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E054_Map.tif",
+      "bytes": 4480051,
+      "sha256": "2909dcf0022b1cda98460a926a33665840eaa345cb21a2457686b236d807304c",
+      "retrievedAt": "2026-10-16T20:25:25.690072+00:00",
+      "crs": "EPSG:4326",
+      "bounds": [
+        54.0,
+        -24.0,
+        57.0,
+        -21.0
+      ],
+      "nativePixelDegrees": [
+        8.333333333333333e-05,
+        8.333333333333333e-05
+      ],
+      "width": 36000,
+      "height": 36000,
+      "nodata": 0.0
+    }
+  ],
+  "sourceNominalResolutionM": 10,
+  "sourceCrs": "EPSG:4326",
+  "horizontalCrs": "EPSG:2975",
+  "horizontalCrsName": "RGR92 / UTM zone 40S",
+  "sampleSpacingM": 50,
+  "width": 1481,
+  "height": 1341,
+  "projectedBounds": {
+    "west": 310000,
+    "east": 384000,
+    "south": 7630000,
+    "north": 7697000,
+    "meaning": "sample centres in EPSG:2975"
+  },
+  "bounds": {
+    "minX": -370,
+    "maxX": 370,
+    "minZ": -335,
+    "maxZ": 335
+  },
+  "world": {
+    "metersPerUnit": 100,
+    "originEasting": 347000,
+    "originNorthing": 7663500,
+    "xAxis": "east",
+    "zAxis": "south"
+  },
+  "order": "row-major, west to east columns, north to south rows",
+  "file": "reunion-forest-50m.u8",
+  "encoding": {
+    "type": "uint8",
+    "minimum": 0,
+    "maximum": 255,
+    "decode": "fraction_of_tree_class_area = encoded / 255",
+    "quantizationMaximumFractionError": 0.00196078431372549
+  },
+  "aggregation": {
+    "method": "GDAL average resampling of a binary native-resolution (class==10) indicator onto 50 m square target footprints in EPSG:2975",
+    "sourceWindowBoundsWgs84": [
+      55.16643901489683,
+      -21.429019658636427,
+      55.88561920783612,
+      -20.816868660665758
+    ],
+    "sourceWindowShape": [
+      7347,
+      8631
+    ],
+    "sourceClassCounts": {
+      "10": 20518143,
+      "20": 347219,
+      "30": 6533159,
+      "40": 1188901,
+      "50": 1986325,
+      "60": 725298,
+      "80": 32111801,
+      "90": 1111
+    },
+    "sourceNodataClass": 0,
+    "nodataHandling": "Unclassified code 0 contributes zero; available source coverage is reported separately. No trees are fabricated where classification is absent.",
+    "implementation": "rasterio.warp.reproject / Resampling.average",
+    "rasterioVersion": "1.5.2"
+  },
+  "stats": {
+    "sampleCount": 1986021,
+    "nonzeroSamples": 836789,
+    "fullTreeClassSamples": 437730,
+    "mixedSamples": 399059,
+    "meanFractionAcrossFullRectangle": 0.33000264959779513,
+    "minimumSourceAvailableFraction": 1.0,
+    "samplesWithIncompleteSourceCoverage": 0,
+    "encodingMaxErrorObserved": 0.0019608048831715186
+  },
+  "sha256": "6b0eb0fbd3c3f248d1aee06db79474c336b09073bfa63bf885505a5a56f6b8c1",
+  "generatedAt": "2026-10-16T20:25:27.809849+00:00",
+  "limitations": [
+    "Historical 2021 classification, not current or real-time imagery.",
+    "Local classification accuracy for Reunion is not established by this extraction.",
+    "Tree cover class includes plantations and other wooded land, not only natural forests.",
+    "Fraction is area classified as trees within a 50 m cell, not measured canopy closure, tree density, species or height.",
+    "Tree and canopy geometry in the scene is illustrative; the dataset does not locate individual trees.",
+    "Reprojection, 50 m aggregation and bilinear display sampling soften edges; do not treat the mask as a surveyed forest boundary.",
+    "A separate terrain land mask should prevent the display of trees below the sea surface; it does not modify this source mask."
+  ]
+}

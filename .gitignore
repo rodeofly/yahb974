@@ -6,6 +6,7 @@ node_modules/
 # Aventures exportées et textes de livres : jamais dans le dépôt (droits d'auteur, fichiers personnels)
 *.lhz
 *.txt
+!ile-des-parcours/**/*.txt
 donnees/
 
 # vendor/zefor/ (paquet zefor974, construit par ../zefor-paquet/construire.mjs) est publié avec le site depuis le

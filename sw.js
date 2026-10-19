@@ -6,7 +6,7 @@
 //   ensuite réseau d'abord, mais au plus 2,5 s d'attente quand une copie est en cache.
 // Changer VERSION à chaque mise en ligne force le rafraîchissement du cache (les fichiers sont relus sur le
 // réseau en contournant le cache HTTP du navigateur).
-const VERSION = 'lh-v36';
+const VERSION = 'lh-v37';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/fonts.css',
   'js/app.js', 'js/version.js', 'js/lib/preact-htm.js', 'js/lib/cytoscape.min.js', 'js/lib/fflate.js', 'js/lib/d3.min.js', 'js/lib/dagre.min.js', 'js/lib/cytoscape-dagre.min.js',
@@ -95,9 +95,14 @@ self.addEventListener('activate', e => {
   })());
 });
 
+// Sites compagnons publiés dans un sous-dossier (la télé d'un livre : l'appli 3D de L'île des parcours) : ils ont leur
+// propre service worker ; celui-ci ne les met pas en cache (25 Mo de relief en double).
+const COMPAGNONS = ['ile-des-parcours/'].map(p => new URL(p, self.registration.scope).pathname);
+
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (COMPAGNONS.some(p => url.pathname.startsWith(p))) return;
   if (url.pathname.includes('/adventures/')) { e.respondWith(networkFirst(e.request, e)); return; }
   e.respondWith(staleWhileRevalidate(e.request, e));
 });

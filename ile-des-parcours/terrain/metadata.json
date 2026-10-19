@@ -1,0 +1,208 @@
+{
+  "id": "reunion-ign-rge-alti-25m-v1",
+  "title": "La Réunion — MNT réel IGN RGE ALTI",
+  "producer": "Institut national de l'information géographique et forestière (IGN)",
+  "attribution": "© IGN — RGE ALTI, Licence Ouverte / Open Licence 2.0. Extraction WMS au pas de 25 m.",
+  "license": "Licence Ouverte / Open Licence 2.0",
+  "licenseUrl": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
+  "catalogUrl": "https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_RGE-ALTI",
+  "officialDescriptionUrl": "https://www.data.gouv.fr/datasets/rge-alti-r",
+  "serviceUrl": "https://data.geopf.fr/wms-r/wms",
+  "layer": "RGEALTI-MNT_PYR-ZIP_REU_RGR92UTM40S_WMS",
+  "requestUrl": "https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=RGEALTI-MNT_PYR-ZIP_REU_RGR92UTM40S_WMS&STYLES=normal&CRS=EPSG%3A2975&BBOX=309987.5%2C7629987.5%2C384012.5%2C7697012.5&WIDTH=2961&HEIGHT=2681&FORMAT=image%2Fx-bil%3Bbits%3D32",
+  "retrievedAt": "2026-10-16T19:42:29.705026+00:00",
+  "sourceDataType": "MNT / bare-earth digital terrain model, not a surface model",
+  "sourceProductGridSizesM": [
+    1,
+    5
+  ],
+  "sourceProductGridSizesNote": "Product specifies 1 m and 5 m grids; this WMS export is sampled at 25 m. Local acquisition accuracy and pyramid resampling are not established by the export.",
+  "sourceResolutionM": 25,
+  "sampleSpacingM": 25,
+  "verticalAccuracyM": null,
+  "verticalAccuracyNote": "25 m is sample spacing, not altitude accuracy. Quantization error below 0.051 m is additional encoding error only.",
+  "horizontalCrs": "EPSG:2975",
+  "horizontalCrsName": "RGR92 / UTM zone 40S",
+  "verticalUnit": "metre",
+  "verticalReference": "Normal altitudes supplied by the IGN RGE ALTI product. No additional datum shift applied; vertical datum is not asserted from the WMS binary response alone.",
+  "bounds": {
+    "west": 310000,
+    "south": 7630000,
+    "east": 384000,
+    "north": 7697000,
+    "meaning": "sample centres in EPSG:2975"
+  },
+  "width": 2961,
+  "height": 2681,
+  "order": "row-major, west to east within each row, north to south rows",
+  "file": "reunion-rgealti-25m.u16",
+  "encoding": {
+    "type": "uint16",
+    "endianness": "little",
+    "offsetM": -1000.0,
+    "scaleM": 0.1,
+    "nodata": 65535,
+    "decode": "height_m = encoded * scaleM + offsetM; nodata excluded"
+  },
+  "sourceNodata": -99999,
+  "nodataHandling": "Preserved sentinel. Runtime exposes null/NaN for unavailable heights and an ocean surface at zero. Negative source values retained; their bathymetric provenance is not established here.",
+  "negativeAltitudeReview": {
+    "minimumSampleEasting": 340450,
+    "minimumSampleNorthing": 7692075,
+    "minimumSampleLon": 55.46633102753062,
+    "minimumSampleLat": -20.86461504771432,
+    "sameCentreAltitudeMAtRequestedSteps": {
+      "25m": -232.91000366210938,
+      "5m": -232.91000366210938,
+      "1m": -232.91000366210938
+    },
+    "interpretation": "Offshore northern sample. Negative value is present in the source at three sampling scales; not introduced by this package. Specific origin and bathymetric accuracy remain unverified."
+  },
+  "world": {
+    "metersPerUnit": 100,
+    "unitsPerMeter": 0.01,
+    "originEasting": 347000.0,
+    "originNorthing": 7663500.0,
+    "xAxis": "east",
+    "yAxis": "up",
+    "zAxis": "south",
+    "verticalExaggeration": 1
+  },
+  "meshSampleSpacingsM": [
+    25,
+    50,
+    100,
+    250,
+    500
+  ],
+  "overview": {
+    "file": "reunion-rgealti-100m.u16",
+    "sampleSpacingM": 100,
+    "width": 741,
+    "height": 671,
+    "method": "Every fourth sample of the 25 m grid, no invented detail"
+  },
+  "stats": {
+    "validSampleCount": 4267115,
+    "nodataSampleCount": 3671326,
+    "minimumAltitudeM": -232.91000366210938,
+    "maximumAltitudeM": 3069.22998046875,
+    "maxSampleEasting": 342125,
+    "maxSampleNorthing": 7666100
+  },
+  "sha256": "e3aca4a2afe7a1f8c139b139074b95dca2eeb83a12bab7edcc49d102800439d4",
+  "sourceResponseSha256": "3220ef5d276c08adc4ee35f853c4a7d1e049c98fae6f0725139a0ae9e2d61cfd",
+  "limitations": [
+    "25 m extraction does not resolve paths, rocks, buildings or vegetation.",
+    "A finer mesh interpolates samples; it cannot add absent terrain information.",
+    "RGE ALTI is historical; acquisition dates vary. Catalog update is not acquisition date.",
+    "Negative coastal values retained from source, without a claim of bathymetric accuracy. Zero elevation is a display sea-level choice, not a surveyed coastline.",
+    "NODATA does not necessarily mean ocean: land data may be unavailable or withheld."
+  ],
+  "landmarks": [
+    {
+      "id": "maido",
+      "name": "Maïdo",
+      "label": "Maïdo",
+      "lon": 55.388261,
+      "lat": -21.069674,
+      "kind": "summit",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Maido&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400005910",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "piton-neiges",
+      "name": "Piton des Neiges",
+      "label": "Piton des Neiges",
+      "lon": 55.480033,
+      "lat": -21.099423,
+      "kind": "summit",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Piton+des+Neiges&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400005938",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "fournaise",
+      "name": "Piton de la Fournaise",
+      "label": "Piton de la Fournaise",
+      "lon": 55.715541,
+      "lat": -21.242344,
+      "kind": "volcano-centre",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Piton+de+la+Fournaise&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400006181",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "cilaos",
+      "name": "Cirque de Cilaos",
+      "label": "Cirque de Cilaos",
+      "lon": 55.455262,
+      "lat": -21.144399,
+      "kind": "cirque",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Cirque+de+Cilaos&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400005988",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "salazie",
+      "name": "Cirque de Salazie",
+      "label": "Cirque de Salazie",
+      "lon": 55.502501,
+      "lat": -21.048837,
+      "kind": "cirque",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Cirque+de+Salazie&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400005844",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "mafate",
+      "name": "Cirque de Mafate",
+      "label": "Cirque de Mafate",
+      "lon": 55.427006,
+      "lat": -21.049785,
+      "kind": "cirque",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Cirque+de+Mafate&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400005871",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "plaine-sables",
+      "name": "Plaine des Sables",
+      "label": "Plaine des Sables",
+      "lon": 55.65696,
+      "lat": -21.233527,
+      "kind": "plain",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Plaine+des+Sables&index=poi&limit=8",
+      "sourceFeatureId": "PAIOROGR0000001400006198",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    },
+    {
+      "id": "saint-gilles",
+      "name": "Saint-Gilles les Bains",
+      "label": "Saint-Gilles les Bains",
+      "lon": 55.228665,
+      "lat": -21.06133,
+      "kind": "locality",
+      "coordinateSource": "https://data.geopf.fr/geocodage/search?q=Saint-Gilles-les-Bains&index=poi&limit=8",
+      "sourceFeatureId": "PAIHABIT0000001400057399",
+      "coordinateNote": "IGN geocoding POI position; area/volcano labels are representative locations, not necessarily a summit or suitable walkable spawn."
+    }
+  ],
+  "parts": [
+    "reunion-rgealti-25m-1.u16",
+    "reunion-rgealti-25m-2.u16",
+    "reunion-rgealti-25m-3.u16",
+    "reunion-rgealti-25m-4.u16"
+  ],
+  "lite": {
+    "parts": [
+      "reunion-rgealti-50m-1.u16",
+      "reunion-rgealti-50m-2.u16"
+    ],
+    "sampleSpacingM": 50,
+    "width": 1481,
+    "height": 1341,
+    "method": "Every second sample of the 25 m grid, no invented detail; for phones and slow connections"
+  }
+}

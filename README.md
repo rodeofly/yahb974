@@ -103,6 +103,7 @@ js/lib/     bibliothèques incluses : preact-htm, cytoscape, d3, dagre, fflate, 
 adventures/ aventures publiées avec le site, en rayons : Séances pros (livres du maître, Les Matins de Gondoukstra),
             les livres d'Ibrahim (Mission neurones, Le Trésor de La Buse 1-4), le sentier (Les sentiers de La Réunion),
             démonstrations (La Tour de Brume ; Le Phare des Nombres, tous les greffons)
+ile-des-parcours/ l'appli 3D de La Réunion, télé du livre des sentiers (copie publiée ; sources dans le projet Ibrahim)
 vendor/     paquet zefor (défis intégrés : brume, labyrinthe, Pezali), code propriétaire publié avec le site
 tests/      tests du moteur et des greffons
 tools/      graphe-vers-aventure.py : convertit un livre-jeu analysé (paragraphes + renvois) en .lhz

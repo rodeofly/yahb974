@@ -12,6 +12,11 @@
 | `js/lib/qrcode/` | [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) 1.4.4 (Kazuhiko Arase), enveloppe ESM ajoutée en fin de fichier | MIT |
 | `vendor/zefor/` (`brume.js`, `maze.js`, `maze.css`, `pezali.js`, `pezali.css`, `logo.svg`) | paquet [zefor974](docs/plugins/zefor.md) (activités brume, labyrinthe, Pezali), construit par `zefor-paquet/construire.mjs` | **code propriétaire** © Florian Tobé, publié pour faire jouer les défis intégrés de ce site ; pas de réutilisation sans accord |
 | `vendor/zefor/maze.js` (partie), `vendor/zefor/blockly-media/` | [Blockly](https://developers.google.com/blockly) (Google), intégré au labyrinthe | Apache-2.0 |
+| `ile-des-parcours/` | *L'île des parcours*, l'appli 3D de La Réunion (télé du livre *Les sentiers de La Réunion*), copie de `cosmogonie/ile-des-parcours-source/dist` par `outils/publier-yahb974.py` | code © Florian Tobé |
+| `ile-des-parcours/vendor/` | [Three.js](https://threejs.org) 0.186.1 | MIT (`THREE-LICENSE.txt`) |
+| `ile-des-parcours/terrain/reunion-rgealti-*` | MNT [IGN RGE ALTI](https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_RGE-ALTI), extraction au pas de 25 m | © IGN, Licence Ouverte / Open Licence 2.0 |
+| `ile-des-parcours/terrain/reunion-forest-50m.u8` | [ESA WorldCover](https://esa-worldcover.org) 10 m 2021 v200 (classe « Tree cover ») | © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium, CC BY 4.0 |
+| `ile-des-parcours/trails/`, `ile-des-parcours/rivers/` | sentiers, rivières et cascades d'[OpenStreetMap](https://www.openstreetmap.org/copyright) | © les contributeurs d'OpenStreetMap, ODbL 1.0 |
 | `fonts/Alegreya*` | [Alegreya, Alegreya SC, Alegreya Sans](https://www.huertatipografica.com/en/fonts/alegreya-ht-pro) | SIL Open Font License 1.1 |
 | `fonts/JetBrainsMono*` | [JetBrains Mono](https://www.jetbrains.com/lp/mono/) | SIL Open Font License 1.1 |
 | `fonts/accessibilite/AtkinsonHyperlegible*`, `fonts/accessibilite/OpenDyslexic*` | [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) (Braille Institute) et [OpenDyslexic](https://opendyslexic.org) 0.920 (Abbie Gonzalez, paquet `@fontsource/opendyslexic` 5.3.0) — greffon « accessibilite », licences dans le dossier | SIL Open Font License 1.1 |
