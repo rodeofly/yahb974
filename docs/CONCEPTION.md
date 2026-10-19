@@ -100,7 +100,8 @@ Navigateur (hors ligne après la 1re visite)
   On échange une aventure en exportant un fichier `.lhz` (un zip). C'est aussi la sauvegarde de sécurité.
 - **PWA.** Le `manifest` rend l'application installable (téléphone, tablette, ordinateur).
   Le service worker met en cache l'application (stratégie « cache d'abord, mise à jour en arrière-plan »)
-  et les aventures publiées au moment où on les ouvre.
+  et les aventures publiées au moment où on les ouvre. Quand une nouvelle version prend la main alors que la page tourne
+  encore sur les fichiers d'avant, un bandeau propose « Recharger » (jamais imposé : une partie peut être en cours).
 - **Moteur séparé de l'interface.** `js/core` est testé en Node (`node --test tests/`).
   Le même moteur pourra servir plus tard à une version imprimable, un bot, ou une application mobile.
 - **Dés reproductibles.** Le générateur aléatoire est « à graine » : une partie sauvegardée garde son état

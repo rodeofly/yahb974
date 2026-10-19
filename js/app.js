@@ -144,5 +144,25 @@ if ('launchQueue' in window) {
 }
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const avant = navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(() => { /* l'application marche aussi sans */ });
+  // Une nouvelle version a pris la main (mise en ligne pendant que la page était ouverte, ou première visite après une
+  // mise à jour) : la page tourne encore sur les fichiers d'avant. On propose de recharger, sans l'imposer : une séance
+  // ou une partie peut être en cours (elle est sauvegardée et reprend au rechargement).
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (avant) bandeauMiseAJour(); });
+}
+
+/** Bandeau « Nouvelle version prête » : Recharger, ou le fermer et continuer avec la version ouverte. */
+function bandeauMiseAJour() {
+  if (document.querySelector('.update-banner')) return;
+  const el = document.createElement('div');
+  el.className = 'update-banner';
+  el.setAttribute('role', 'status');
+  el.innerHTML = '<span>Une nouvelle version de Livre-Héros est prête.</span>'
+    + '<button type="button" class="btn small primary">Recharger</button>'
+    + '<button type="button" class="btn small" aria-label="Fermer">✕</button>';
+  const [recharger, fermer] = el.querySelectorAll('button');
+  recharger.addEventListener('click', () => location.reload());
+  fermer.addEventListener('click', () => el.remove());
+  document.body.append(el);
 }
