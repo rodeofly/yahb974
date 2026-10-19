@@ -1,11 +1,134 @@
 [
   {
+    "id": "lama-livre-du-maitre",
+    "title": "Le lama rentre à la maison — livre du maître",
+    "author": "Séance dont vous êtes le héros (V0), d'après une séance RASED du 6 octobre 2026",
+    "description": "Prompteur de la séance d’observation à visée diagnostique « Le lama rentre à la maison » (encodage, CP, petit groupe, 45 min) : consignes mot pour mot, relances, observations notées d’un geste, retours immédiats, et les 15 minutes d’analyse. Les élèves jouent sur le plateau en carton ; l’écran est pour l’adulte. Version V0, prénoms fictifs.",
+    "cover": "images/plateau.jpg",
+    "sections": 11,
+    "series": "Séances pros",
+    "seriesOrder": 1,
+    "seriesNote": "Pour les enseignants : le livre du maître d’une séance (prompteur, une observation d’un toucher, analyse), et les romans de formation des Matins de Gondoukstra. Les élèves jouent sur le plateau en carton ; l’écran est pour l’adulte.",
+    "files": []
+  },
+  {
+    "id": "volcan-livre-du-maitre",
+    "title": "La Montée au Volcan — la malle de Gondoukstra",
+    "author": "Les Matins de Gondoukstra, d'après la séance RASED du 29 octobre 2026 (plateau © Carole Tobé · RASED · 2026)",
+    "description": "Livre du maître de la séance « La montée au volcan » (CP, petit groupe, 45 min) : savoir quels sons chacun connaît, en jouant. Deux modes : Répétition (au palais d’Ambre, avec Néria, Solan et Tavi, réactions simulées) et Séance (ton groupe, sous pseudonymes : un toucher par observation, le randonneur et le brouillard suivis tout seuls). Les élèves jouent sur le plateau en carton ; l’écran est pour l’adulte. Collection « Les Matins de Gondoukstra », aventure 1.",
+    "cover": "images/plateau.jpg",
+    "sections": 350,
+    "series": "Séances pros",
+    "seriesOrder": 2,
+    "seriesNote": "Pour les enseignants : le livre du maître d’une séance (prompteur, une observation d’un toucher, analyse), et les romans de formation des Matins de Gondoukstra. Les élèves jouent sur le plateau en carton ; l’écran est pour l’adulte.",
+    "files": []
+  },
+  {
+    "id": "precepteur-tombe-du-ciel",
+    "title": "Un précepteur tombé du ciel",
+    "author": "Les Matins de Gondoukstra, aventure 2",
+    "description": "Onze jours après votre concours, une erreur de valise vous conduit au palais d’Ambre, au bord d’un lac du Gondoukstra. Une matinée auprès de Basile Varenne, le précepteur, et de trois enfants, Néria, Solan et Tavi, qui préparent une invitation secrète. Six gestes professionnels à lire dans un carnet vert, puis à mettre à l’épreuve. Roman à choix pour les enseignants débutants et ceux qui les accompagnent.",
+    "cover": "images/couvertures/precepteur-banniere.jpg",
+    "sections": 86,
+    "series": "Séances pros",
+    "seriesOrder": 3,
+    "seriesNote": "Pour les enseignants : le livre du maître d’une séance (prompteur, une observation d’un toucher, analyse), et les romans de formation des Matins de Gondoukstra. Les élèves jouent sur le plateau en carton ; l’écran est pour l’adulte.",
+    "files": []
+  },
+  {
+    "id": "mystere-cahiers-impeccables",
+    "title": "Le Mystère des cahiers impeccables",
+    "author": "Les Matins de Gondoukstra, aventure 3",
+    "description": "La seconde matinée au palais d’Ambre. Les cahiers bleus des enfants sont parfaits, et ils racontent une histoire fausse. Deux enquêtes : comment ces pages ont-elles été fabriquées ? Et que faudrait-il observer pour comprendre ce dont Néria, Solan et Tavi ont besoin ? Faits, hypothèses, vérifications, conclusions à la taille des faits. Se joue après Un précepteur tombé du ciel (passeport) ou seul.",
+    "cover": "images/couvertures/cahiers-banniere.jpg",
+    "sections": 87,
+    "series": "Séances pros",
+    "seriesOrder": 4,
+    "seriesNote": "Pour les enseignants : le livre du maître d’une séance (prompteur, une observation d’un toucher, analyse), et les romans de formation des Matins de Gondoukstra. Les élèves jouent sur le plateau en carton ; l’écran est pour l’adulte.",
+    "files": []
+  },
+  {
+    "id": "mission-neurones",
+    "title": "La Réunion, l’île cerveau : Mission neurones",
+    "author": "Ibrahim Moullan (texte) et Florian Tobé (illustrations)",
+    "description": "En 1153, un cyclone pousse des navigateurs arabes vers une île en forme de cerveau. Avec les marrons, tu accompagnes tour à tour quatre groupes à travers ses lobes : écouter, se repérer, voir, parler et décider. Trois versions : Petit explorateur (5-7 ans), Pisteur (8-9 ans), Gardien de la mémoire (10-11 ans et plus). Un conte d’Ibrahim Moullan illustré par Florian Tobé, collection « Le cerveau expliqué aux petits explorateurs ».",
+    "cover": "images/couverture.webp",
+    "sections": 56,
+    "series": "Les livres d’Ibrahim",
+    "seriesOrder": 1,
+    "seriesNote": "Livres-jeux d’après la collection d’Ibrahim Moullan, « Le cerveau expliqué aux petits explorateurs » : Mission neurones, puis la campagne du Trésor de La Buse (le passeport passe d’un livre à l’autre).",
+    "files": []
+  },
+  {
+    "id": "tresor-labuse-1",
+    "title": "Le Trésor de La Buse · 1. La Pièce du puits arabe",
+    "author": "Ibrahim Moullan (texte) et Florian Tobé (illustrations)",
+    "description": "Saint-Paul, juillet 1730. Au camp marron des Hauts, le vieux conteur t’emmène dans l’île-cerveau. Au réveil, une pièce d’or percée, marquée d’une buse, brille dans ta main : la grande quête du trésor de La Buse commence. Livre 1 de la campagne (5 livres). Trois versions : Petit explorateur (5-7 ans), Pisteur (8-9 ans), Gardien de la mémoire (10-11 ans et plus). D’après « Mission neurones » d’Ibrahim Moullan, illustré par Florian Tobé.",
+    "cover": "images/couverture.webp",
+    "sections": 95,
+    "series": "Les livres d’Ibrahim",
+    "seriesOrder": 2,
+    "seriesNote": "Livres-jeux d’après la collection d’Ibrahim Moullan, « Le cerveau expliqué aux petits explorateurs » : Mission neurones, puis la campagne du Trésor de La Buse (le passeport passe d’un livre à l’autre).",
+    "files": []
+  },
+  {
+    "id": "tresor-labuse-2",
+    "title": "Le Trésor de La Buse · 2. Le Cryptogramme de Mafate",
+    "author": "Ibrahim Moullan (texte) et Florian Tobé (illustrations)",
+    "description": "Mafate, 1730. Le papier de La Buse est couvert de flèches et de points. Pour le lire, Papi Enchaing t’envoie réveiller le Réseau des Anciens, canyon après canyon, avec Cimendef et deux lucioles. Mais les Gueules-Sèches du capitaine Mal-Lunes remontent la Rivière des Galets… Livre 2 de la campagne (5 livres) : joue-le avec ton passeport du livre 1, ou en nouveau voyageur. Trois versions : Petit explorateur (5-7 ans), Pisteur (8-9 ans), Gardien de la mémoire (10-11 ans et plus). D’après « Le cerveau mystère et ses codes de liberté » d’Ibrahim Moullan, illustré par Florian Tobé.",
+    "cover": "images/papi-cimendef.webp",
+    "sections": 66,
+    "series": "Les livres d’Ibrahim",
+    "seriesOrder": 3,
+    "seriesNote": "Livres-jeux d’après la collection d’Ibrahim Moullan, « Le cerveau expliqué aux petits explorateurs » : Mission neurones, puis la campagne du Trésor de La Buse (le passeport passe d’un livre à l’autre).",
+    "files": []
+  },
+  {
+    "id": "tresor-labuse-3",
+    "title": "Le Trésor de La Buse · 3. La Mémoire du volcan",
+    "author": "Ibrahim Moullan (texte) et Florian Tobé (illustrations)",
+    "description": "Grand Coude, 1730. « Là où le feu est jeune et la pierre se souvient, cherche le rivage d’avant. » Avec Asma et le galet de Nanan Laverdure, d’où sortent Ti Flanm et Zoliv, tu remontes la Rivière des Remparts jusqu’au volcan, puis tu descends vers la mer pour retrouver la côte telle que La Buse l’a vue. Mais le capitaine Mal-Lunes veut la pierre qui se souvient… Livre 3 de la campagne (5 livres) : joue-le avec ton passeport du livre 2, ou en nouveau voyageur. Trois versions : Petit explorateur (5-7 ans), Pisteur (8-9 ans), Gardien de la mémoire (10-11 ans et plus). D’après « L’extraordinaire naissance de l’île de La Réunion » d’Ibrahim Moullan, illustré par Florian Tobé.",
+    "cover": "images/couverture.webp",
+    "sections": 60,
+    "series": "Les livres d’Ibrahim",
+    "seriesOrder": 4,
+    "seriesNote": "Livres-jeux d’après la collection d’Ibrahim Moullan, « Le cerveau expliqué aux petits explorateurs » : Mission neurones, puis la campagne du Trésor de La Buse (le passeport passe d’un livre à l’autre).",
+    "files": []
+  },
+  {
+    "id": "tresor-labuse-4",
+    "title": "Le Trésor de La Buse · 4. L’Herbier des Hauts",
+    "author": "Ibrahim Moullan (texte) et Florian Tobé (illustrations)",
+    "description": "Des Hauts du Grand Coude à la forêt de Bélouve, 1730. « Sept feuilles gardent la porte, sous l’arbre que le vent ne plie pas. » Avec Raharianne, qui connaît chaque plante, tu réunis dans ton herbier sept feuilles de l’île, en dessinant plutôt qu’en cueillant. Mais le capitaine Mal-Lunes, lui, veut brûler la forêt pour trouver la porte… Livre 4 de la campagne (5 livres) : joue-le avec ton passeport du livre 3, ou en nouveau voyageur. Trois versions : Petit explorateur (5-7 ans), Pisteur (8-9 ans), Gardien de la mémoire (10-11 ans et plus). D’après « Le cerveau et les secrets cachés des plantes endémiques de La Réunion » d’Ibrahim Moullan, illustré par Florian Tobé.",
+    "cover": "images/couverture.webp",
+    "sections": 49,
+    "series": "Les livres d’Ibrahim",
+    "seriesOrder": 5,
+    "seriesNote": "Livres-jeux d’après la collection d’Ibrahim Moullan, « Le cerveau expliqué aux petits explorateurs » : Mission neurones, puis la campagne du Trésor de La Buse (le passeport passe d’un livre à l’autre).",
+    "files": []
+  },
+  {
+    "id": "sentiers-reunion",
+    "title": "Les sentiers de La Réunion dont vous êtes le héros",
+    "author": "Ibrahim Moullan (contes, énigmes du Fil d'Ariane) et Florian Tobé (illustrations, appli 3D)",
+    "description": "Le guide zarboutan des sentiers de La Réunion. Le tangue, guide et conteur, t’emmène avec la troupe par huit portes dans le cirque de Mafate. À chaque étape, une caisse fermée par une énigme des jeux de zefor974 (labyrinthe à programmer, brume, balance) ; au bout de 32 sentiers cachés, partout dans l’île, 32 zarboutans t’apprennent chacun un truc et écrivent une lettre dans ton guide. Trois versions : Petit explorateur (5-7 ans), Pisteur (8-9 ans), Gardien de la mémoire (10-11 ans et plus). Collection « La Réunion expliquée aux petits explorateurs ».",
+    "cover": "images/carte-ile.webp",
+    "sections": 486,
+    "series": "Le sentier",
+    "seriesOrder": 1,
+    "seriesNote": "Les sentiers de La Réunion dont vous êtes le héros : le guide zarboutan, huit portes pour entrer dans Mafate, 32 zarboutans au bout des sentiers cachés de l’île.",
+    "files": []
+  },
+  {
     "id": "la-tour-de-brume",
     "title": "La Tour de Brume",
     "author": "Exemple Livre-Héros",
     "description": "Une courte aventure pour découvrir le moteur : une boutique, des dés, des combats, une énigme, de la magie, une nuit à la belle étoile et deux fins.",
     "cover": "images/couverture.svg",
-    "sections": 19
+    "sections": 19,
+    "series": "Démonstrations du moteur",
+    "seriesOrder": 1,
+    "seriesNote": "Deux courtes aventures pour découvrir ce que le moteur sait faire."
   },
   {
     "id": "le-phare-des-nombres",
@@ -13,6 +136,9 @@
     "author": "Livre-Héros (aventure de démonstration)",
     "description": "À La Réunion, rallumez le vieux phare avant la nuit : du volcan au lagon, avec Anissa, des énigmes et des formules. Pour les 11-14 ans. Aventure de démonstration de tous les greffons ; pour les testeurs, le défi Zefor du labyrinthe de l’automate accepte le code de démonstration PHARE974.",
     "cover": "images/couverture.svg",
-    "sections": 31
+    "sections": 31,
+    "series": "Démonstrations du moteur",
+    "seriesOrder": 2,
+    "seriesNote": "Deux courtes aventures pour découvrir ce que le moteur sait faire."
   }
 ]

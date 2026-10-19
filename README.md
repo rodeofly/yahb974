@@ -100,7 +100,10 @@ js/store/   IndexedDB, import/export .lhz, compression des images
 js/ui/      interface Preact + htm (sans compilation) et registres des greffons (registry.js)
 js/plugins/ greffons : un dossier par fonctionnalité (core.js moteur, index.js interface)
 js/lib/     bibliothèques incluses : preact-htm, cytoscape, d3, dagre, fflate, KaTeX, qrcode-generator
-adventures/ aventures publiées avec le site (La Tour de Brume ; Le Phare des Nombres, démonstration de tous les greffons)
+adventures/ aventures publiées avec le site, en rayons : Séances pros (livres du maître, Les Matins de Gondoukstra),
+            les livres d'Ibrahim (Mission neurones, Le Trésor de La Buse 1-4), le sentier (Les sentiers de La Réunion),
+            démonstrations (La Tour de Brume ; Le Phare des Nombres, tous les greffons)
+vendor/     paquet zefor (défis intégrés : brume, labyrinthe, Pezali), code propriétaire publié avec le site
 tests/      tests du moteur et des greffons
 tools/      graphe-vers-aventure.py : convertit un livre-jeu analysé (paragraphes + renvois) en .lhz
 ```
