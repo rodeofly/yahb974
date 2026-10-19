@@ -360,6 +360,11 @@
 /* La télé du livre-jeu (?tele=1) : rien que le paysage et la troupe ; le livre raconte. */
 /* Only the book's buttons stay: the prompt bar (at the bottom: the book's subtitles run along the top) and the loot. */
 body.tele-mode .terrain-hud > :not(.ariane-prompt):not(.ariane-badge):not(.trail-map), body.tele-mode .player-touch-controls, body.tele-mode .player-crosshair { display: none !important; }
+/* Free exploration in the television (🧭 Libre): the joystick and the buttons come back, above the book's subtitles. */
+@media (any-pointer: coarse) { body.tele-mode.tele-libre .player-touch-controls:not([hidden]) { display: block !important; } }
+body.tele-mode.tele-libre .player-crosshair:not([hidden]) { display: block !important; }
+body.tele-mode.tele-libre .player-joystick { bottom: calc(var(--book-legend, 0px) + 24px) !important; }
+body.tele-mode.tele-libre .player-run-toggle, body.tele-mode.tele-libre .player-jump-button { bottom: calc(var(--book-legend, 0px) + 33px) !important; }
 /* A small television (the book's page): no map over the picture. */
 @media (max-height: 520px) { body.tele-mode .terrain-hud > .trail-map { display: none !important; } }
 /* The trail's map and profile, always there while a trail is under way: top left, below the book's badge (Florian, 18/10). */

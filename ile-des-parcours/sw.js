@@ -1,5 +1,5 @@
 /* L’île des parcours — anonymous, allowlisted, versioned static shell only. */
-const CACHE_VERSION = "c016f1277fd82129ecfd";
+const CACHE_VERSION = "fb1fe3ed49562d3b882b";
 const SCOPE_URL = new URL(self.registration.scope);
 const CACHE_PREFIX = `ile-des-parcours:${encodeURIComponent(SCOPE_URL.pathname)}:`;
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;

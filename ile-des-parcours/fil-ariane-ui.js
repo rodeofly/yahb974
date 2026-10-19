@@ -131,7 +131,8 @@ export async function initFilAriane(world, { container, dataUrl = './trails/fil-
   document.addEventListener('pointerdown', event => { if (!popPanel.hidden && !event.target.closest('.cam-pop')) setPop(false); });
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !popPanel.hidden) setPop(false); });
   popPanel.addEventListener('click', event => { if (event.target.closest('[data-view]:not(:disabled)')) setPop(false); });
-  const ACTIVE_FOR = { orbit: ['orbit'], panorama: ['panorama'], papangue: ['papangue'], skydive: ['skydive'], loup: ['loup', 'rts'], helico: ['helico', 'transfer'], glide: ['glide'] };
+  const ACTIVE_FOR = { orbit: ['orbit'], panorama: ['panorama'], papangue: ['papangue'], skydive: ['skydive'], loup: ['loup', 'rts'], helico: ['helico', 'transfer'], glide: ['glide'], 'char-free': ['char-free', 'third', 'fps'] };
+  const coarse = () => { try { return matchMedia('(any-pointer: coarse)').matches; } catch { return false; } };
   function syncCams() {
     const view = world.getView?.() || {}, hasTrail = !!current;
     if (view.view !== 'skydive') titleCard.hidden = true;
@@ -157,7 +158,7 @@ export async function initFilAriane(world, { container, dataUrl = './trails/fil-
     else if ((view === 'char-fps' || view === 'char-third') && now.view === 'char-free' && now.character === member) world.setCameraMode(view === 'char-fps' ? 'fps' : 'third');
     else if (!world.setView(view, { character: member })) { message('Choisis d’abord un itinéraire dans le Fil d’Ariane.'); return; }
     const name = members.find(m => m.id === member)?.label || '';
-    if (view === 'char-free') message(`Tu explores avec ${member === 'tangue' ? 'le tangue' : name} : ZQSD ou flèches pour marcher, V pour changer de vue.`);
+    if (view === 'char-free') message(`Tu explores avec ${member === 'tangue' ? 'le tangue' : name} : ${coarse() ? 'le joystick pour marcher, glisse à droite pour regarder' : 'ZQSD ou flèches pour marcher, V pour changer de vue'}.`);
     if (view === 'loup') message('Le loup rôde autour de la troupe. Un clic l’arrête et te donne la main.');
     if (view === 'glide') message('🪁 Le planeur suit le centre de l’écran : glisse pour tourner, regarde vers le bas pour piquer, vers le haut pour freiner. G pour le replier.');
     if ((view === 'char-fps' || view === 'char-third') && now.view !== 'char-free') { if (!progress.playing) world.trails.play(); message('Glisser pour regarder autour · Échap pour revenir à la carte.'); }
@@ -940,11 +941,16 @@ export async function initFilAriane(world, { container, dataUrl = './trails/fil-
     { id: 'papangue', icon: '🦅', label: 'Papangue : grands cercles au-dessus du sentier', trail: true },
     { id: 'loup', icon: '🐺', label: 'Loup : au ras du sol, autour de la troupe', trail: true },
     { id: 'panorama', icon: '🌋', label: 'Panorama : l’île qui tourne lentement' },
+    // Free exploration (Florian, 19/10 : « il manque le mode free exploration full carte ») : the whole map, and
+    // walking with the tangue (its joystick and buttons come back, above the book's subtitles).
+    { id: 'orbit', icon: '🗺️', label: 'Carte : toute l’île, à explorer librement (glisser, pincer pour zoomer)' },
+    { id: 'char-free', icon: '🧭', label: 'Libre : explorer l’île à pied avec le tangue' },
     { id: 'glide', icon: '🪁', label: 'Planeur : voler au-dessus de l’île (il suit le centre de l’écran)' },
     { id: 'skydive', icon: '🪂', label: 'Le grand saut' },
   ];
   function teleViewsOut() {
     const now = world.getView?.().view;
+    document.body.classList.toggle('tele-libre', ACTIVE_FOR['char-free'].includes(now));
     toBook({ type: 'livre-heros:tele-views', views: TELE_VIEWS.map(v => ({ id: v.id, icon: v.icon, label: v.label,
       active: (ACTIVE_FOR[v.id] || [v.id]).includes(now), disabled: !!v.trail && !current })) });
   }
