@@ -244,6 +244,10 @@ parvenez pas… », « Vous pouvez aussi renoncer au défi… ». Seuls les déf
   "consigne": { "fr": "Trois sacs de provisions et 2 kg de riz pèsent autant que 11 kg. Combien pèse un sac ?" } }
 ```
 
+**Brume sans formes** (`formes: false`, facultatif) : les nappes et les pastilles des questions gardent leur couleur,
+sans les formes ◆ ▼ ★ (qui distinguent les teintes sans la couleur, pour les daltoniens) ; l'énoncé doit alors nommer les
+couleurs (« les brumes bleues », « la brume rose »). Choix de l'auteur, à réserver aux lecteurs qui n'en ont pas besoin.
+
 **Décor du labyrinthe** (`decor`, facultatif) : zefor dessine une tête de mort sur les cases danger ; le paquet de
 Livre-Héros la remplace **à la construction** par un décor neutre, choisi par le niveau. Noms connus, dessinés par un
 pictogramme lisible sans la couleur :
@@ -267,8 +271,9 @@ les autres (`state.zefor.done`).
 
 ### Le paquet `vendor/zefor/`
 
-Le moteur de zefor974 est un **code propriétaire** : il n'est pas dans le dépôt (public) de Livre-Héros, qui ignore
-`vendor/zefor/` (`.gitignore`). On le construit hors des deux dépôts, sans rien modifier dans zefor974 :
+Le moteur de zefor974 est un **code propriétaire** (© Florian Tobé ; ses sources restent privées). Depuis le 19 octobre
+2026, le **paquet construit** est publié avec le site, dans `vendor/zefor/`, pour que les défis intégrés des livres
+publiés se jouent en ligne (voir `THIRD_PARTY.md`). On le construit hors des deux dépôts, sans rien modifier dans zefor974 :
 
 ```sh
 node /home/florian/Ibrahim/livre-heros/zefor-paquet/construire.mjs            # trois modules autonomes
@@ -279,8 +284,8 @@ Le script écrit `maze.js` + `maze.css` + `blockly-media/`, `brume.js`, `pezali.
 100 et 140 Ko compressés ; voir `zefor-paquet/README.md`). Le greffon les charge **à la demande** par `import()` (chemin
 `vendor/zefor/<activité>.js` à la racine du site) : une aventure sans défi intégré ne télécharge rien. Le service worker
 ne les précharge pas (pas dans `SHELL`) ; il les garde **à la première utilisation**, comme tout fichier du site : un défi
-déjà joué une fois fonctionne ensuite hors ligne. Pour publier le livre avec ses défis, copiez `vendor/zefor/` sur le
-serveur à côté de `index.html` (hors git).
+déjà joué une fois fonctionne ensuite hors ligne. Après une reconstruction, commitez `vendor/zefor/` avec le
+site ; un autre serveur doit avoir ce dossier à côté de `index.html`.
 
 Pour les tests, l'activité montée est exposée dans `window.__zeforIntegre = { kind, api, host, level }` (par exemple
 `api.ecrireXml(xml)` puis `api.run()` pour le labyrinthe). Le crochet de test de Pezali (`.pz-root.__lhTest`) n'existe que

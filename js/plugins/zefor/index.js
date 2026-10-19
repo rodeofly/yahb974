@@ -262,7 +262,7 @@ function ZeforPlayer({ adv, state, index, block, update, inner = false, lead = n
 /* Mode intégré : l'activité zefor jouée dans le paragraphe            */
 /* ------------------------------------------------------------------ */
 
-/** Dossier du paquet zefor (vendor/zefor/ à la racine du site), construit hors du dépôt (zefor-paquet/construire.mjs). */
+/** Dossier du paquet zefor (vendor/zefor/ à la racine du site), construit par zefor-paquet/construire.mjs et publié avec le site. */
 const VENDOR_URL = new URL('../../../' + Z.VENDOR_DIR, import.meta.url);
 const packages = new Map();
 let attempt = 0;
@@ -348,7 +348,8 @@ function ActivityStage({ kind, level, onPass, onMiss, onError, onReady, label })
   }, []);
   // Le conteneur intérieur appartient à zefor (qui remplace sa classe et son contenu) : Preact n'y touche jamais
   // (ni classe ni enfant déclarés) ; l'enveloppe .zf-stage garde le fond clair et la taille.
-  return html`<div class="zf-stage" data-kind=${kind} role="group" aria-label=${label} lang="fr"><div ref=${host}></div></div>`;
+  // `formes: false` (brume) : sans les formes ◆ ▼ ★ dessinées dans les nappes, la couleur seule (choix de l'auteur).
+  return html`<div class=${'zf-stage' + (level?.formes === false ? ' zf-sans-formes' : '')} data-kind=${kind} role="group" aria-label=${label} lang="fr"><div ref=${host}></div></div>`;
 }
 
 /** Pourquoi le paquet ne s'est pas chargé, en clair. */
@@ -576,7 +577,7 @@ function IntegreFields({ adv, block: b, set }) {
       <button type="button" class="btn" onClick=${() => setTrying(true)} disabled=${Z.checkLevel(kind, level).some(p => p.level === 'error')}><${Icon} name="play" />Essayer l’activité</button>
       <button type="button" class="btn small" onClick=${async () => { if (await confirmBox('Remplacer le niveau par l’exemple ?', 'Remplacer')) setLevel(Z.sampleLevel(kind)); }}>Niveau d’exemple</button>
     </div>
-    <p class="subtle zf-help">L’activité vient du paquet zefor (vendor/zefor/), construit à part : il n’est pas dans le dépôt public de Livre-Héros. Sans lui (ou hors ligne avant la première partie), le lecteur voit le repli ci-dessous, ou le bouton « Continuer sans le défi ».</p>
+    <p class="subtle zf-help">L’activité vient du paquet zefor (vendor/zefor/), construit à part et publié avec le site. Sans lui (site qui ne l’a pas, ou hors ligne avant la première partie), le lecteur voit le repli ci-dessous, ou le bouton « Continuer sans le défi ».</p>
     <fieldset class="zf-codes">
       <legend>Repli si l’activité ne se charge pas <span class="subtle">(recommandé)</span></legend>
       <label class="row"><input type="checkbox" checked=${!!fb} onChange=${e => set({ fallback: e.target.checked ? { mode: 'code', url: '', codeHashes: [] } : undefined })} /> Proposer le parcours zefor974 et un code de secours</label>

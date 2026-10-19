@@ -150,3 +150,6 @@ input.zf-code-input { font-family: var(--mono); font-size: 20px; letter-spacing:
 .zf-pr-laby td { width: 1.6em; height: 1.6em; border: 1px solid #111; text-align: center; vertical-align: middle; font-family: var(--sans); padding: 0; }
 .zf-pr-laby td.zf-pr-mur { background: repeating-linear-gradient(45deg, #bbb 0 2px, #fff 2px 5px); }
 .zf-pr-legende { font-size: .88em; }
+/* Brume sans les formes des teintes (niveau `formes: false`) : la nappe et la pastille gardent leur couleur. */
+.zf-sans-formes .br-forme { display: none; }
+.zf-sans-formes .br-pastille { font-size: 0; }

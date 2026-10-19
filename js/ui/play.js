@@ -1,7 +1,7 @@
 // Écran de jeu : création du héros, lecture, blocs interactifs, feuille d'aventure, fins.
 
 import { html, useState, useEffect, useLayoutEffect, useRef, useMemo } from '../lib/preact-htm.js';
-import { Icon, Dice, Prose, AssetImg, Modal, Glyph, iconText, toast, confirmBox, InlineText, loadGraphLibs } from './common.js';
+import { Icon, Dice, Prose, AssetImg, Modal, Glyph, iconText, isAssetIcon, toast, confirmBox, InlineText, loadGraphLibs } from './common.js';
 import { loadAdventure, assetUrl } from '../store/library.js';
 import { sfx, ambience, speak, stopSpeaking, ttsAvailable } from './audio.js';
 import { prefs } from './common.js';
@@ -9,6 +9,7 @@ import { putSave, listSaves, deleteSave } from '../store/db.js';
 import * as R from '../core/rules.js';
 import * as C from '../core/combat.js';
 import { ui, sorted, runHooks, effectiveAdventure } from './registry.js';
+import { knownPlaces, visitedPlaces } from '../plugins/carte/core.js';
 
 export function Play({ id, query }) {
   const [adv, setAdv] = useState(null);
@@ -166,6 +167,9 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const { state, messages, stamp } = game;
   const sec = adv.sections[state.section];
   const [sheetOpen, setSheetOpen] = useState(false);
+  // La feuille d'aventure repliable sur grand écran (Florian, 18/10) : la lecture prend alors toute la largeur.
+  const [sheetFolded, setSheetFolded] = useState(() => { try { return localStorage.getItem('livre-heros:feuille-repliee') === 'oui'; } catch { return false; } });
+  const foldSheet = v => { setSheetFolded(v); try { localStorage.setItem('livre-heros:feuille-repliee', v ? 'oui' : 'non'); } catch { /* pour cette visite */ } };
   const [lightbox, setLightbox] = useState(null);
   const [map, setMap] = useState(false);
   const [bag, setBag] = useState(null); // null = sac fermé ; sinon l'onglet à ouvrir ('' = le premier)
@@ -173,6 +177,39 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   bagRef.current = bag;
   const topRef = useRef();
   const [talking, setTalking] = useState(false);
+  // Avec la télé : le récit en sous-titres dans la télé (l'appareil s'en souvient), ou le texte sous la télé.
+  // Préférences de la télé propres à chaque livre (la télé éteinte dans l'un ne l'éteint pas dans l'autre).
+  const bookPref = key => `${key}:${adv.id || ''}`;
+  const [subsOn, setSubsOn] = useState(() => { try { return localStorage.getItem(bookPref(SUBS_PREF)) !== 'off'; } catch { return true; } });
+  const toggleSubs = () => setSubsOn(v => { try { localStorage.setItem(bookPref(SUBS_PREF), v ? 'off' : 'on'); } catch { /* pour cette visite */ } return !v; });
+  // La télé allumée ou éteinte (l'appareil s'en souvient), et le sous-titre en cours (remis au début à chaque paragraphe).
+  const [teleShown, setTeleShown] = useState(() => { try { return localStorage.getItem(bookPref(TELE_PREF)) !== 'off'; } catch { return true; } });
+  const showTele = v => { setTeleShown(v); try { localStorage.setItem(bookPref(TELE_PREF), v ? 'on' : 'off'); } catch { /* pour cette visite */ } };
+  const [subAt, setSubAt] = useState(0);
+  useEffect(() => setSubAt(0), [state.section]);
+  // La télé en plein écran : on continue d'y lire le récit (sous-titres, même en mode « Texte ») et d'y choisir.
+  const [teleFull, setTeleFull] = useState(false);
+  // Le plein écran de la télé est celui de toute la page, en cinéma : la pastille, la feuille, le sac et la carte du
+  // monde restent à portée (le plein écran d'un seul élément les cacherait tous).
+  useEffect(() => {
+    const onChange = () => { const on = document.fullscreenElement === document.documentElement; setTeleFull(on); document.documentElement.classList.toggle('lh-full', on); };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => { document.removeEventListener('fullscreenchange', onChange); document.documentElement.classList.remove('lh-full'); };
+  }, []);
+  const toggleFull = () => {
+    if (document.fullscreenElement) { document.exitFullscreen?.().catch(() => {}); return; }
+    setCinema(true); document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+  // Le cinéma : la télé (le monde en 3D) devient l'écran principal, le livre passe par-dessus (en-tête, sous-titres,
+  // boutons, défis, messages, carte et sac). `meta.tele.cinema` le propose d'emblée ; l'appareil se souvient du choix.
+  const [cinemaPref, setCinemaPref] = useState(() => { try { const v = localStorage.getItem(bookPref(CINEMA_PREF)); return v ? v === 'on' : null; } catch { return null; } });
+  const setCinema = v => { setCinemaPref(v); try { localStorage.setItem(bookPref(CINEMA_PREF), v ? 'on' : 'off'); } catch { /* pour cette visite */ } };
+  // Le défi s'ouvre dans une fenêtre au-dessus de la télé (mise en pause derrière) ; « Voir la télé » la cache un moment.
+  const [popHidden, setPopHidden] = useState(false);
+  useEffect(() => setPopHidden(false), [state.section]);
+  // Chaque nouvelle série de messages repart pour son apparition (ils s'effacent seuls avec la télé).
+  const msgSeq = useRef({ list: null, n: 0 });
+  if (messages !== msgSeq.current.list) msgSeq.current = { list: messages, n: msgSeq.current.n + 1 };
   const readAloud = () => {
     // Les blocs visibles (défi, carte…) se lisent aussi : question, propositions, consigne (voir `speech` dans registry.js).
     const blockLines = state.ended ? [] : (sec.blocks || []).map((b, i) => { try { return ui.blocks.get(b.type)?.speech?.(b, { adv, state, index: i }) || ''; } catch { return ''; } });
@@ -269,32 +306,136 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
   const goStep = c => { const st = adv.sections[c.to]?.step; return st != null && st !== '' && String(st) !== String(sec.step ?? '')
     ? html`<span class="go step" aria-label=${`étape ${st}`}>${st}</span>` : html`<span class="go next" aria-hidden="true">›</span>`; };
   // Messages de la dernière action ; en mode saisie, juste au-dessus des boutons, en plus court.
-  const msgsView = messages?.length > 0 && html`<div class=${'msgs' + (focus ? ' compact' : '')}>${messages.map(m => html`<div class=${'msg ' + m.kind + (m.alert ? ' alert' : '')} role=${m.alert ? 'alert' : null}><${Icon} name=${m.alert ? 'flag' : m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`;
+  // Avec la télé (ou `rules.toasts`), les messages surgissent un instant puis s'effacent, sans pousser la page.
+  const toasts = (!!adv.meta?.tele?.url && !continuous && !focus) || !!adv.rules.toasts;
+  const msgsView = messages?.length > 0 && html`<div key=${'m' + msgSeq.current.n} class=${'msgs' + (focus ? ' compact' : '') + (toasts ? ' toasts' : '')} role=${toasts ? 'status' : null}>${messages.map(m => html`<div class=${'msg ' + m.kind + (m.alert ? ' alert' : '')} role=${m.alert ? 'alert' : null}><${Icon} name=${m.alert ? 'flag' : m.kind === 'loss' ? 'down' : m.kind === 'gain' ? 'up' : 'check'} />${m.text}</div>`)}</div>`;
   const choiceButton = c => html`<button class="choice" disabled=${!c.available} onClick=${() => choose(c.index)}>
     <${InlineText} text=${c.text || 'Continuer'} />${String(c.to) === String(state.section)
       ? html`<span class="go stay" title="On reste sur ce paragraphe" aria-label="reste ici">↺</span>` : numbers ? html`<span class="go">${c.to}</span>` : goStep(c)}
     ${!c.available && html`<span class="why"><${Icon} name="lock" />${c.reason}</span>`}
   </button>`;
 
-  return html`<div class="play">
+  const listen = !focus && ttsAvailable() && (talking
+    ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
+    : html`<button class="btn small" onClick=${readAloud}><${Icon} name="speaker" />Écouter</button>`);
+  // La télé (meta.tele) : l'en-tête à gauche, la télé à droite, hors du paragraphe pour ne pas recharger la page à chaque pas.
+  const teleOn = !!adv.meta?.tele?.url && !continuous && !focus;
+  const cinema = teleOn && teleShown && !state.ended && (cinemaPref ?? !!adv.meta.tele.cinema);
+  // `meta.tele.home: { to, label, title? }` : un retour toujours à portée dans la pastille (le grand saut d'un livre de randonnée).
+  const teleHome = teleOn && adv.meta.tele.home?.to && adv.sections[adv.meta.tele.home.to] ? { label: '⌂ Accueil', ...adv.meta.tele.home } : null;
+  useEffect(() => { document.documentElement.classList.toggle('lh-cinema', cinema); return () => document.documentElement.classList.remove('lh-cinema'); }, [cinema]);
+  // En cinéma et en plein écran, le récit est toujours en sous-titres (le texte est derrière le monde).
+  const subs = teleOn && teleShown && (subsOn || teleFull || cinema) && !!sec.text;
+  const lines = useMemo(() => (subs ? subtitles(sec.text) : null), [subs, sec.text]);
+  // Le défi et les choix n'arrivent qu'une fois le récit lu (dernier sous-titre atteint, ou « Passer le récit »).
+  const readDone = !lines || lines.length <= 1 || subAt >= lines.length - 1;
+  const pop = teleOn && teleShown && readDone && !state.ended && (sec.blocks || []).length > 0;
+  // Un défi facultatif « pour réfléchir en marchant » (`tele: 'cote'` sur tous les blocs) : un panneau sur le côté,
+  // sans arrêter la télé.
+  const popSide = pop && (sec.blocks || []).every(b => b.tele === 'cote');
+  useEffect(() => {
+    if (!pop || popHidden) return undefined;
+    const onKey = e => { if (e.key === 'Escape' && !e.defaultPrevented) setPopHidden(true); };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [pop, popHidden, popSide]);
+  // Au bout des sous-titres : la page descend jusqu'à ce qu'il reste à faire (défi, choix).
+  // En plein écran, seul un défi à jouer dans la page fait sortir de la télé (les choix y sont déjà, en boutons) ;
+  // avec la télé, le défi surgit de lui-même dans sa fenêtre.
+  const toNext = () => {
+    if (teleFull && !(sec.blocks || []).length) return;
+    if (teleOn && teleShown && (sec.blocks || []).length) { setPopHidden(false); return; }
+    curRef.current?.querySelector('.block, nav.choices, .ending')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  // Un bouton pressé dans la télé : le même choix qu'ici (par son numéro, ou par son repère `tele`) ; une chose
+  // de la télé qui n'a pas de bouton ici (la caisse encore fermée) montre ce qu'il reste à faire.
+  const teleChoice = ({ index, tag, section }) => {
+    if (section != null && String(section) !== String(state.section)) return;
+    const pick = Number.isInteger(index) ? choices.find(c => c.index === index) : tag ? choices.find(c => c.available && c.tele === tag) : null;
+    if (pick?.available && !state.ended) choose(pick.index); else toNext();
+  };
+  // Un défi du paragraphe vient d'être réussi : la page (ou la fenêtre du défi) descend jusqu'à « Continuer »,
+  // qui prend le focus (Florian, 18/10). Pour tous les blocs : zefor (status) comme défis (solved).
+  const wins = Object.values(state.blocks || {}).filter(b => b?.status === 'success' || b?.solved).length;
+  const lastWins = useRef(wins);
+  useEffect(() => {
+    const before = lastWins.current; lastWins.current = wins;
+    if (wins <= before) return undefined;
+    const t = setTimeout(() => {
+      const root = document.querySelector('.block-pop:not(.is-hidden) .block-pop-card') || curRef.current;
+      const next = [...(root?.querySelectorAll('.block button') || [])].filter(b => !b.disabled && /^Continuer/.test(b.textContent.trim())).at(-1);
+      if (!next) return;
+      next.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' });
+      next.focus({ preventScroll: true });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [wins]);
+  // Les autres vues des choix (la carte du monde…) demandent un choix par un événement : un seul chemin pour choisir.
+  useEffect(() => {
+    const onRequest = e => teleChoice(e.detail || {});
+    addEventListener('livre-heros:choose', onRequest);
+    return () => removeEventListener('livre-heros:choose', onRequest);
+  });
+
+  // En cinéma, la pastille montre aussi la progression : compteurs visibles et collections à compléter (badges, guide…).
+  const chipRef = useRef(null);
+  const progressView = (() => {
+    const bits = [];
+    for (const c of adv.rules.counters || []) if (c.visible && !c.quiet) bits.push({ k: 'c-' + c.id, icon: COUNTER_EMOJI[c.icon] || '•', text: String(state.counters?.[c.id] ?? c.start ?? 0), label: c.label });
+    for (const col of adv.rules.inventory?.collections || []) {
+      const items = col.items || [];
+      if (!items.length) continue;
+      bits.push({ k: 'i-' + col.id, icon: col.icon || '•', text: `${items.filter(i => state.inventory?.[i] > 0).length}/${items.length}`, label: col.label });
+    }
+    return bits.length ? html`<div class="sec-progress" aria-label="Progression">${bits.map(b => html`<span key=${b.k} title=${b.label}><span aria-hidden="true">${b.icon}</span> ${b.text}<span class="sr-only"> ${b.label}</span></span>`)}</div>` : null;
+  })();
+  // Le défi, dans la télé elle-même (il reste visible en plein écran et en cinéma, sans jamais quitter le monde) ;
+  // « Voir la télé » le cache, une pastille le rappelle. Les blocs ne changent jamais de place : leur état est gardé.
+  const popView = pop && html`<div class=${'block-pop' + (popHidden ? ' is-hidden' : '') + (popSide ? ' side' : '')} key=${'pop' + state.section} role="dialog" aria-modal=${popHidden || popSide ? null : 'true'} aria-label=${sec.title ? `Défi : ${sec.title}` : 'Défi'}>
+      <div class="block-pop-card">
+        <div class="block-pop-bar"><b><span aria-hidden="true">🧩</span> ${popSide ? 'Pour réfléchir en marchant' : 'À toi de jouer'}</b>
+          <button type="button" class="btn small" onClick=${() => setPopHidden(true)} title="Regarder la télé (Échap) ; le défi t’attend">📺 Voir la télé</button></div>
+        ${(sec.blocks || []).map((b, i) => html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`)}
+      </div>
+    </div>
+    ${popHidden && html`<button type="button" class="block-pop-pill btn primary" onClick=${() => setPopHidden(false)}><span aria-hidden="true">🧩</span>Reprendre le défi</button>`}`;
+
+  return html`<div class=${'play' + (teleOn ? ' with-tele' : '') + (cinema ? ' cinema' : '') + (pop && !popHidden ? (popSide ? ' popping-side' : ' popping') : '') + (sheetFolded && !cinema ? ' sheet-folded' : '')}>
     <article class=${'reader' + (continuous ? ' continuous' : '') + (focus ? ' focus' : '')} ref=${topRef} aria-live=${continuous ? null : 'polite'}>
       ${test && html`<p class="badge" style="margin:0 auto 12px">Mode test : rien n'est sauvegardé</p>`}
       ${state.cheat && html`<p class="badge" style="margin:0 auto 12px"><span aria-hidden="true">🃏</span> Mode triche</p>`}
       ${continuous && !focus && html`<${Feed} adv=${adv} source=${source} state=${state} numbers=${numbers} onImage=${setLightbox} />`}
+      ${teleOn && html`<div class="sec-top">
+        <div class="sec-top-left" ref=${chipRef}><${SecHead} adv=${adv} id=${state.section} sec=${sec} numbers=${numbers} />${listen}
+          <div class="sec-tools">
+          ${teleHome && String(state.section) !== String(teleHome.to) && !state.ended && html`<button class="btn small" onClick=${() => go(teleHome.to)} title=${teleHome.title || teleHome.label}>${teleHome.label}</button>`}
+          ${sec.text && !cinema && html`<button class="btn small" onClick=${toggleSubs} aria-pressed=${subsOn ? 'true' : 'false'} title=${subsOn ? 'Lire le texte sous la télé' : 'Lire le récit en sous-titres dans la télé'}>
+            <span aria-hidden="true">${subsOn ? '📜' : '💬'}</span>${subsOn ? 'Texte' : 'Sous-titres'}</button>`}
+          ${teleShown && html`<button class="btn small" onClick=${() => setCinema(!cinema)} aria-pressed=${cinema ? 'true' : 'false'} title=${cinema ? 'Revenir à la page du livre' : 'Le monde en 3D en grand, le livre par-dessus'}>
+            <span aria-hidden="true">${cinema ? '📖' : '🎬'}</span>${cinema ? 'Page' : 'Cinéma'}</button>`}
+          ${cinema && adv.meta?.worldMap?.image && ui.inventory && html`<button class="btn small" onClick=${() => setBag('x-carte-monde')} title="La carte du monde : un lieu marqué ✈ s'atteint d'un clic"><span aria-hidden="true">🗺️</span>Carte</button>`}
+          ${cinema && ui.inventory && html`<button class="btn small" onClick=${() => setBag('')} title="Le sac (touche I)"><span aria-hidden="true">🎒</span>Sac${newCount(state) ? html` <span class="badge">${newCount(state)}</span>` : null}</button>`}
+          ${cinema && html`<button class="btn small" onClick=${() => setSheetOpen(o => !o)} aria-expanded=${sheetOpen} aria-controls="feuille-aventure"><span aria-hidden="true">📜</span>Feuille</button>`}
+          </div>
+          ${cinema && progressView}</div>
+        <${Tele} adv=${adv} state=${state} lines=${lines} at=${subAt} setAt=${setSubAt} onEnd=${toNext} onSkip=${() => { setSubAt(lines ? lines.length - 1 : 0); setPopHidden(false); }}
+          onBack=${adv.rules.allowBack !== false && state.history.length && !state.ended ? goBack : null} chipRef=${cinema ? chipRef : null} shown=${teleShown} setShown=${showTele} onFull=${toggleFull} full=${teleFull} paused=${pop && !popHidden && !popSide} cinema=${cinema}
+          overlay=${cinema ? html`${popView}${toasts && !focus ? msgsView : null}` : null}
+          choices=${state.ended || !readDone ? [] : choices.filter(c => c.available)} onChoice=${teleChoice} />
+      </div>`}
       <div class="feed-current ink" key=${'p' + state.section + '-' + (state.trail?.length || 0)} ref=${curRef} aria-live=${continuous ? 'polite' : null}>
-      <${SecHead} adv=${adv} id=${state.section} sec=${sec} numbers=${numbers} />
+      ${teleOn ? html`<h2 class="sr-only">${numbers ? `${state.section}. ` : ''}${sec.title || ''}</h2>` : html`<${SecHead} adv=${adv} id=${state.section} sec=${sec} numbers=${numbers} />`}
       ${grouped && !state.ended && html`<div class="focus-bar"><button type="button" role="switch" aria-checked=${focus ? 'true' : 'false'}
         class=${'focus-toggle' + (focus ? ' on' : '')} onClick=${toggleFocus} title=${focus ? 'Revenir au paragraphe complet' : 'Ne garder que la saisie : un élève à la fois, de grands boutons'}>
         <${Icon} name="grid" />${adv.rules.focusLabel || 'Mode saisie'}<span class="focus-state">${focus ? 'activé' : 'désactivé'}</span></button></div>`}
-      ${!focus && ttsAvailable() && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">
-        ${talking ? html`<button class="btn small" onClick=${() => { stopSpeaking(); setTalking(false); }}><${Icon} name="stop" />Arrêter la lecture</button>`
-          : html`<button class="btn small" onClick=${readAloud}><${Icon} name="speaker" />Écouter</button>`}
-      </div>`}
+      ${!teleOn && listen && html`<div class="row" style="justify-content:center;margin:-8px 0 14px">${listen}</div>`}
       ${!focus && sec.image && html`<figure class="illus"><${AssetImg} adv=${adv} source=${source} path=${sec.image} alt=${sec.alt || sec.title || `Illustration du paragraphe ${state.section}`} onClick=${e => setLightbox(e.target.src)} /></figure>`}
-      ${!focus && html`<${Prose} text=${sec.text} />`}
-      ${!focus && msgsView}
-      ${!state.ended && (sec.blocks || []).map((b, i) => (focus && !ui.blocks.get(b.type)?.keepInFocus ? null : html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`))}
-      ${!state.ended && !state.combat?.over && choices.length > 0 && tabbed && html`<nav ref=${navRef} class=${'choices capture' + (focus ? ' focus' : '')} aria-label="Saisie">
+      ${!focus && (subs ? html`<div class="sr-only"><${Prose} text=${sec.text} /></div>` : html`<${Prose} text=${sec.text} />`)}
+      ${!focus && !toasts && msgsView}
+      ${!readDone && html`<div class="read-gate"><span>Récit : sous-titre ${subAt + 1} sur ${lines.length}, dans la télé (molette, flèches ou ›)</span>
+        <button class="btn small" onClick=${() => setSubAt(lines.length - 1)}>Passer le récit ▸</button></div>`}
+      ${readDone && !pop && !state.ended && (sec.blocks || []).map((b, i) => (focus && !ui.blocks.get(b.type)?.keepInFocus ? null : html`<${Block} key=${state.turn + '-' + i} adv=${adv} source=${source} state=${state} index=${i} block=${b} update=${update} go=${go} />`))}
+      ${readDone && !state.ended && !state.combat?.over && choices.length > 0 && tabbed && html`<nav ref=${navRef} class=${'choices capture' + (focus ? ' focus' : '')} aria-label="Saisie">
           <div class="capture-tabs" role="tablist" aria-label=${adv.rules.groupsLabel || 'Groupes'}>
             ${groupNames.map(g => html`<button type="button" role="tab" key=${g} aria-selected=${g === current ? 'true' : 'false'} class="capture-tab" onClick=${() => setTab(g)}>${g}</button>`)}
           </div>
@@ -305,14 +446,14 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
           </div>
           ${blocks.filter(b => !b.group).map((b, k) => html`<div class="choice-group free" key=${'f' + k}>${b.choices.map(choiceButton)}</div>`)}
         </nav>`}
-      ${!state.ended && !state.combat?.over && choices.length > 0 && !tabbed && (grouped
+      ${readDone && !state.ended && !state.combat?.over && choices.length > 0 && !tabbed && (grouped
         ? html`<nav ref=${navRef} class=${'choices grouped' + (sec.choiceLayout === 'columns' ? ' cols' : '')} aria-label="Choix">
             ${blocks.map((b, k) => b.group
               ? html`<section class="choice-group" key=${'g' + k} aria-label=${b.group}><h3 class="choice-group-title">${b.group}</h3>${b.choices.map(choiceButton)}</section>`
               : html`<div class="choice-group free" key=${'g' + k}>${b.choices.map(choiceButton)}</div>`)}
           </nav>`
         : html`<nav ref=${navRef} class="choices" aria-label="Choix">${choices.map(choiceButton)}</nav>`)}
-      ${!state.ended && adv.rules.freeJump && html`<form class="jump row" style="justify-content:center;gap:8px;margin-top:16px" onSubmit=${e => {
+      ${readDone && !state.ended && adv.rules.freeJump && html`<form class="jump row" style="justify-content:center;gap:8px;margin-top:16px" onSubmit=${e => {
         e.preventDefault(); const v = String(new FormData(e.target).get('n') || '').trim();
         if (adv.sections[v]) go(v); else update(state, [{ kind: 'info', text: `Il n'y a pas de paragraphe ${v || '?'}.` }]);
       }}>
@@ -322,6 +463,10 @@ function Reader({ adv, source, game, update, test, onRestart, onSaveAs }) {
       ${state.ended && html`<${Ending} adv=${adv} source=${source} state=${state} onRestart=${onRestart} onBack=${adv.rules.allowBack && state.history.length ? goBack : null} />`}
       </div>
     </article>
+    ${!cinema && popView}
+    ${toasts && !focus && !cinema && msgsView}
+    ${!cinema && html`<button type="button" class="sheet-fold-toggle btn small" onClick=${() => foldSheet(!sheetFolded)} aria-expanded=${sheetFolded ? 'false' : 'true'} aria-controls="feuille-aventure"
+      title=${sheetFolded ? 'Montrer la feuille d’aventure' : 'Replier la feuille d’aventure'}>${sheetFolded ? html`<span aria-hidden="true">📜</span>Feuille ‹` : html`Replier ›`}</button>`}
     <${Sheet} adv=${adv} source=${source} state=${state} update=${update} open=${sheetOpen} onClose=${() => setSheetOpen(false)}
       onBack=${adv.rules.allowBack !== false && state.history.length && !state.ended ? goBack : null}
       onMap=${numbers ? () => setMap(true) : null} onSave=${test ? null : onSaveAs} onBag=${ui.inventory ? tab => setBag(tab || '') : null} />
@@ -700,6 +845,168 @@ function Sheet({ adv, source, state, update, open, onClose, onBack, onMap, onSav
         : html`<${AvatarPicker} groups=${avatars} value=${state.hero.avatar} onPick=${v => { update({ ...state, hero: { ...state.hero, avatar: v } }, null); setPickAvatar(false); }} />`}
     <//>`}
   </aside>`;
+}
+
+/* ---------- la télé : une page compagnon qui suit l'histoire ---------- */
+/**
+ * `meta.tele = { url, title? }` : une page (un monde en 3D, une carte animée…) affichée à côté de l'en-tête. Chaque
+ * paragraphe peut porter un repère `tele` (« sentier-3:etape-2 ») ; sans repère, la télé garde celui du dernier
+ * paragraphe qui en avait un. Le repère part par postMessage({ type: 'livre-heros:tele', cue, section }) vers l'origine
+ * de la page, au chargement, à chaque changement, et quand la page annonce { type: 'livre-heros:tele-ready' }.
+ * Le cadre reste monté d'un paragraphe à l'autre : la page ne se recharge pas. Masquable (l'appareil s'en souvient).
+ */
+export function teleCue(adv, state) {
+  const cueOf = id => adv.sections[id]?.tele;
+  if (cueOf(state.section)) return String(cueOf(state.section));
+  for (let i = (state.history || []).length - 1; i >= 0; i--) if (cueOf(state.history[i]?.section)) return String(cueOf(state.history[i].section));
+  return '';
+}
+const TELE_PREF = 'livre-heros:tele', SUBS_PREF = 'livre-heros:sous-titres', CINEMA_PREF = 'livre-heros:cinema';
+/**
+ * Le récit découpé en sous-titres : un paragraphe par carton, un titre (###) avec le paragraphe qui le suit, et les
+ * longs paragraphes coupés entre deux phrases (≈ 220 signes), sans jamais couper un passage en gras ou en italique.
+ */
+export function subtitles(text) {
+  const out = [];
+  let title = '';
+  for (const raw of String(text || '').split(/\n\s*\n/)) {
+    const p = raw.trim();
+    if (!p) continue;
+    if (/^#{1,6}\s/.test(p)) { title = p.replace(/^#+\s*/, ''); continue; }
+    const pieces = [];
+    if (p.length > 260 && !/^([-*>]|\d+\.)\s/.test(p)) {
+      let cur = '';
+      for (const s of p.split(/(?<=[.!?…»])\s+(?=[«—A-ZÀ-ÖØ-Þ])/u)) {
+        const open = t => ((t.match(/\*\*/g) || []).length % 2) || ((t.replace(/\*\*/g, '').match(/[*_]/g) || []).length % 2);
+        if (cur && cur.length + s.length > 220 && !open(cur)) { pieces.push(cur); cur = s; } else cur = cur ? `${cur} ${s}` : s;
+      }
+      if (cur) pieces.push(cur);
+    } else pieces.push(p);
+    pieces.forEach((x, i) => out.push(i === 0 && title ? `**${title}**\n\n${x}` : x));
+    title = '';
+  }
+  if (title) out.push(`**${title}**`);
+  return out;
+}
+/**
+ * Ce que donne un choix (objets, compteurs, or), pour que la télé le montre sur son propre bouton :
+ * [{ icon (émoji), name, text }]. Les effets soumis à une condition fausse sont ignorés.
+ */
+const COUNTER_EMOJI = { coin: '🪙', star: '⭐', heart: '❤️', flag: '🚩' };
+export function givesOf(adv, state, effects = []) {
+  const plainText = t => String(t || '').split(/\n\s*\n/)[0].replace(/\*\*|[*_]/g, '').trim();
+  const lower = t => t.charAt(0).toLowerCase() + t.slice(1);
+  const out = [];
+  for (const e of effects || []) {
+    if (!e || (e.if && !R.check(e.if, state, adv))) continue;
+    if (e.op === 'give') { const it = adv.items?.[e.item]; if (it) out.push({ icon: it.icon && !isAssetIcon(it.icon) ? it.icon : '🎁', name: it.name || e.item, text: plainText(it.description) }); }
+    else if (e.op === 'counter' && Number(e.add) > 0) { const c = (adv.rules.counters || []).find(x => x.id === e.counter); out.push({ icon: COUNTER_EMOJI[c?.icon] || '➕', name: `${e.add} ${lower(c?.label || e.counter)}`, text: '' }); }
+    else if (e.op === 'gold' && Number(e.add) > 0) out.push({ icon: '💰', name: `${e.add} pièces d’or`, text: '' });
+  }
+  return out;
+}
+function Tele({ adv, state, lines = null, at = 0, setAt, onEnd, onSkip, onBack, chipRef = null, shown = true, setShown, onFull, full = false, paused = false, overlay = null, cinema = false, choices = [], onChoice }) {
+  const tele = adv.meta.tele, frame = useRef(null), dock = useRef(null), fig = useRef(null), cue = teleCue(adv, state);
+  // Les vues que propose la page compagnon (livre-heros:tele-views), en boutons dans la barre de la télé.
+  const [views, setViews] = useState([]);
+  // Les boutons du paragraphe, aussi dans la télé : { index, text, tag, gives }.
+  const buttons = choices.map(c => ({ index: c.index, text: c.text || 'Continuer', tag: c.tele || null, gives: givesOf(adv, state, c.effects) }));
+  const buttonsKey = JSON.stringify(buttons);
+  const n = lines?.length || 0, cur = Math.min(at, Math.max(0, n - 1));
+  const next = () => (cur < n - 1 ? setAt(cur + 1) : onEnd?.());
+  // Au premier sous-titre, « ‹ » revient au paragraphe précédent (si le livre le permet).
+  const prev = () => (cur > 0 ? setAt(cur - 1) : onBack?.());
+  // La hauteur de la légende, envoyée à la page compagnon : ses boutons se posent juste au-dessus.
+  const subsRef = useRef(null), [legend, setLegend] = useState(0);
+  useEffect(() => {
+    const el = subsRef.current;
+    if (!el || typeof ResizeObserver !== 'function') { setLegend(0); return undefined; }
+    const ro = new ResizeObserver(() => setLegend(Math.round(el.getBoundingClientRect().height)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [n > 0]);
+  // La molette fait défiler les sous-titres (une marche par cran, sans emballement) ; ← et → aussi, quand la télé a le focus.
+  const wheelAt = useRef(0);
+  const wheelStep = dy => {
+    if (!n || Math.abs(dy) < 4) return false;
+    const now = Date.now(); if (now - wheelAt.current < 380) return true; wheelAt.current = now;
+    if (dy > 0) next(); else prev();
+    return true;
+  };
+  const onWheel = e => { if (wheelStep(e.deltaY)) e.preventDefault(); };
+  const onKey = e => { if (!n) return; if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); } if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); } };
+  // « {host} » : la machine qui sert le livre (la même télé depuis ce poste, une tablette ou un autre ordinateur du réseau).
+  const target = useMemo(() => { try { const u = new URL(String(tele.url).replace(/\{host\}/g, location.hostname), location.href); return /^https?:$/.test(u.protocol) ? u : null; } catch { return null; } }, [tele.url]);
+  // `paused` : un défi est ouvert par-dessus, la page peut s'arrêter (et économiser l'appareil).
+  // Et ce que couvre la pastille du livre en haut (cinéma) : la page compagnon range ses cartes en dessous.
+  // Mesurée à chaque envoi (la mise en page du cinéma s'installe après le premier rendu), et quand la pastille change.
+  const measureTop = () => { const chip = chipRef?.current, f = fig.current?.getBoundingClientRect(); return chip && f ? Math.max(0, Math.round(chip.getBoundingClientRect().bottom - f.top)) : 0; };
+  const [top, setTop] = useState(0);
+  useEffect(() => {
+    const chip = chipRef?.current;
+    if (!chip || typeof ResizeObserver !== 'function') { setTop(0); return undefined; }
+    const measure = () => requestAnimationFrame(() => setTop(measureTop()));
+    const ro = new ResizeObserver(measure); ro.observe(chip); measure();
+    addEventListener('resize', measure);
+    return () => { ro.disconnect(); removeEventListener('resize', measure); };
+  }, [chipRef, shown]);
+  // Les lieux connus et visités de la carte du monde : la page compagnon peut montrer ce que le lecteur a découvert
+  // (les sentiers cachés d'un livre de randonnée, par exemple).
+  const visited = adv.meta.worldMap ? visitedPlaces(state, adv) : [];
+  const places = adv.meta.worldMap ? [...new Set([...knownPlaces(state, adv), ...visited])] : [];
+  const placesKey = places.join('|') + '#' + visited.join('|');
+  const send = () => { const w = frame.current?.contentWindow; if (w && target && cue) w.postMessage({ type: 'livre-heros:tele', cue, section: state.section, choices: buttons, paused, legend: n ? legend : 0, top: chipRef ? measureTop() : 0, places, visited }, target.origin); };
+  useEffect(send, [cue, shown, buttonsKey, paused, n ? legend : 0, top, placesKey]);
+  // Réabonné à chaque rendu (repère, boutons et sous-titres à jour) : la page prête, un bouton pressé, la molette.
+  useEffect(() => {
+    const onMessage = e => {
+      if (e.source !== frame.current?.contentWindow || e.origin !== target?.origin) return;
+      const type = e.data?.type;
+      if (type === 'livre-heros:tele-ready') send();
+      else if (type === 'livre-heros:tele-choice') onChoice?.(e.data);
+      else if (type === 'livre-heros:tele-wheel') wheelStep(Number(e.data.deltaY) || 0);
+      else if (type === 'livre-heros:tele-tap' && n) next(); // un toucher sur le monde (pas sur un objet) : la suite du récit
+      else if (type === 'livre-heros:tele-views' && Array.isArray(e.data.views)) setViews(e.data.views.slice(0, 8).map(v => ({ id: String(v.id || ''), icon: String(v.icon || '•').slice(0, 4), label: String(v.label || v.id || ''), active: !!v.active, disabled: !!v.disabled })).filter(v => v.id));
+    };
+    addEventListener('message', onMessage);
+    return () => removeEventListener('message', onMessage);
+  });
+  // Quand on fait défiler la page, la télé s'envole en vignette en haut à droite (réductible) ; sa place reste
+  // réservée (pas de saut de mise en page) et le cadre n'est jamais déplacé dans la page (il se rechargerait).
+  const [floating, setFloating] = useState(false), [mini, setMini] = useState(false);
+  useEffect(() => {
+    const el = dock.current;
+    if (!el || typeof IntersectionObserver !== 'function') return undefined;
+    const io = new IntersectionObserver(([e]) => setFloating(e.intersectionRatio < 0.45 && e.boundingClientRect.top < 120), { threshold: [0, 0.45, 1] });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shown, !!target]);
+  useEffect(() => { if (!floating) setMini(false); }, [floating]);
+  // Un nouveau paragraphe (un défi réussi, par exemple) : la télé revient en grand.
+  useEffect(() => setMini(false), [state.section]);
+  const title = tele.title || 'La télé de l’aventure';
+  if (!target) return null;
+  if (!shown) return html`<div class="tele-off"><button class="btn small" onClick=${() => setShown?.(true)}><span aria-hidden="true">📺</span>Allumer la télé</button></div>`;
+  const fly = floating && !cinema;
+  return html`<div class="tele-dock" ref=${dock}><figure ref=${fig} tabindex="-1" style=${`--legend:${n ? legend : 0}px`} class=${'tele' + (n ? ' with-subs' : '') + (fly ? ' is-floating' : '') + (fly && mini ? ' is-mini' : '')} onWheel=${onWheel} onKeyDown=${onKey}>
+    <iframe ref=${frame} src=${target.href} title=${title} allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-pointer-lock" onLoad=${send}></iframe>
+    ${n > 0 && html`<div class="tele-subs" ref=${subsRef} aria-hidden="true">
+      <div class="tele-sub" key=${state.section + '-' + cur} onClick=${next}><${Prose} text=${lines[cur]} /></div>
+      <div class="tele-subs-nav">
+        <button type="button" onClick=${prev} disabled=${cur === 0 && !onBack} aria-label=${cur > 0 ? 'Sous-titre précédent' : 'Paragraphe précédent'} title=${cur > 0 ? 'Sous-titre précédent' : 'Paragraphe précédent'}>‹</button>
+        <span>${cur + 1} / ${n}</span>
+        <button type="button" onClick=${next} aria-label=${cur < n - 1 ? 'Sous-titre suivant' : 'Aller à la suite'}>${cur < n - 1 ? '›' : '▾'}</button>
+        ${cur < n - 1 && onSkip && html`<button type="button" class="tele-skip" onClick=${onSkip} title="Passer le récit : aller tout de suite au défi ou aux choix">Passer le récit ⏭</button>`}
+      </div>
+    </div>`}
+    ${overlay}
+    <figcaption class="tele-bar">${fly && mini ? html`<button type="button" class="tele-pill" onClick=${() => setMini(false)} aria-label="Agrandir la télé"><span aria-hidden="true">📺</span>${title}</button>` : html`<span>${title}</span>`}
+      ${fly && !mini && html`<button type="button" onClick=${() => setMini(true)} aria-label="Réduire la télé" title="Réduire">–</button>`}
+      ${!(fly && mini) && views.map(v => html`<button type="button" key=${v.id} class=${'tele-view' + (v.active ? ' on' : '')} disabled=${!!v.disabled} aria-pressed=${v.active ? 'true' : 'false'} title=${v.label} aria-label=${v.label}
+          onClick=${() => frame.current?.contentWindow?.postMessage({ type: 'livre-heros:tele-view', id: v.id }, target.origin)}>${v.icon}</button>`)}
+      ${!(fly && mini) && html`<button type="button" onClick=${onFull} aria-pressed=${full ? 'true' : 'false'} aria-label=${full ? 'Quitter le plein écran' : 'Plein écran'} title=${full ? 'Quitter le plein écran' : 'Plein écran (cinéma : le récit continue en sous-titres)'}>⛶</button>`}
+      <button type="button" onClick=${() => setShown?.(false)} aria-label="Éteindre la télé" title="Éteindre la télé">×</button></figcaption>
+  </figure></div>`;
 }
 
 /* ---------- en-tête d'un paragraphe ---------- */

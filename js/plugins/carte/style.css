@@ -198,3 +198,10 @@
 .carte-stakes-inline { margin-left: 4px; }
 .carte-cheat-sec { flex-wrap: wrap; text-align: left; }
 .carte-stake { font-size: 13px; color: var(--muted); }
+
+/* La carte, autre vue des choix : un lieu où mène un choix possible porte ✈ et s'atteint d'un clic. */
+.carte-trip { display: grid; place-items: center; font-size: 13px; line-height: 1; color: #fff; background: var(--accent, #2f7d4f); border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #2f7d4f) 35%, transparent); animation: carte-trip 1.6s ease-in-out infinite; }
+@keyframes carte-trip { 50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent, #2f7d4f) 10%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .carte-trip { animation: none; } }
+.carte-trips { margin: 0; font-size: 14px; }
+.carte-trips .linkish { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }

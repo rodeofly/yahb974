@@ -211,7 +211,11 @@ function baseMarkdown(src) {
     return `<p>${inline(b).replace(/\n/g, '<br>')}</p>`;
   }).join('');
 }
-const inline = s => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/_(.+?)_/g, '<em>$1</em>');
+const inline = s => links(s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/_(.+?)_/g, '<em>$1</em>'));
+// Liens vers le web, ouverts dans un nouvel onglet : [texte](https://…) et adresses https:// nues (http et https seulement).
+const link = (url, text) => `<a href="${url}" target="_blank" rel="noopener">${text}</a>`;
+const links = s => s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m, text, url) => link(url, text))
+  .replace(/(^|[\s(])(https?:\/\/[^\s<)]*[^\s<).,;:!?»])/g, (m, before, url) => before + link(url, url));
 export const Prose = ({ text }) => html`<div class="prose" dangerouslySetInnerHTML=${{ __html: markdown(text) }}></div>`;
 /** Texte d'une ligne (choix…) : échappé, puis enrichi par les greffons du Markdown (formules…), sans autre mise en forme. */
 export function inlineMarkdown(src = '') {

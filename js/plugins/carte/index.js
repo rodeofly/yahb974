@@ -17,6 +17,7 @@ import {
   worldMarkers, journeyPoints, visitedPlaces, currentPlace, knownPlaces, sectionStakes, sectionsByPlace,
 } from './core.js';
 import { cheatGoto } from '../inventaire/core.js';
+import { choicesFor } from '../../core/rules.js';
 
 loadCSS(new URL('./style.css', import.meta.url));
 
@@ -219,7 +220,7 @@ function labelsOverlap(root) {
   return r.some((a, i) => r.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1));
 }
 
-function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded, onPlace, chosen, stakes }) {
+function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded, onPlace, chosen, stakes, trips = null }) {
   const wm = adv.meta.worldMap || {};
   const url = useAssetUrl(adv, source, wm.image);
   const frame = useRef();
@@ -232,10 +233,13 @@ function WorldMap({ adv, source, markers, points = [], onPick, label, onCrowded,
     ${url && points.length > 1 && html`<svg class="carte-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <polyline class="halo" points=${line} /><polyline points=${line} /></svg>`}
     ${url && markers.map(m => html`<${Pin} key=${m.name} m=${m} />`)}
-    ${url && onPlace && markers.filter(m => m.status !== 'unknown').map(m => html`<button type="button" key=${'go-' + m.name}
+    ${url && onPlace && !trips && markers.filter(m => m.status !== 'unknown').map(m => html`<button type="button" key=${'go-' + m.name}
         class=${'carte-jump' + (chosen === m.name ? ' on' : '')} style=${`left:${m.x}%;top:${m.y}%`}
         aria-pressed=${chosen === m.name ? 'true' : 'false'} aria-label=${`${m.name}${stakeText(stakes?.[m.name])} : choisir un paragraphe où aller`} title=${m.name + stakeText(stakes?.[m.name])}
         onClick=${e => { e.stopPropagation(); onPlace(m.name); }}>${stakeMarks(stakes?.[m.name], 'carte-stakes')}</button>`)}
+    ${url && onPlace && trips && markers.filter(m => m.status !== 'unknown' && trips.has(m.name)).map(m => html`<button type="button" key=${'trip-' + m.name}
+        class="carte-jump carte-trip" style=${`left:${m.x}%;top:${m.y}%`} aria-label=${`${m.name} : ${trips.get(m.name).text}`} title=${`${m.name} : ${trips.get(m.name).text}`}
+        onClick=${e => { e.stopPropagation(); onPlace(m.name); }}><span aria-hidden="true">✈</span></button>`)}
   </div>`;
 }
 
@@ -299,6 +303,23 @@ function WorldView({ adv, source, state, update, onClose }) {
     .filter(n => n && !seen.some(m => m.name === n && m.status !== 'unknown')).map(n => ({ name: n, ...placePos(adv, n), status: 'known' }))
     .filter(m => Number.isFinite(m.x))];
   const byPlace = useMemo(() => (cheat ? sectionsByPlace(adv) : new Map()), [cheat, adv]);
+  // Hors triche, la carte est une autre vue des choix du paragraphe : un lieu connu où mène un choix possible
+  // (son paragraphe porte ce lieu) s'atteint d'un clic, qui fait ce choix (un seul chemin : l'événement du lecteur).
+  const trips = useMemo(() => {
+    const m = new Map();
+    if (cheat || !update || state.ended) return m;
+    for (const c of choicesFor(state, adv)) {
+      const place = c.available && String(c.to) !== String(state.section) ? adv.sections[c.to]?.place : null;
+      const name = place && placeName(place);
+      if (name && !m.has(name)) m.set(name, c);
+    }
+    return m;
+  }, [cheat, update, state, adv]);
+  const takeTrip = name => {
+    const c = trips.get(name); if (!c) return;
+    onClose?.();
+    dispatchEvent(new CustomEvent('livre-heros:choose', { detail: { index: c.index, section: state.section } }));
+  };
   const stakes = useMemo(() => Object.fromEntries([...byPlace].map(([name, list]) => [name, stakesOf(adv, state, list.map(x => x.id))])), [byPlace, adv, state]);
   const points = wm.showPath !== false ? journeyPoints(state, adv) : [];
   const here = currentPlace(state, adv);
@@ -313,7 +334,8 @@ function WorldView({ adv, source, state, update, onClose }) {
   const shown = compact ? markers.map(m => (m.status !== 'unknown' ? { ...m, n: ++k } : m)) : markers;
   return html`<div class="stack carte-view" style="gap:12px">
     <${WorldMap} adv=${adv} source=${source} markers=${shown} points=${points} onCrowded=${compact ? null : () => setCrowded(sig)}
-      onPlace=${cheat ? n => setChosen(c => (c === n ? null : n)) : null} chosen=${chosen} stakes=${stakes} />
+      onPlace=${cheat ? n => setChosen(c => (c === n ? null : n)) : trips.size ? takeTrip : null} chosen=${chosen} stakes=${stakes} trips=${cheat ? null : trips} />
+    ${!cheat && trips.size > 0 && html`<p class="carte-trips" lang="fr"><span aria-hidden="true">✈</span> Touche un lieu marqué pour y aller : ${[...trips.keys()].map((n, i) => html`${i ? ', ' : ''}<button type="button" class="linkish" onClick=${() => takeTrip(n)}>${n}</button>`)}.</p>`}
     ${cheat && html`<${CheatTravel} adv=${adv} state=${state} update=${update} onClose=${onClose} chosen=${chosen} setChosen=${setChosen} stakes=${stakes} byPlace=${byPlace}
       places=${compact ? shown.filter(m => m.n).sort((a, b) => a.n - b.n) : [...markers].sort((a, b) => a.name.localeCompare(b.name, 'fr'))} />`}
     ${!markers.length && html`<p class="subtle" style="margin:0">Aucun lieu de votre voyage n'est encore marqué sur cette carte.</p>`}

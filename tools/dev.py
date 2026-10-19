@@ -242,4 +242,8 @@ if __name__ == '__main__':
     if LIVRES or BIBLIOTHEQUE:
         entrees, livres, docs = catalogue()
         print(f'  bibliothèque : {len(livres)} livre(s) jouable(s), {len(docs)} document(s), {len(entrees)} carte(s)', flush=True)
-    http.server.ThreadingHTTPServer(('' if LAN else '127.0.0.1', PORT), functools.partial(Dev, directory=str(RACINE))).serve_forever()
+    # Une tablette ou un téléphone demandent des dizaines de fichiers d'un coup : file d'attente large (5 par défaut).
+    class Serveur(http.server.ThreadingHTTPServer):
+        request_queue_size = 128
+        daemon_threads = True
+    Serveur(('' if LAN else '127.0.0.1', PORT), functools.partial(Dev, directory=str(RACINE))).serve_forever()

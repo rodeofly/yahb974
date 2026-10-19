@@ -184,3 +184,10 @@ qui révèle la tour.
 ## Carte-quiz : cacher les destinations
 
 Pour une carte qui sert de question (« Touche le lobe frontal »), ajoutez `"hideTargets": true` au bloc (case « Carte-quiz » dans l'éditeur). Les zones et la légende n'affichent plus « → N », et le lecteur d'écran n'annonce plus la destination : seule l'étiquette de la zone reste. Si l'aventure tutoie (`rules.defis.tu`), la consigne passe au tutoiement.
+
+## La carte, autre vue des choix
+
+Hors mode triche, la fenêtre « Carte du monde » (et l'onglet Carte du sac) marque ✈ chaque lieu **connu** où mène un
+choix possible du paragraphe en cours : le paragraphe d'arrivée du choix porte ce lieu (`sections[n].place`). Un clic
+sur le lieu, ou sur son nom sous la carte, fait ce choix (événement `livre-heros:choose` du lecteur, le même que pour la
+télé). Exemple : depuis le ciel de l'île d'un livre de randonnée, chaque îlet découvert est un grand saut d'un clic.
