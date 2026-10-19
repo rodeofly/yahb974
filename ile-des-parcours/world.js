@@ -14,6 +14,7 @@ import { createRiverLayer } from './river-layer.js';
 import { createCharacterAvatar } from './troop.js';
 import { createRocketPack } from './rocket-pack.js';
 import { createSkydive } from './skydive.js';
+import { focusOf, blendPose } from './camera-blend.js';
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 // Strategy camera, in the manner of Age of Empires III: fixed high pitch,
@@ -82,6 +83,9 @@ export async function createWorld(container, { onNodeSelect = () => {}, onReady 
   let controller = null, landscape = null, animationId = 0, lastInfo = 0, fps = 0, fpsCount = 0, fpsStart = performance.now();
   const pacer = createFramePacer();
   let appliedCameraMode = 'orbit';
+  // The active view's field of view (set by configureCamera): a blend passes through in-between values.
+  let modeFov = null;
+  const viewFov = () => modeFov ?? camera.fov;
   let lastPlayer = null, normalizedCoordinates = false;
   let trailLayer = null, riverLayer = null, rts = false, follow = false, themeNames = {}, blend = null;
   // Preset camera shots (panorama, helicopter, a member's eyes or shoulder)
@@ -284,7 +288,7 @@ export async function createWorld(container, { onNodeSelect = () => {}, onReady 
   function configureCamera(mode) {
     appliedCameraMode = mode;
     camera.near = mode === 'orbit' ? .06 : mode === 'rts' ? .02 : .0008;
-    camera.fov = mode === 'orbit' ? 44 : mode === 'rts' ? 40 : mode === 'glide' ? 74 : 68;
+    camera.fov = modeFov = mode === 'orbit' ? 44 : mode === 'rts' ? 40 : mode === 'glide' ? 74 : 68;
     camera.updateProjectionMatrix();
     // The strategy view keeps only a light haze on distant ridges.
     scene.fog = mode === 'orbit' ? null : explorationFog;
@@ -711,7 +715,7 @@ export async function createWorld(container, { onNodeSelect = () => {}, onReady 
         const points = trailLayer.getMembers().map((_, i) => trailLayer.getMemberPose(i)).filter(Boolean).map(p => new THREE.Vector3(p.x, p.y, p.z));
         const chestAt = trailLayer.getChestPosition(); if (chestAt) points.push(chestAt);
         const sphere = new THREE.Box3().setFromPoints(points).getBoundingSphere(new THREE.Sphere());
-        const fov = THREE.MathUtils.degToRad(camera.fov) * Math.min(1, camera.aspect);
+        const fov = THREE.MathUtils.degToRad(viewFov()) * Math.min(1, camera.aspect);
         desiredTarget.copy(sphere.center);
         // Gathered round the chest: the closest shot that still holds everyone
         // and the chest (Florian: « le zoom max »); the wheel still adjusts it.
@@ -896,13 +900,18 @@ export async function createWorld(container, { onNodeSelect = () => {}, onReady 
   }
   // Ghost camera: a change of view glides from the last picture to the new
   // one instead of jumping (no lurch that turns the stomach).
-  function startBlend(duration = 1.8) { blend = { position: camera.position.clone(), quaternion: camera.quaternion.clone(), t: 0, duration }; }
+  // Blend between two views (camera-blend.js): position, target on the ground and field of view glide together.
+  const blendGround = (x, z) => walkingTerrain.heightAt(x, z);
+  const poseNow = fov => ({ position: camera.position.clone(), quaternion: camera.quaternion.clone(), fov,
+    focus: focusOf(camera.position, camera.quaternion, blendGround, { metersPerUnit: source.metersPerUnit }) });
+  function startBlend(duration = 1.8) { blend = { from: poseNow(camera.fov), t: 0, duration }; }
   function applyBlend(dt) {
     if (!blend) return;
     blend.t += dt;
     const u = THREE.MathUtils.smootherstep(blend.t / blend.duration, 0, 1);
-    camera.position.lerpVectors(blend.position, camera.position, u);
-    camera.quaternion.slerpQuaternions(blend.quaternion, camera.quaternion, u);
+    const pose = blendPose(blend.from, poseNow(viewFov()), u, blendGround, { metersPerUnit: source.metersPerUnit });
+    camera.position.copy(pose.position); camera.quaternion.copy(pose.quaternion);
+    camera.fov = u >= 1 ? viewFov() : pose.fov; camera.updateProjectionMatrix();
     if (u >= 1) blend = null;
   }
   // The close-up: as near as possible while every member of the troop and
@@ -916,14 +925,14 @@ export async function createWorld(container, { onNodeSelect = () => {}, onReady 
     const mpu = source.metersPerUnit, members = points.slice(0, chestAt ? -1 : undefined), troopAt = new THREE.Box3().setFromPoints(members).getCenter(new THREE.Vector3());
     // Look across from the troop to the treasure, turned to a three-quarter view.
     const axis = chestAt ? Math.atan2(chestAt.x - troopAt.x, chestAt.z - troopAt.z) : Math.atan2(camera.position.x - centre.x, camera.position.z - centre.z) - 1.1;
-    const azimuth = axis + 1.1, elevation = .5, fov = THREE.MathUtils.degToRad(camera.fov) * Math.min(1, camera.aspect);
+    const azimuth = axis + 1.1, elevation = .5, fov = THREE.MathUtils.degToRad(viewFov()) * Math.min(1, camera.aspect);
     // A little farther, and aimed low: the scene sits in the upper part of
     // the picture, above the riddle's card.
     const reach = Math.max(sphere.radius + 2.5 / mpu, 6 / mpu) / Math.sin(fov / 2 * .9) * 1.35;
     const goal = new THREE.Vector3(centre.x + Math.sin(azimuth) * Math.cos(elevation) * reach, centre.y + Math.sin(elevation) * reach, centre.z + Math.cos(azimuth) * Math.cos(elevation) * reach);
     goal.y = Math.max(goal.y, walkingTerrain.heightAt(goal.x, goal.z) + 3 / mpu);
     const view = centre.clone().sub(goal).normalize(), screenUp = new THREE.Vector3(0, 1, 0).addScaledVector(view, -view.y).normalize();
-    const aim = centre.clone().setY(centre.y + .8 / mpu).addScaledVector(screenUp, -reach * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * .5);
+    const aim = centre.clone().setY(centre.y + .8 / mpu).addScaledVector(screenUp, -reach * Math.tan(THREE.MathUtils.degToRad(viewFov()) / 2) * .5);
     startBlend(); setCameraMode('rts');
     cinema = { type: 'frame', t: 0, centre: aim, goal, look: null };
     return true;

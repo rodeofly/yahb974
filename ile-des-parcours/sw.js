@@ -1,5 +1,5 @@
 /* L’île des parcours — anonymous, allowlisted, versioned static shell only. */
-const CACHE_VERSION = "97098dcb33ee822284b1";
+const CACHE_VERSION = "c016f1277fd82129ecfd";
 const SCOPE_URL = new URL(self.registration.scope);
 const CACHE_PREFIX = `ile-des-parcours:${encodeURIComponent(SCOPE_URL.pathname)}:`;
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
@@ -29,6 +29,7 @@ const SHELL_FILES = [
   "troop.js",
   "helicopter.js",
   "skydive.js",
+  "camera-blend.js",
   "rocket-pack.js",
   "chest.js",
   "ilet.js",
